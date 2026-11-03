@@ -76,6 +76,13 @@ a −2 s con −120 ppm y 40 ms de jitter.
 - Pausa: las tres pantallas quedan a menos de 15 ms de la posición del servidor.
 - Reanudar: hasta ~37 ms de error a los 1,5 s, que la corrección por velocidad va cerrando.
 
+**Ojo con esos números:** se midieron con patrones que tenían un defecto. El codificador H.264 del
+navegador tardaba unos 2 s en arrancar, y los archivos quedaban sin cuadros del segundo 0,35 al 2,46
+(53 cuadros en 5 s en vez de 150). El generador ya lo corrige. Con un patrón sano y 5 pantallas
+reproduciendo en la misma PC, el banco da p95 de 50 ms y máximo de 123 ms (no pasa). No se separó
+cuánto de eso es carga de la PC, porque decodificar 3 veces más cuadros en una sola máquina no
+representa pantallas independientes. La medición que vale es la de equipos reales.
+
 - Corte del WebSocket: la pantalla sigue reproduciendo con el último estado; el error se
   mantuvo entre −9 y +6 ms durante el corte y la reconexión.
 - Recarga completa de la pantalla (como un TV box que se reinicia): menos de 15 ms de error a

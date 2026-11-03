@@ -7,6 +7,9 @@ const ctx = canvas.getContext('2d');
 const W = canvas.width;
 const H = canvas.height;
 const FPS = 30;
+// El codificador H.264 tarda unos 2 s en entregar cuadros: sin esta espera el archivo queda con
+// un agujero al principio, que se ve como una traba en todas las pantallas.
+const ENCODER_WARMUP_MS = 4000;
 const token = getToken();
 $('volver').href = `/?token=${encodeURIComponent(token)}`;
 
@@ -56,7 +59,7 @@ async function record(seconds) {
   // Un pitido por segundo; más agudo cada 10 s.
   const audio = new AudioContext();
   const dest = audio.createMediaStreamDestination();
-  const base = audio.currentTime + 0.05;
+  const base = audio.currentTime + ENCODER_WARMUP_MS / 1000 + 0.05;
   for (let i = 0; i <= seconds; i++) {
     const osc = audio.createOscillator();
     const gain = audio.createGain();
@@ -68,7 +71,23 @@ async function record(seconds) {
   }
 
   const stream = new MediaStream([...canvas.captureStream(FPS).getVideoTracks(), ...dest.stream.getAudioTracks()]);
-  const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 });
+  const options = { mimeType, videoBitsPerSecond: 4_000_000 };
+
+  // Una grabación descartable mantiene el codificador en marcha durante la grabación real.
+  const warmup = new MediaRecorder(stream, options);
+  warmup.start();
+  let warming = true;
+  const warmLoop = () => {
+    if (!warming) return;
+    draw(0, 0);
+    requestAnimationFrame(warmLoop);
+  };
+  warmLoop();
+  $('estado').textContent = 'Preparando el codificador…';
+  await new Promise((resolve) => setTimeout(resolve, ENCODER_WARMUP_MS));
+  warming = false;
+
+  const recorder = new MediaRecorder(stream, options);
   const chunks = [];
   recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   const stopped = new Promise((resolve) => (recorder.onstop = resolve));
@@ -87,6 +106,7 @@ async function record(seconds) {
     loop();
   });
   recorder.stop();
+  warmup.stop();
   await stopped;
   audio.close();
   return { blob: new Blob(chunks, { type: mimeType.split(';')[0] }), ext: mimeType.startsWith('video/mp4') ? 'mp4' : 'webm' };
