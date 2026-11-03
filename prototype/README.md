@@ -98,4 +98,22 @@ real entre pantallas con una foto o un video de las dos.
 
 - Medir en Wi-Fi real con una TV o TV box: estas pruebas corren todas en la misma PC.
 - Comprobar que un TV box aguanta dos `<video>` cargados a la vez (memoria y decodificador).
-- Automatizar el banco con Playwright (Etapa 0.5).
+- Decidir el criterio de la prueba automática: con 33 ms estrictos falla a veces por 33,3 a 33,8 ms.
+
+## Pruebas automáticas
+
+```bash
+npm run test:sync
+```
+
+Corren en Edge (el Chromium de Playwright no trae H.264) contra un servidor propio en el puerto
+8799, con los medios en `tests/.media`. Generan un patrón de 8 s, lo revisan leyendo el MP4 y miden
+tres pantallas en contextos separados.
+
+Resultados con patrón parejo (4 corridas completas de la suite, sin cambios en el código):
+
+- Dispersión: p50 de 0,2 ms, p95 de 17 a 33,3 ms, máximo de 18 a 34 ms, 0 saltos.
+- Reconexión: 536 a 548 ms. Control de 150 ms: se mide en 150,6 a 151 ms de p50 en la mayoría.
+- Los valores caen en múltiplos de 16,7 ms, un refresco a 60 Hz. Probablemente sea el límite de
+  medir video de 30 fps en pantallas de 60 Hz, pero no está demostrado. Bajar la banda de "no
+  corregir" de 15 a 8 ms no cambió nada.
