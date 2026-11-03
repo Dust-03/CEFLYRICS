@@ -19,6 +19,9 @@ const isWebKit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Ed
 const BAND_OK_MS = 15;
 const BAND_EXIT_MS = 5;
 const BAND_RATE_MS = 120;
+const SEEK_RETRY_MS = 20;
+const SEEK_AFTER_JUMP_MS = 40;
+const JUMP_WINDOW_MS = 2000;
 const TICK_MS = 200;
 
 const localFromPerf = (p) => p * (1 + sim.driftPpm / 1e6) + sim.skewMs;
@@ -63,7 +66,10 @@ let progress = 0;
 let frame = null;
 let correcting = false;
 let settleUntil = 0;
-let seekLeadMs = 80;
+let seekLeadMs = 150;
+let seekRetries = 0;
+let lastActual = NaN;
+let jumpedAt = -Infinity;
 let startLeadMs = 0;
 let justSeeked = false;
 let justStarted = false;
@@ -284,7 +290,11 @@ function tick() {
     return;
   }
 
-  const errMs = circularDiff(actualPositionAt(perfT), expectedPositionAt(perfT)) * 1000;
+  const actual = actualPositionAt(perfT);
+  // Un salto hacia atrás de más de 1 s es un loop o un salto del operador.
+  if (Number.isFinite(lastActual) && actual < lastActual - 1) jumpedAt = perfT;
+  lastActual = actual;
+  const errMs = circularDiff(actual, expectedPositionAt(perfT)) * 1000;
   lastErrMs = errMs;
   errAbsAvgMs = errAbsAvgMs * 0.9 + Math.abs(errMs) * 0.1;
   correct(errMs, perfT);
@@ -300,9 +310,21 @@ function correct(errMs, perfT) {
   if (justSeeked) {
     seekLeadMs = clamp(seekLeadMs - errMs * 0.7, 0, 1500);
     justSeeked = false;
+    // Si el salto quedó lejos, se repite enseguida con el lead ya corregido: corregir 50 ms
+    // con playbackRate tardaría unos 3 s.
+    if (abs > SEEK_RETRY_MS && seekRetries < 2) {
+      seekRetries++;
+      return seekTo(expectedPositionAt(perfT + seekLeadMs));
+    }
   }
 
-  if (abs > BAND_RATE_MS) return seekTo(expectedPositionAt(perfT + seekLeadMs));
+  // Después de un loop cada navegador tarda distinto en volver al cuadro 0 (hasta ~170 ms):
+  // ese error se corrige con un salto, porque con playbackRate tardaría varios segundos.
+  const seekBandMs = perfT - jumpedAt < JUMP_WINDOW_MS ? SEEK_AFTER_JUMP_MS : BAND_RATE_MS;
+  if (abs > seekBandMs) {
+    seekRetries = 0;
+    return seekTo(expectedPositionAt(perfT + seekLeadMs));
+  }
 
   if (isWebKit) {
     // WebKit cambia mal el playbackRate: se usa una micropausa si va adelantado.

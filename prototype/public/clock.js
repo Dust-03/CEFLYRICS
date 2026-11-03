@@ -16,13 +16,25 @@ export class ClockSync {
     localNow = () => performance.now(),
     burstSize = 48,
     resyncBurstSize = 16,
-    burstGapMs = 15,
+    burstGapMs = 10,
+    burstTailMs = 150,
     resyncMs = 5000,
     slewMsPerS = 1,
     stepThresholdMs = 30,
     onLock = () => {},
   }) {
-    Object.assign(this, { send, localNow, burstSize, resyncBurstSize, burstGapMs, resyncMs, slewMsPerS, stepThresholdMs, onLock });
+    Object.assign(this, {
+      send,
+      localNow,
+      burstSize,
+      resyncBurstSize,
+      burstGapMs,
+      burstTailMs,
+      resyncMs,
+      slewMsPerS,
+      stepThresholdMs,
+      onLock,
+    });
     this.locked = false;
     this.drift = 0; // ms de offset que se acumulan por cada ms local
     this.applied = 0; // offset que se usa ahora (servidor - local)
@@ -93,7 +105,8 @@ export class ClockSync {
     let sent = 0;
     const fire = () => {
       if (sent++ >= n) {
-        this.burstTimer = setTimeout(() => this._finishBurst(), 300);
+        // Margen para que lleguen los últimos pong antes de cerrar la ráfaga.
+        this.burstTimer = setTimeout(() => this._finishBurst(), this.burstTailMs);
         return;
       }
       const id = this.nextId++;
