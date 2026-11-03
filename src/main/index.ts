@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { BrowserWindow, Menu, app, ipcMain, type WebContents } from 'electron';
 import { IPC, type AppInfo } from '@shared/api';
 import { parseAction, type Action } from '@shared/state';
+import { openDatabase } from './db/database';
 import { OnAirStore } from './store';
 import { OutputWindow, createOperatorWindow } from './windows';
 
@@ -35,6 +36,9 @@ app.whenReady().then(() => {
   // Sin menú: F10 abriría el de Windows en vez de poner negro.
   Menu.setApplicationMenu(null);
 
+  const db = openDatabase(join(app.getPath('userData'), 'ceflirics.db'));
+  app.on('will-quit', () => db.close());
+
   const output = new OutputWindow(
     (info) => broadcast(IPC.outputInfoChanged, info),
     (window) => handleShortcuts(window.webContents),
@@ -42,10 +46,11 @@ app.whenReady().then(() => {
 
   store.subscribe((state) => broadcast(IPC.stateChanged, state));
 
-  ipcMain.handle(
-    IPC.getAppInfo,
-    (): AppInfo => ({ name: 'CEFLIRICS', version: app.getVersion(), electron: process.versions.electron }),
-  );
+  ipcMain.handle(IPC.getAppInfo, (): AppInfo => ({
+    name: 'CEFLIRICS',
+    version: app.getVersion(),
+    electron: process.versions.electron,
+  }));
   ipcMain.handle(IPC.getState, () => store.current);
   ipcMain.on(IPC.dispatch, (_event, input: unknown) => {
     const action = parseAction(input);

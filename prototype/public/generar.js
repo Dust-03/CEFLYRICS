@@ -125,7 +125,10 @@ async function record(seconds) {
   warmup.stop();
   await stopped;
   audio.close();
-  return { blob: new Blob(chunks, { type: mimeType.split(';')[0] }), ext: mimeType.startsWith('video/mp4') ? 'mp4' : 'webm' };
+  return {
+    blob: new Blob(chunks, { type: mimeType.split(';')[0] }),
+    ext: mimeType.startsWith('video/mp4') ? 'mp4' : 'webm',
+  };
 }
 
 $('btn-grabar').onclick = async () => {

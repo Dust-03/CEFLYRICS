@@ -13,7 +13,14 @@ export const SCREENS: ScreenConfig[] = [
   { nombre: 'Prueba 3', skew: -2000, drift: -120, jitter: 40 },
 ];
 
-export type ServerState = { media: string | null; playing: boolean; anchorPos: number; duration: number; loop: boolean; black: boolean };
+export type ServerState = {
+  media: string | null;
+  playing: boolean;
+  anchorPos: number;
+  duration: number;
+  loop: boolean;
+  black: boolean;
+};
 
 export class Operator {
   state: ServerState | null = null;
@@ -68,7 +75,9 @@ export async function loadAndPlay(operator: Operator, pages: Page[], position = 
   operator.cmd('loop', { value: true });
   operator.cmd('load', { media: VIDEO });
   await expect.poll(() => operator.state?.media).toBe(VIDEO);
-  await Promise.all(pages.map((page) => page.waitForFunction(() => (window as any).__cef?.ready, null, { timeout: 30_000 })));
+  await Promise.all(
+    pages.map((page) => page.waitForFunction(() => (window as any).__cef?.ready, null, { timeout: 30_000 })),
+  );
   operator.cmd('play', { position });
   await expect.poll(() => operator.state?.playing).toBe(true);
 }

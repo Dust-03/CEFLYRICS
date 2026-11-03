@@ -169,7 +169,10 @@ body.pantalla {
   border-radius: 6px;
   background: rgb(0 0 0 / 0.65);
   color: #9ff0c3;
-  font: 12px/1.4 ui-monospace, Consolas, monospace;
+  font:
+    12px/1.4 ui-monospace,
+    Consolas,
+    monospace;
   pointer-events: none;
 }
 
@@ -371,7 +374,10 @@ th {
 }
 
 .posicion {
-  font: 600 22px/1 ui-monospace, Consolas, monospace;
+  font:
+    600 22px/1 ui-monospace,
+    Consolas,
+    monospace;
 }
 
 /* Banco de prueba */
@@ -391,7 +397,10 @@ th {
 }
 
 .resultado {
-  font: 600 18px/1.4 ui-monospace, Consolas, monospace;
+  font:
+    600 18px/1.4 ui-monospace,
+    Consolas,
+    monospace;
 }
 
 canvas.grafico {

@@ -120,7 +120,10 @@ function onState(next) {
   state = next;
   if (state.media !== loadedMedia && state.media !== loadingMedia) loadMedia(state.media);
   const anchorChanged =
-    !prev || prev.anchorTime !== state.anchorTime || prev.anchorPos !== state.anchorPos || prev.playing !== state.playing;
+    !prev ||
+    prev.anchorTime !== state.anchorTime ||
+    prev.anchorPos !== state.anchorPos ||
+    prev.playing !== state.playing;
   if (anchorChanged) clearStart();
   render();
   tick();
@@ -385,14 +388,17 @@ function armStart(untilStartMs) {
   if (armedFor === state.anchorTime) return;
   clearStart();
   const anchor = (armedFor = state.anchorTime);
-  startTimer = setTimeout(() => {
-    startTimer = null;
-    if (!state.playing || state.anchorTime !== anchor) return;
-    startedFor = anchor;
-    justStarted = true;
-    settleUntil = performance.now() + 250;
-    playVideo();
-  }, Math.max(0, untilStartMs - startLeadMs));
+  startTimer = setTimeout(
+    () => {
+      startTimer = null;
+      if (!state.playing || state.anchorTime !== anchor) return;
+      startedFor = anchor;
+      justStarted = true;
+      settleUntil = performance.now() + 250;
+      playVideo();
+    },
+    Math.max(0, untilStartMs - startLeadMs),
+  );
 }
 
 // Loop sin cortes: el reproductor de reserva arranca justo cuando la posición esperada da la
@@ -409,7 +415,13 @@ function armLoop(perfT) {
 function swapPlayers(onTime) {
   loopTimer = null;
   if (!state.playing || !state.loop) return;
-  logEvent('swap', { onTime, spareSeeking: spare.seeking, spareAt: spare.currentTime, spareReady: spare.readyState, leadMs: startLeadMs });
+  logEvent('swap', {
+    onTime,
+    spareSeeking: spare.seeking,
+    spareAt: spare.currentTime,
+    spareReady: spare.readyState,
+    leadMs: startLeadMs,
+  });
   [video, spare] = [spare, video];
   video.classList.remove('atras');
   spare.classList.add('atras');

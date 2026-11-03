@@ -192,7 +192,8 @@ class Conn {
         this.onHello(msg);
         break;
       case 'cmd':
-        if (this.role !== 'operator') return this.send({ t: 'error', message: 'Solo el operador puede enviar comandos' });
+        if (this.role !== 'operator')
+          return this.send({ t: 'error', message: 'Solo el operador puede enviar comandos' });
         handleCommand(msg);
         break;
       case 'ready':
@@ -342,7 +343,8 @@ function listMedia(res) {
 function uploadMedia(req, res, name) {
   if (!checkToken(req.headers['x-token'])) return json(res, 401, { error: 'Token inválido' });
   if (!isSafeName(name)) return json(res, 400, { error: 'Nombre o formato no permitido (mp4, m4v, webm, mov)' });
-  if (Number(req.headers['content-length']) > MAX_UPLOAD_BYTES) return json(res, 413, { error: 'Archivo demasiado grande' });
+  if (Number(req.headers['content-length']) > MAX_UPLOAD_BYTES)
+    return json(res, 413, { error: 'Archivo demasiado grande' });
   const dest = path.join(MEDIA_DIR, name);
   const tmp = `${dest}.${process.pid}.part`;
   const out = fs.createWriteStream(tmp);
@@ -431,7 +433,8 @@ const server = http.createServer((req, res) => {
     const isGet = req.method === 'GET' || req.method === 'HEAD';
     if (isGet && p === '/api/media') return listMedia(res);
     if (isGet && p === '/api/info') return json(res, 200, { urls: lanUrls() });
-    if (req.method === 'PUT' && p.startsWith('/api/media/')) return uploadMedia(req, res, decodeURIComponent(p.slice(11)));
+    if (req.method === 'PUT' && p.startsWith('/api/media/'))
+      return uploadMedia(req, res, decodeURIComponent(p.slice(11)));
     if (isGet && p.startsWith('/media/')) return serveMedia(req, res, decodeURIComponent(p.slice(7)));
     // La raíz es la pantalla; con token, la consola del operador.
     if (isGet && p === '/' && url.searchParams.has('token')) return serveStatic(req, res, '/operador');
@@ -445,7 +448,10 @@ const server = http.createServer((req, res) => {
 server.on('upgrade', (req, socket) => {
   const key = req.headers['sec-websocket-key'];
   if (!req.url.startsWith('/ws') || !key) return socket.destroy();
-  const accept = crypto.createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
+  const accept = crypto
+    .createHash('sha1')
+    .update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+    .digest('base64');
   socket.write(
     'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
       `Sec-WebSocket-Accept: ${accept}\r\n\r\n`,

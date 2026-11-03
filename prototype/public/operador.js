@@ -43,7 +43,11 @@ function onState(next) {
   $('loop').checked = state.loop;
   $('btn-negro').classList.toggle('primario', state.black);
   const chip = $('estado-video');
-  chip.textContent = !state.media ? 'sin video' : state.playing ? `al aire: ${state.media}` : `en pausa: ${state.media}`;
+  chip.textContent = !state.media
+    ? 'sin video'
+    : state.playing
+      ? `al aire: ${state.media}`
+      : `en pausa: ${state.media}`;
   chip.className = `chip ${state.playing ? 'ok' : ''}`;
   for (const el of document.querySelectorAll('.medio')) el.classList.toggle('al-aire', el.dataset.name === state.media);
 }

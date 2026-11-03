@@ -82,7 +82,8 @@ function drawChart(values) {
   g.beginPath();
   values.forEach((v, i) => {
     const x = (i / Math.max(1, values.length - 1)) * c.width;
-    i ? g.lineTo(x, y(v)) : g.moveTo(x, y(v));
+    if (i) g.lineTo(x, y(v));
+    else g.moveTo(x, y(v));
   });
   g.stroke();
   g.fillStyle = '#8d97ab';

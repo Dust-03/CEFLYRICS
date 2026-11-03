@@ -14,9 +14,7 @@ export type OnAirState = {
 };
 
 export type Action =
-  | { type: 'show-slide'; slide: Slide }
-  | { type: 'clear' }
-  | { type: 'toggle-mode'; mode: OverrideMode };
+  { type: 'show-slide'; slide: Slide } | { type: 'clear' } | { type: 'toggle-mode'; mode: OverrideMode };
 
 export const initialState: OnAirState = { rev: 0, slide: null, mode: 'live' };
 

@@ -34,7 +34,14 @@ test('tres pantallas con relojes desfasados van juntas, incluso en los loops', a
 
   const result = await measureSpread(pages, 20_000);
   const stats = await Promise.all(pages.map(screenStats));
-  console.log('Dispersión:', result, 'loops:', stats.map((s) => s.loops), 'saltos:', stats.map((s) => s.seeks));
+  console.log(
+    'Dispersión:',
+    result,
+    'loops:',
+    stats.map((s) => s.loops),
+    'saltos:',
+    stats.map((s) => s.seeks),
+  );
 
   expect(Math.min(...stats.map((s) => s.loops))).toBeGreaterThanOrEqual(2);
   expect(result.p95).toBeLessThanOrEqual(MAX_SPREAD_MS);
@@ -110,7 +117,9 @@ test('con repetir apagado el video frena al terminar', async ({ browser }) => {
   await sleep(2500);
 
   const stats = await Promise.all(pages.map(screenStats));
-  const ended = await Promise.all(pages.map((page) => page.evaluate(() => document.querySelector<HTMLVideoElement>('video:not(.atras)')!.ended)));
+  const ended = await Promise.all(
+    pages.map((page) => page.evaluate(() => document.querySelector<HTMLVideoElement>('video:not(.atras)')!.ended)),
+  );
   expect(ended).toEqual(pages.map(() => true));
   expect(stats.map((s) => s.loops)).toEqual(pages.map(() => 0));
   await closeScreens(pages);
@@ -139,4 +148,3 @@ test('sin el token no se puede operar ni subir archivos', async ({ request }) =>
   expect(operator.state?.black ?? false).toBe(false);
   display.close();
 });
-

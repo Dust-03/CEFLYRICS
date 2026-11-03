@@ -2,14 +2,7 @@ import { createReadStream, statSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { extname, join, normalize } from 'node:path';
-import {
-  _electron as electron,
-  chromium,
-  expect,
-  test,
-  type ElectronApplication,
-  type Page,
-} from '@playwright/test';
+import { _electron as electron, chromium, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 
 const SLIDE = {
   body: 'Porque de tal manera amó Dios al mundo, que haya dado á su Hijo unigénito',
@@ -167,28 +160,28 @@ test('la salida se ve igual en Electron y en un navegador', async () => {
 function pixelDiff(page: Page, first: Buffer, second: Buffer) {
   return page.evaluate(
     async ([a, b]) => {
-    const load = async (base64: string) => {
-      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-      const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
-      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-      const context = canvas.getContext('2d')!;
-      context.drawImage(bitmap, 0, 0);
-      return context.getImageData(0, 0, bitmap.width, bitmap.height);
-    };
-    const [imageA, imageB] = [await load(a), await load(b)];
-    if (imageA.width !== imageB.width || imageA.height !== imageB.height) {
-      return { sameSize: false, ratio: 1 };
-    }
-    let different = 0;
-    for (let i = 0; i < imageA.data.length; i += 4) {
-      const delta =
-        Math.abs(imageA.data[i] - imageB.data[i]) +
-        Math.abs(imageA.data[i + 1] - imageB.data[i + 1]) +
-        Math.abs(imageA.data[i + 2] - imageB.data[i + 2]);
-      if (delta > 30) different++;
-    }
-    return { sameSize: true, ratio: different / (imageA.width * imageA.height) };
-  },
+      const load = async (base64: string) => {
+        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+        const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const context = canvas.getContext('2d')!;
+        context.drawImage(bitmap, 0, 0);
+        return context.getImageData(0, 0, bitmap.width, bitmap.height);
+      };
+      const [imageA, imageB] = [await load(a), await load(b)];
+      if (imageA.width !== imageB.width || imageA.height !== imageB.height) {
+        return { sameSize: false, ratio: 1 };
+      }
+      let different = 0;
+      for (let i = 0; i < imageA.data.length; i += 4) {
+        const delta =
+          Math.abs(imageA.data[i] - imageB.data[i]) +
+          Math.abs(imageA.data[i + 1] - imageB.data[i + 1]) +
+          Math.abs(imageA.data[i + 2] - imageB.data[i + 2]);
+        if (delta > 30) different++;
+      }
+      return { sameSize: true, ratio: different / (imageA.width * imageA.height) };
+    },
     [first.toString('base64'), second.toString('base64')],
   );
 }

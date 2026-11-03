@@ -46,7 +46,9 @@
     <h1>CEFLIRICS</h1>
     <div class="salida">
       <span id="estado-salida">{outputLabel}</span>
-      <button id="btn-salida" onclick={() => api.toggleOutput()}>{output?.open ? 'Cerrar salida' : 'Abrir salida'}</button>
+      <button id="btn-salida" onclick={() => api.toggleOutput()}
+        >{output?.open ? 'Cerrar salida' : 'Abrir salida'}</button
+      >
     </div>
   </header>
 

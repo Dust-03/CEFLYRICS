@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from 'vitest';
 import { initialState, parseAction, reduce } from '../../src/shared/state';
 
 const slide = { body: 'En el principio', title: 'Génesis 1:1' };

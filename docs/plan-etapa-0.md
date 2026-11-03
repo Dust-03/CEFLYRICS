@@ -16,8 +16,8 @@ técnico más grande: la sincronía de video en la LAN.
 | 0.6 | Esqueleto Electron | electron-vite + TypeScript + Svelte 5. Carpetas `src/main`, `src/preload`, `src/renderer/operator`, `src/renderer/output`, `src/shared`, `packages/render-engine` | `npm run dev` abre la ventana del operador (hecho) |
 | 0.7 | Store de estado + IPC tipado | Store único en main ("lo que está al aire"), eventos tipados hacia los renderers | Un cambio en el operador llega a la salida en <50 ms (hecho) |
 | 0.8 | Salida por monitor | Ventana de salida a pantalla completa en el segundo monitor, renderizada con `packages/render-engine` | F10 negro, ESC salir; la salida se ve igual en Electron y en un navegador (hecho) |
-| 0.9 | Base de datos | better-sqlite3 + migraciones versionadas + prueba de FTS5 | Prueba que crea la base, inserta y busca con FTS5 |
-| 0.10 | Calidad | ESLint, Prettier, Vitest, `svelte-check` | `npm run check` y `npm test` pasan |
+| 0.9 | Base de datos | better-sqlite3 + migraciones versionadas + prueba de FTS5 | Prueba que crea la base, inserta y busca con FTS5 (hecho) |
+| 0.10 | Calidad | ESLint, Prettier, Vitest, `svelte-check` | `npm run check` y `npm test` pasan (hecho) |
 | 0.11 | Empaquetado de humo | electron-builder NSIS por usuario | El instalador instala y abre la app en una PC limpia |
 
 ## Orden
@@ -28,8 +28,7 @@ alcanza el objetivo, conviene saberlo antes de construir sobre ella.
 
 ## Riesgos
 
-- better-sqlite3 es un módulo nativo: hay que recompilarlo para la versión de Electron
-  (`electron-rebuild`); si no hay binario precompilado, requiere Build Tools de Visual Studio.
+- better-sqlite3 13 trae binarios Node-API: no hace falta recompilarlo ni Build Tools. Riesgo descartado.
 - Las pruebas de sincronía en una sola PC no reflejan el Wi-Fi real: hace falta una prueba
   manual con al menos una TV o TV box antes de cerrar la Etapa 2.
 - Licencia GPL-3.0: revisar la licencia de cada dependencia nueva antes de agregarla.
