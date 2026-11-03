@@ -83,6 +83,12 @@ reproduciendo en la misma PC, el banco da p95 de 50 ms y máximo de 123 ms (no p
 cuánto de eso es carga de la PC, porque decodificar 3 veces más cuadros en una sola máquina no
 representa pantallas independientes. La medición que vale es la de equipos reales.
 
+**Equipo real por la red** (2026-11-03, un equipo en 192.168.1.37 y esta PC, patrón sano de 20 s):
+38 s con un loop, 0 saltos en las dos pantallas, RTT de 3 a 5 ms. Error informado por el equipo
+casi siempre entre -6 y +9 ms, con momentos de hasta -34 ms que cierra la corrección por velocidad.
+A la vista: un pequeño retraso al principio y después nada significativo. Falta medir la diferencia
+real entre pantallas con una foto o un video de las dos.
+
 - Corte del WebSocket: la pantalla sigue reproduciendo con el último estado; el error se
   mantuvo entre −9 y +6 ms durante el corte y la reconexión.
 - Recarga completa de la pantalla (como un TV box que se reinicia): menos de 15 ms de error a
