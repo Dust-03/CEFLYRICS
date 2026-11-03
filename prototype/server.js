@@ -42,8 +42,9 @@ const MEDIA_TYPES = {
   '.mov': 'video/quicktime',
 };
 const ALIASES = {
-  '/': '/operador.html',
+  '/': '/pantalla.html',
   '/pantalla': '/pantalla.html',
+  '/operador': '/operador.html',
   '/prueba': '/prueba.html',
   '/generar': '/generar.html',
 };
@@ -432,6 +433,8 @@ const server = http.createServer((req, res) => {
     if (isGet && p === '/api/info') return json(res, 200, { urls: lanUrls() });
     if (req.method === 'PUT' && p.startsWith('/api/media/')) return uploadMedia(req, res, decodeURIComponent(p.slice(11)));
     if (isGet && p.startsWith('/media/')) return serveMedia(req, res, decodeURIComponent(p.slice(7)));
+    // La raíz es la pantalla; con token, la consola del operador.
+    if (isGet && p === '/' && url.searchParams.has('token')) return serveStatic(req, res, '/operador');
     if (isGet) return serveStatic(req, res, p);
     json(res, 405, { error: 'Método no permitido' });
   } catch {
@@ -454,7 +457,7 @@ server.listen(PORT, '0.0.0.0', () => {
   const urls = lanUrls();
   console.log('CEFLIRICS · prototipo de pantallas sincronizadas');
   console.log(`  Operador:  ${urls[0]}/?token=${TOKEN}`);
-  for (const u of urls) console.log(`  Pantallas: ${u}/pantalla`);
+  for (const u of urls) console.log(`  Pantallas: ${u}`);
   console.log(`  Banco de prueba: http://localhost:${PORT}/prueba?token=${TOKEN}`);
 });
 

@@ -144,7 +144,7 @@ document.addEventListener('keydown', (e) => {
 
 fetch('/api/info')
   .then((r) => r.json())
-  .then((info) => ($('url-pantallas').textContent = info.urls.map((u) => `${u}/pantalla`).join('  ·  ')));
+  .then((info) => ($('url-pantallas').textContent = info.urls.join('  ·  ')));
 
 setInterval(() => ($('posicion').textContent = formatTime(positionNow())), 100);
 

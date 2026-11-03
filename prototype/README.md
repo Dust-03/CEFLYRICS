@@ -12,9 +12,13 @@ node prototype/server.js --token MI_TOKEN
 
 Sin `--token`, el servidor inventa uno al azar. Al arrancar muestra las direcciones:
 
+- **Pantallas:** `<IP>:8787`, por ejemplo `192.168.1.39:8787` (abrir en cada TV, PC o TV box de
+  la misma red)
 - **Operador:** `http://<IP>:8787/?token=MI_TOKEN`
-- **Pantallas:** `http://<IP>:8787/pantalla` (abrir en cada TV, PC o TV box de la misma red)
 - **Banco de prueba:** `http://localhost:8787/prueba?token=MI_TOKEN`
+
+En la PC de desarrollo el puerto 80 no anduvo por la IP (la conexión se rechaza con un error de
+permisos, también desde el navegador), aunque Node escuchaba. No se averiguó la causa.
 
 La primera vez, Windows pide permiso en el firewall para Node: hay que permitir **redes
 privadas** para que las otras pantallas puedan conectarse.
