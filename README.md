@@ -18,6 +18,9 @@ npm install
 npm run dev        # abre la app
 npm run test:app   # prueba de arranque
 npm run test:sync  # pruebas de sincronía
+npm test           # pruebas unitarias
+npm run check      # tipos, ESLint y formato
+npm run dist       # instalador en release/
 ```
 
 ## Licencia

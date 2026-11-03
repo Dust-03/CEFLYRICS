@@ -1,6 +1,6 @@
 {
   "name": "ceflirics",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Software de proyección para iglesias",
   "license": "GPL-3.0-only",
@@ -13,7 +13,8 @@
     "postinstall": "node node_modules/electron/install.js",
     "test": "vitest run",
     "check": "svelte-check --tsconfig ./tsconfig.json && eslint . && prettier --check .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "dist": "electron-vite build && electron-builder --win"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -39,5 +40,6 @@
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3"
-  }
+  },
+  "author": "Proyecto CEFLIRICS"
 }

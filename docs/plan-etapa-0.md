@@ -18,7 +18,7 @@ técnico más grande: la sincronía de video en la LAN.
 | 0.8 | Salida por monitor | Ventana de salida a pantalla completa en el segundo monitor, renderizada con `packages/render-engine` | F10 negro, ESC salir; la salida se ve igual en Electron y en un navegador (hecho) |
 | 0.9 | Base de datos | better-sqlite3 + migraciones versionadas + prueba de FTS5 | Prueba que crea la base, inserta y busca con FTS5 (hecho) |
 | 0.10 | Calidad | ESLint, Prettier, Vitest, `svelte-check` | `npm run check` y `npm test` pasan (hecho) |
-| 0.11 | Empaquetado de humo | electron-builder NSIS por usuario | El instalador instala y abre la app en una PC limpia |
+| 0.11 | Empaquetado de humo | electron-builder NSIS por usuario (`npm run dist`) | El instalador instala y abre la app en una PC limpia (probado en esta PC; falta una PC limpia) |
 
 ## Orden
 
@@ -36,3 +36,12 @@ alcanza el objetivo, conviene saberlo antes de construir sobre ella.
 ## Fuera de esta etapa
 
 Biblia, letras, temas, playlist, multimedia, remoto PWA, mDNS/QR, NDI: Etapa 1 en adelante.
+
+## Pendientes al cerrar la etapa
+
+- Probar el instalador en una PC limpia.
+- Reglas de firewall: un instalador por usuario no tiene permisos de administrador para crearlas.
+  Por ahora Windows pregunta la primera vez. Hay que decidirlo antes de la Etapa 2.
+- Sin ícono propio ni firma de código: Windows muestra el aviso de SmartScreen al instalar.
+- Probar con teclado físico y desconectando el monitor en vivo.
+- Medir la sincronía con equipos reales y el patrón nuevo.

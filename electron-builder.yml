@@ -1,0 +1,20 @@
+appId: ar.ceflirics.app
+productName: CEFLIRICS
+copyright: GPL-3.0
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+# better-sqlite3 trae binarios Node-API: no hay nada que recompilar.
+npmRebuild: false
+# La GPL pide entregar la licencia junto con el programa.
+extraFiles:
+  - LICENSE
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  license: LICENSE
