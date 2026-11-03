@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "prototipo",
+      "runtimeExecutable": "D:\\Programas\\nodejs\\node.exe",
+      "runtimeArgs": ["prototype/server.js", "--port", "8787", "--token", "dev"],
+      "port": 8787
+    }
+  ]
+}

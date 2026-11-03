@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CEFLIRICS · Banco de prueba</title>
+    <link rel="stylesheet" href="/estilos.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="cabecera">
+        <h1>Banco de prueba de sincronía</h1>
+        <nav><a id="volver" href="/">Volver al operador</a></nav>
+      </header>
+      <section class="panel">
+        <p class="muted">
+          Abre varias pantallas en esta misma página, cada una con su reloj desfasado, con deriva y con jitter de red
+          simulados. Como comparten el reloj real del navegador, se puede medir la diferencia verdadera entre ellas.
+          Criterio: p95 de la dispersión menor a 33 ms.
+        </p>
+        <div class="fila">
+          <label>Video <select id="medio"></select></label>
+          <label>Medición <input id="segundos" type="number" min="5" max="300" value="20" style="width: 70px" /> s</label>
+          <button id="btn-correr" class="primario">Correr prueba</button>
+          <button id="btn-cortar">Cortar conexión de la pantalla 2</button>
+        </div>
+        <div id="resultado" class="resultado">—</div>
+        <canvas id="grafico" class="grafico" width="1200" height="160"></canvas>
+      </section>
+      <section class="panel">
+        <h2>Pantallas simuladas</h2>
+        <div id="pantallas" class="grilla-pantallas"></div>
+      </section>
+    </main>
+    <script type="module" src="/prueba.js"></script>
+  </body>
+</html>

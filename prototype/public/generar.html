@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CEFLIRICS · Video de prueba</title>
+    <link rel="stylesheet" href="/estilos.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="cabecera">
+        <h1>Generar video de prueba</h1>
+        <nav><a id="volver" href="/">Volver al operador</a></nav>
+      </header>
+      <section class="panel">
+        <p class="muted">
+          Graba un patrón con reloj grande, número de cuadro, una barra que cruza la pantalla cada segundo y un
+          pitido por segundo. Sirve para ver a simple vista (o filmar con el celular) si las pantallas van juntas.
+          Dejá esta pestaña visible mientras graba.
+        </p>
+        <div class="fila">
+          <label>Duración <input id="duracion" type="number" min="5" max="300" value="30" style="width: 80px" /> s</label>
+          <button id="btn-grabar" class="primario">Grabar y subir</button>
+          <span id="estado" class="muted"></span>
+        </div>
+        <canvas id="lienzo" width="1280" height="720" style="width: 100%; max-width: 960px; border-radius: 6px"></canvas>
+      </section>
+    </main>
+    <script type="module" src="/generar.js"></script>
+  </body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CEFLIRICS · Operador</title>
+    <link rel="stylesheet" href="/estilos.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="cabecera">
+        <h1>CEFLIRICS · Operador <span id="conexion" class="chip">sin conexión</span></h1>
+        <nav>
+          <a id="link-generar" href="/generar">Generar video de prueba</a>
+          <a id="link-prueba" href="/prueba">Banco de prueba</a>
+        </nav>
+      </header>
+
+      <section id="panel-token" class="panel" hidden>
+        <h2>Token de operador</h2>
+        <p class="muted">Lo muestra el servidor en la consola al arrancar.</p>
+        <form id="form-token" class="fila">
+          <input id="token" type="password" class="ancho" placeholder="Token" autocomplete="off" />
+          <button class="primario">Entrar</button>
+        </form>
+        <p id="token-error" class="muted"></p>
+      </section>
+
+      <section class="panel">
+        <h2>Pantallas conectadas <span id="cant-pantallas" class="chip">0</span></h2>
+        <p class="muted">Abrí en cada TV, PC o TV box: <span id="url-pantallas">…</span></p>
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>IP</th>
+                <th>Estado</th>
+                <th>Offset reloj</th>
+                <th>RTT</th>
+                <th>Deriva</th>
+                <th>Error</th>
+                <th>Velocidad</th>
+                <th>Saltos</th>
+              </tr>
+            </thead>
+            <tbody id="pantallas"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="columnas">
+        <section class="panel">
+          <h2>Video</h2>
+          <div class="fila">
+            <span class="posicion" id="posicion">--:--.-</span>
+            <span id="estado-video" class="chip">sin video</span>
+          </div>
+          <div class="fila">
+            <button id="btn-play" class="primario">Reproducir</button>
+            <button id="btn-pausa">Pausa</button>
+            <button id="btn-inicio">Al inicio</button>
+            <input id="ir-a" type="number" min="0" step="0.1" placeholder="seg" style="width: 90px" />
+            <button id="btn-ir">Ir</button>
+            <label><input id="loop" type="checkbox" checked /> Repetir</label>
+          </div>
+          <div id="medios" class="lista-medios"></div>
+          <div class="fila">
+            <input id="archivo" type="file" accept="video/mp4,video/webm,video/quicktime,.m4v" />
+            <span id="subida" class="muted"></span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Texto (versículo o letra)</h2>
+          <textarea id="texto-cuerpo" rows="5" placeholder="Porque de tal manera amó Dios al mundo…"></textarea>
+          <div class="fila" style="margin-top: 8px">
+            <input id="texto-titulo" type="text" class="ancho" placeholder="Referencia o título (Juan 3:16 RV1909)" />
+          </div>
+          <div class="fila">
+            <button id="btn-texto" class="primario">Mostrar</button>
+            <button id="btn-limpiar">Quitar texto (Esc)</button>
+            <button id="btn-negro">Negro (F10)</button>
+          </div>
+        </section>
+      </div>
+    </main>
+    <script type="module" src="/operador.js"></script>
+  </body>
+</html>
