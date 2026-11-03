@@ -10,8 +10,8 @@ comentado: español (Argentina). Nombres de variables y APIs en inglés.
   de copyright y la licencia; toda dependencia debe ser compatible con GPL-3.0.
 - UI del operador: **Svelte** (Svelte 5 + Vite).
 - Carpeta del proyecto: `D:\Proyectos Claude\CEFLIRICS`.
-- `prototype/` y `docs/investigacion.md` NO existían: se crean en la Etapa 0
-  (ver `docs/plan-etapa-0.md`).
+- `prototype/` y `docs/investigacion.md` se crearon en la Etapa 0
+  (ver `docs/plan-etapa-0.md`). Las preguntas abiertas están en la sección (e) del informe.
 
 ## Extra principal
 Enviar versículos, letras y VIDEOS GUARDADOS a otras pantallas de la red local (TV, PC,

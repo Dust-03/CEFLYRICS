@@ -10,7 +10,7 @@ técnico más grande: la sincronía de video en la LAN.
 |---|------|-----------|------------------------|
 | 0.1 | Herramientas | Node 26 LTS en `D:\Programas\nodejs`, Git en `D:\Programas\Git`, cachés de npm y Electron en `D:\Programas` | `node -v`, `npm -v` y `git --version` responden (hecho) |
 | 0.2 | Repositorio | `git init`, `LICENSE` (GPL-3.0), `README.md`, `.gitignore`, `.editorconfig` | Primer commit en `main` |
-| 0.3 | Especificación sala limpia | `docs/investigacion.md`: (a) tabla de módulos con criterios de aceptación, (b) flujos del operador, (c) modelo de datos, (d) fuentes públicas usadas | Ninguna fuente es código, recurso o texto de Holyrics |
+| 0.3 | Especificación sala limpia | `docs/investigacion.md`: (a) tabla de módulos con criterios de aceptación, (b) flujos del operador, (c) modelo de datos, (d) fuentes públicas usadas, (e) preguntas abiertas | Ninguna fuente es código, recurso o texto de Holyrics (hecho) |
 | 0.4 | Prototipo de sincronía | `prototype/server.js` + `public/` (Node sin dependencias): reloj NTP-like, inicio a T+600 ms, precarga a blob, deriva cada 200 ms, token de operador | Dos pestañas con reloj desfasado ±2 s reproducen el mismo video con diferencia ≤34 ms (hecho; probado con un equipo real, ver `prototype/README.md`) |
 | 0.5 | Prueba automática de sincronía | Playwright con 3 páginas y relojes falsos desfasados (`npm run test:sync`, usa Edge) | La prueba mide la diferencia real de posición y falla si p95 > 34 ms (hecho) |
 | 0.6 | Esqueleto Electron | electron-vite + TypeScript + Svelte 5. Carpetas `src/main`, `src/preload`, `src/renderer/operator`, `src/renderer/output`, `src/shared`, `packages/render-engine` | `npm run dev` abre la ventana del operador |
