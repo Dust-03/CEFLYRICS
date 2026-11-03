@@ -24,6 +24,7 @@ prototype/media/*
 !prototype/media/.gitkeep
 
 # Entorno y editores
+.claude/settings.local.json
 .env
 .env.*
 .vscode/*
