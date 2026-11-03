@@ -14,7 +14,7 @@ orden y lo que entrega cada paso.
 | # | Paso | Entrega | Criterio principal |
 |---|------|---------|--------------------|
 | 1.1 | Datos de biblias | Script que convierte USFM a SQLite. RV1909, KJV, WEB y BSB incluidas de fábrica. | Conteo de versículos correcto en las 4. Responde la pregunta 3: lista real de diferencias de versificación. (hecho; el mapa completo pasa a 1.5) |
-| 1.2 | Referencias | Intérprete de citas en español, con abreviaturas. | "jn 3 16", "Juan 3:16" y "1 Co 13:4-7" se resuelven; cubierto con una tabla de pruebas. |
+| 1.2 | Referencias | Intérprete de citas en español, con abreviaturas. | "jn 3 16", "Juan 3:16" y "1 Co 13:4-7" se resuelven; cubierto con una tabla de pruebas. (hecho) |
 | 1.3 | Consola de 3 zonas | Playlist, vista previa y al aire. Mandar a la vista previa y de ahí al aire; flechas. | Nada llega al público sin confirmarse. |
 | 1.4 | Motor de render | Ajuste de texto, área segura, reparto en diapositivas y transiciones. | El texto largo nunca se sale. Misma imagen en Electron y navegador. |
 | 1.5 | Biblia en la consola | Búsqueda, versiones lado a lado y proyección. | Versículo imprevisto al aire en menos de 5 s. Búsqueda en menos de 100 ms. |
