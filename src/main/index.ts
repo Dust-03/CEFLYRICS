@@ -1,45 +1,64 @@
 import { join } from 'node:path';
-import { BrowserWindow, app, ipcMain } from 'electron';
+import { BrowserWindow, Menu, app, ipcMain, type WebContents } from 'electron';
 import { IPC, type AppInfo } from '@shared/api';
+import { parseAction, type Action } from '@shared/state';
+import { OnAirStore } from './store';
+import { OutputWindow, createOperatorWindow } from './windows';
 
 // En desarrollo los datos quedan en el proyecto, no en el perfil del usuario.
 if (!app.isPackaged) app.setPath('userData', join(app.getAppPath(), 'userdata'));
 
-function openOperatorWindow() {
-  const window = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 960,
-    minHeight: 600,
-    title: 'CEFLIRICS',
-    backgroundColor: '#0e1320',
-    show: false,
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-  window.once('ready-to-show', () => window.show());
+const store = new OnAirStore();
 
-  const devServer = process.env.ELECTRON_RENDERER_URL;
-  if (devServer) window.loadURL(`${devServer}/operator/index.html`);
-  else window.loadFile(join(__dirname, '../renderer/operator/index.html'));
+const SHORTCUTS: Record<string, Action> = {
+  F8: { type: 'toggle-mode', mode: 'wallpaper' },
+  F9: { type: 'toggle-mode', mode: 'background' },
+  F10: { type: 'toggle-mode', mode: 'black' },
+  Escape: { type: 'clear' },
+};
+
+// Los atajos se atienden acá para que funcionen desde cualquier ventana, con cualquier foco.
+function handleShortcuts(contents: WebContents) {
+  contents.on('before-input-event', (event, input) => {
+    const action = SHORTCUTS[input.key];
+    if (input.type !== 'keyDown' || input.isAutoRepeat || !action) return;
+    event.preventDefault();
+    store.dispatch(action);
+  });
 }
 
-ipcMain.handle(
-  IPC.getAppInfo,
-  (): AppInfo => ({ name: 'CEFLIRICS', version: app.getVersion(), electron: process.versions.electron }),
-);
+function broadcast(channel: string, payload: unknown) {
+  for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, payload);
+}
 
 app.whenReady().then(() => {
-  openOperatorWindow();
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) openOperatorWindow();
+  // Sin menú: F10 abriría el de Windows en vez de poner negro.
+  Menu.setApplicationMenu(null);
+
+  const output = new OutputWindow(
+    (info) => broadcast(IPC.outputInfoChanged, info),
+    (window) => handleShortcuts(window.webContents),
+  );
+
+  store.subscribe((state) => broadcast(IPC.stateChanged, state));
+
+  ipcMain.handle(
+    IPC.getAppInfo,
+    (): AppInfo => ({ name: 'CEFLIRICS', version: app.getVersion(), electron: process.versions.electron }),
+  );
+  ipcMain.handle(IPC.getState, () => store.current);
+  ipcMain.on(IPC.dispatch, (_event, input: unknown) => {
+    const action = parseAction(input);
+    if (action) store.dispatch(action);
   });
+  ipcMain.handle(IPC.getOutputInfo, () => output.info);
+  ipcMain.on(IPC.toggleOutput, () => output.toggle());
+
+  const operator = createOperatorWindow();
+  handleShortcuts(operator.webContents);
+  // La salida sola no sirve: al cerrar el operador se cierra todo.
+  operator.on('closed', () => output.close());
+  output.openIfExternalDisplay();
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+app.on('window-all-closed', () => app.quit());

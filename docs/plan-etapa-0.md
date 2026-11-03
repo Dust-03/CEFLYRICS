@@ -14,8 +14,8 @@ técnico más grande: la sincronía de video en la LAN.
 | 0.4 | Prototipo de sincronía | `prototype/server.js` + `public/` (Node sin dependencias): reloj NTP-like, inicio a T+600 ms, precarga a blob, deriva cada 200 ms, token de operador | Dos pestañas con reloj desfasado ±2 s reproducen el mismo video con diferencia ≤34 ms (hecho; probado con un equipo real, ver `prototype/README.md`) |
 | 0.5 | Prueba automática de sincronía | Playwright con 3 páginas y relojes falsos desfasados (`npm run test:sync`, usa Edge) | La prueba mide la diferencia real de posición y falla si p95 > 34 ms (hecho) |
 | 0.6 | Esqueleto Electron | electron-vite + TypeScript + Svelte 5. Carpetas `src/main`, `src/preload`, `src/renderer/operator`, `src/renderer/output`, `src/shared`, `packages/render-engine` | `npm run dev` abre la ventana del operador (hecho) |
-| 0.7 | Store de estado + IPC tipado | Store único en main ("lo que está al aire"), eventos tipados hacia los renderers | Un cambio en el operador llega a la salida en <50 ms |
-| 0.8 | Salida por monitor | Ventana de salida a pantalla completa en el segundo monitor, renderizada con `packages/render-engine` | F10 negro, ESC salir; la salida se ve igual en Electron y en un navegador |
+| 0.7 | Store de estado + IPC tipado | Store único en main ("lo que está al aire"), eventos tipados hacia los renderers | Un cambio en el operador llega a la salida en <50 ms (hecho) |
+| 0.8 | Salida por monitor | Ventana de salida a pantalla completa en el segundo monitor, renderizada con `packages/render-engine` | F10 negro, ESC salir; la salida se ve igual en Electron y en un navegador (hecho) |
 | 0.9 | Base de datos | better-sqlite3 + migraciones versionadas + prueba de FTS5 | Prueba que crea la base, inserta y busca con FTS5 |
 | 0.10 | Calidad | ESLint, Prettier, Vitest, `svelte-check` | `npm run check` y `npm test` pasan |
 | 0.11 | Empaquetado de humo | electron-builder NSIS por usuario | El instalador instala y abre la app en una PC limpia |
