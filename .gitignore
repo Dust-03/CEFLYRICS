@@ -1,0 +1,33 @@
+# Dependencias
+node_modules/
+
+# Compilados y empaquetado
+out/
+dist/
+release/
+*.tsbuildinfo
+
+# Pruebas
+coverage/
+test-results/
+playwright-report/
+
+# Datos locales de la app (bases, medios, logs)
+*.sqlite
+*.sqlite-journal
+*.db
+*.log
+userdata/
+
+# Medios de prueba pesados
+prototype/media/*
+!prototype/media/.gitkeep
+
+# Entorno y editores
+.env
+.env.*
+.vscode/*
+!.vscode/extensions.json
+.idea/
+Thumbs.db
+.DS_Store

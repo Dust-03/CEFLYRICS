@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(winget show OpenJS.NodeJS.LTS --accept-source-agreements)",
+      "PowerShell(winget show Git.Git)",
+      "PowerShell(winget install --id OpenJS.NodeJS.LTS --source winget --exact --location \"D:\\\\Programas\\\\nodejs\" --silent --accept-package-agreements --disable-interactivity)",
+      "PowerShell(winget install --id Git.Git --source winget --exact --location \"D:\\\\Programas\\\\Git\" --silent --accept-package-agreements --disable-interactivity)",
+      "PowerShell($env:Path = [Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); \"node: $\\(node -v\\) -> $\\(\\(Get-Command node\\).Source\\)\"; \"npm: $\\(npm -v\\)\"; \"git: $\\(git --version\\) -> $\\(\\(Get-Command git\\).Source\\)\"; \"user.name: $\\(git config --global user.name\\)\"; \"user.email: $\\(git config --global user.email\\)\"; \"npm cache: $\\(npm config get cache\\)\")",
+      "PowerShell($env:Path = [Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); New-Item -ItemType Directory -Force \"D:\\\\Programas\\\\npm-cache\",\"D:\\\\Programas\\\\electron-cache\" | Out-Null; npm config set cache \"D:\\\\Programas\\\\npm-cache\"; [Environment]::SetEnvironmentVariable\\(\"ELECTRON_CACHE\",\"D:\\\\Programas\\\\electron-cache\",\"User\"\\); [Environment]::SetEnvironmentVariable\\(\"electron_config_cache\",\"D:\\\\Programas\\\\electron-cache\",\"User\"\\); \"npm cache: $\\(npm config get cache\\)\"; Set-Location \"D:\\\\Proyectos Claude\\\\CEFLIRICS\"; git init -b main; git config user.name \"Elias David Mansilla\"; git config user.email \"eliasdavidmansilla@gmail.com\"; git config core.autocrlf false; Invoke-WebRequest -Uri \"https://www.gnu.org/licenses/gpl-3.0.txt\" -OutFile \"LICENSE\" -UseBasicParsing; \"LICENSE: $\\(\\(Get-Item LICENSE\\).Length\\) bytes\"; Get-Content LICENSE -TotalCount 3)"
+    ]
+  }
+}
