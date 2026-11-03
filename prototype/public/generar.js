@@ -70,8 +70,18 @@ async function record(seconds) {
     osc.stop(base + i + 0.06);
   }
 
-  const stream = new MediaStream([...canvas.captureStream(FPS).getVideoTracks(), ...dest.stream.getAudioTracks()]);
+  // Con captureStream(FPS) el navegador elige cuándo tomar cada cuadro y la cadencia sale
+  // irregular (16, 33 y 50 ms), lo que falsea las mediciones de sincronía. Se piden a mano.
+  const videoTrack = canvas.captureStream(0).getVideoTracks()[0];
+  const stream = new MediaStream([videoTrack, ...dest.stream.getAudioTracks()]);
   const options = { mimeType, videoBitsPerSecond: 4_000_000 };
+  let lastFrameAt = -Infinity;
+  const frameDue = () => {
+    const now = performance.now();
+    if (now - lastFrameAt < 1000 / FPS - 4) return false;
+    lastFrameAt = now;
+    return true;
+  };
 
   // Una grabación descartable mantiene el codificador en marcha durante la grabación real.
   const warmup = new MediaRecorder(stream, options);
@@ -79,7 +89,10 @@ async function record(seconds) {
   let warming = true;
   const warmLoop = () => {
     if (!warming) return;
-    draw(0, 0);
+    if (frameDue()) {
+      draw(0, 0);
+      videoTrack.requestFrame();
+    }
     requestAnimationFrame(warmLoop);
   };
   warmLoop();
@@ -98,7 +111,10 @@ async function record(seconds) {
   await new Promise((resolve) => {
     const loop = () => {
       const t = Math.max(0, (performance.now() - t0) / 1000);
-      draw(t, frameNo++);
+      if (frameDue()) {
+        draw(t, frameNo++);
+        videoTrack.requestFrame();
+      }
       $('estado').textContent = `Grabando… ${Math.ceil(seconds - t)} s`;
       if (t >= seconds) return resolve();
       requestAnimationFrame(loop);

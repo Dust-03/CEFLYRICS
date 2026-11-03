@@ -11,6 +11,7 @@ release/
 coverage/
 test-results/
 playwright-report/
+tests/.media/
 
 # Datos locales de la app (bases, medios, logs)
 *.sqlite
