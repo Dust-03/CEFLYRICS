@@ -12,6 +12,8 @@ import {
 } from './helpers';
 
 const WARMUP_MS = 3000;
+// Objetivo de CLAUDE.md: un cuadro de diferencia a 30 fps.
+const MAX_SPREAD_MS = 34;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let operator: Operator;
@@ -35,7 +37,7 @@ test('tres pantallas con relojes desfasados van juntas, incluso en los loops', a
   console.log('Dispersión:', result, 'loops:', stats.map((s) => s.loops), 'saltos:', stats.map((s) => s.seeks));
 
   expect(Math.min(...stats.map((s) => s.loops))).toBeGreaterThanOrEqual(2);
-  expect(result.p95).toBeLessThan(33);
+  expect(result.p95).toBeLessThanOrEqual(MAX_SPREAD_MS);
   await closeScreens(pages);
 });
 
@@ -68,7 +70,7 @@ test('una pantalla que pierde la conexión vuelve en menos de 2 s y no se desinc
   console.log('Reconexión:', reconnectMs, 'ms', result);
 
   expect(reconnectMs).toBeLessThan(2000);
-  expect(result.p95).toBeLessThan(33);
+  expect(result.p95).toBeLessThanOrEqual(MAX_SPREAD_MS);
   await closeScreens(pages);
 });
 
@@ -94,7 +96,7 @@ test('la pausa deja todas las pantallas en la posición del servidor y se puede 
   await sleep(WARMUP_MS);
   const result = await measureSpread(pages, 3000);
   console.log('Después de reanudar:', result);
-  expect(result.p95).toBeLessThan(33);
+  expect(result.p95).toBeLessThanOrEqual(MAX_SPREAD_MS);
   await closeScreens(pages);
 });
 

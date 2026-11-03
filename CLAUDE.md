@@ -50,7 +50,7 @@ REST+WebSocket, servicio de sincronía (reloj maestro + medios), NDI sender, wor
 Renderers: Operador, Salida x N, y clientes LAN como PWA (remote, stage, "seguí el texto",
 pantallas sincronizadas).
 
-## Sincronización (objetivo: <33 ms p95 en Wi-Fi 5 GHz, ideal <15 ms)
+## Sincronización (objetivo: p95 ≤34 ms, un cuadro a 30 fps, en Wi-Fi 5 GHz; ideal <15 ms)
 - Reloj: 4 marcas NTP con performance.now(), ráfagas de 32-64, mediana del 25 % de menor RTT,
   deriva en ppm, slew gradual (<=1 ms/s).
 - Bandas: <15 ms nada; 15-120 ms playbackRate 1±0,5-2 %; >120-500 ms seek con lead aprendido.

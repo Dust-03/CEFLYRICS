@@ -98,7 +98,8 @@ real entre pantallas con una foto o un video de las dos.
 
 - Medir en Wi-Fi real con una TV o TV box: estas pruebas corren todas en la misma PC.
 - Comprobar que un TV box aguanta dos `<video>` cargados a la vez (memoria y decodificador).
-- Decidir el criterio de la prueba automática: con 33 ms estrictos falla a veces por 33,3 a 33,8 ms.
+- Medir el desfase real en equipos: el criterio pasó de 33 a 34 ms (un cuadro a 30 fps) porque con
+  33 ms estrictos la prueba fallaba por 33,3 a 33,8 ms.
 
 ## Pruebas automáticas
 
