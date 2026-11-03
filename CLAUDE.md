@@ -6,8 +6,10 @@ con funcionalidad equivalente a Holyrics más extras propios. Idioma de la UI y 
 comentado: español (Argentina). Nombres de variables y APIs en inglés.
 
 ## Decisiones tomadas (2026-11-03)
-- Licencia: **GPL-3.0**. Se puede reutilizar código de FreeShow/OpenLP respetando sus avisos
-  de copyright y la licencia; toda dependencia debe ser compatible con GPL-3.0.
+- Licencia: **GPL-3.0**; toda dependencia debe ser compatible con GPL-3.0.
+- **No se copia código de FreeShow, OpenLP ni otro proyecto GPL ajeno.** Así el código queda todo
+  propio y se puede agregar la excepción de enlace que necesita la DLL de NDI (ver sección (e) del
+  informe). Mirar qué funciones ofrecen esos programas sí está permitido.
 - UI del operador: **Svelte** (Svelte 5 + Vite).
 - Carpeta del proyecto: `D:\Proyectos Claude\CEFLIRICS`.
 - `prototype/` y `docs/investigacion.md` se crearon en la Etapa 0

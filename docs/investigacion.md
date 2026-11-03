@@ -194,8 +194,8 @@ reforma: hay que verificar qué está vigente antes de lanzar el programa.
 
 ### Licencias
 
-- **El proyecto es GPL-3.0.** FreeShow (GPL-3.0) y OpenLP (GPL-3.0 o posterior) son compatibles: se
-  puede reutilizar su código conservando sus avisos de copyright.
+- **El proyecto es GPL-3.0.** FreeShow (GPL-3.0) y OpenLP (GPL-3.0 o posterior) son compatibles, pero
+  **se decidió no copiar su código** (pregunta 1 de la sección (e)).
 - **Toda dependencia nueva** se revisa antes de agregarla. Electron, Svelte, better-sqlite3, Fastify,
   ws, bonjour-service y qrcode se asumen MIT, y Playwright y grandiose son Apache-2.0: **confirmar**
   cada una al instalarla. FFmpeg debe usarse en una compilación LGPL o GPL compatible.
@@ -211,10 +211,9 @@ reforma: hay que verificar qué está vigente antes de lanzar el programa.
    que el programa combinado se distribuya bajo GPL, y la biblioteca de NDI es propietaria. Lo usual
    es agregar una excepción de enlace (GPL, sección 7) para el código propio, pero esa excepción no
    cubre código ajeno: si se reutiliza código GPL de FreeShow u OpenLP, sus autores no la dieron.
-   FreeShow usa NDI, pero eso no resuelve la pregunta para este proyecto. Opciones: no reutilizar
-   código GPL ajeno y agregar la excepción; dejar NDI como programa aparte que el usuario instala; o
-   consultar a un abogado. **Decidir antes de copiar código ajeno, porque después no se puede
-   deshacer sin reescribir.**
+   FreeShow usa NDI, pero eso no resuelve la pregunta para este proyecto. **Decidido el 2026-11-03:**
+   no se copia código GPL ajeno, para poder agregar la excepción sobre código propio. Falta redactar
+   esa excepción al llegar al módulo NDI y que la revise un abogado.
 2. **¿Qué formato tiene el JSON que exporta Holyrics?** No se encontró documentación pública de ese
    archivo, solo una API con campos de canción como `id`, `title`, `artist`, `author`, `note`, `key`,
    `bpm`, `time_sig`, `groups` y `archived`. **Hace falta un archivo real exportado por un usuario**
