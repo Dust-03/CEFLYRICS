@@ -17,7 +17,9 @@ test('saca código, nombre y texto limpio de las palabras marcadas', () => {
 
 test('descarta notas al pie y referencias cruzadas, aunque tengan marcadores adentro', () => {
   const { verses } = parseUsfm(
-    book('\\c 1\n\\p\n\\v 1 Texto\\f + \\fr 1:1 \\ft Nota \\+w al|strong="H1"\\+w* pie\\f* sigue\\x - \\xo 1:1 \\xt Gen 1:1\\x* fin.'),
+    book(
+      '\\c 1\n\\p\n\\v 1 Texto\\f + \\fr 1:1 \\ft Nota \\+w al|strong="H1"\\+w* pie\\f* sigue\\x - \\xo 1:1 \\xt Gen 1:1\\x* fin.',
+    ),
   );
   expect(verses[0].text).toBe('Texto sigue fin.');
 });
@@ -30,7 +32,9 @@ test('conserva el texto de los marcadores de carácter', () => {
 });
 
 test('un versículo sigue en varias líneas poéticas', () => {
-  const { verses } = parseUsfm(book('\\c 1\n\\q1\n\\v 1 Primera línea\n\\q2 segunda línea\n\\b\n\\qs Selah.\\qs*\n\\v 2 Otra'));
+  const { verses } = parseUsfm(
+    book('\\c 1\n\\q1\n\\v 1 Primera línea\n\\q2 segunda línea\n\\b\n\\qs Selah.\\qs*\n\\v 2 Otra'),
+  );
   expect(verses).toEqual([
     { chapter: 1, verse: 1, text: 'Primera línea segunda línea Selah.' },
     { chapter: 1, verse: 2, text: 'Otra' },
@@ -39,7 +43,9 @@ test('un versículo sigue en varias líneas poéticas', () => {
 
 test('los títulos de sección y de salmo no entran al texto', () => {
   const { verses } = parseUsfm(
-    book('\\c 3\n\\s1 Título de sección\n\\r (2 Samuel 15)\n\\d Salmo de David\n\\q1\n\\v 1 Oh Jehová\n\\s1 Otro título\n\\q1\n\\v 2 Muchos'),
+    book(
+      '\\c 3\n\\s1 Título de sección\n\\r (2 Samuel 15)\n\\d Salmo de David\n\\q1\n\\v 1 Oh Jehová\n\\s1 Otro título\n\\q1\n\\v 2 Muchos',
+    ),
   );
   expect(verses.map((v) => v.text)).toEqual(['Oh Jehová', 'Muchos']);
 });
