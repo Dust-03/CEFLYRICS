@@ -20,15 +20,16 @@ const BAND_OK_MS = 15;
 const BAND_EXIT_MS = 5;
 const BAND_RATE_MS = 120;
 const SEEK_RETRY_MS = 20;
-const SEEK_AFTER_JUMP_MS = 40;
-const JUMP_WINDOW_MS = 2000;
+const LOOP_ARM_MS = 1000;
 const TICK_MS = 200;
 
 const localFromPerf = (p) => p * (1 + sim.driftPpm / 1e6) + sim.skewMs;
 const localNow = () => localFromPerf(performance.now());
 
 const $ = (id) => document.getElementById(id);
-const video = $('video');
+// Dos reproductores: el activo y uno de reserva, quieto en el cuadro 0 para el loop.
+let video = $('video');
+let spare = $('video-reserva');
 const ui = {
   text: $('texto'),
   textTitle: $('texto-titulo'),
@@ -68,17 +69,25 @@ let correcting = false;
 let settleUntil = 0;
 let seekLeadMs = 150;
 let seekRetries = 0;
-let lastActual = NaN;
-let jumpedAt = -Infinity;
-let startLeadMs = 0;
+let startLeadMs = 45;
 let justSeeked = false;
 let justStarted = false;
 let startTimer = null;
 let armedFor = null;
 let startedFor = null;
+let loopTimer = null;
+let lastSwapAt = -Infinity;
+let loops = 0;
 let seeks = 0;
 let lastErrMs = NaN;
 let errAbsAvgMs = 0;
+const events = [];
+
+// Registro corto de correcciones, para diagnosticar desde el banco de prueba.
+function logEvent(type, data) {
+  events.push({ epoch: performance.timeOrigin + performance.now(), type, ...data });
+  if (events.length > 300) events.shift();
+}
 
 function wsSend(obj) {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
@@ -109,7 +118,6 @@ function connect() {
 function onState(next) {
   const prev = state;
   state = next;
-  video.loop = !!state.loop;
   if (state.media !== loadedMedia && state.media !== loadingMedia) loadMedia(state.media);
   const anchorChanged =
     !prev || prev.anchorTime !== state.anchorTime || prev.anchorPos !== state.anchorPos || prev.playing !== state.playing;
@@ -147,8 +155,10 @@ async function loadMedia(name) {
   frame = null;
   render();
   if (!name) {
-    video.removeAttribute('src');
-    video.load();
+    for (const el of [video, spare]) {
+      el.removeAttribute('src');
+      el.load();
+    }
     loadingMedia = null;
     setStatus('Conectada');
     return;
@@ -182,9 +192,7 @@ async function loadMedia(name) {
     }
     if (loadingMedia !== name) return;
     setStatus('Preparando video…');
-    video.src = url;
-    await once(video, 'loadedmetadata');
-    await fixDuration();
+    await Promise.all([video, spare].map((el) => prepare(el, url)));
     if (loadingMedia !== name) return;
     loadingMedia = null;
     loadedMedia = name;
@@ -201,12 +209,18 @@ async function loadMedia(name) {
 }
 
 // Los videos grabados con MediaRecorder no traen duración: se fuerza a calcularla.
-async function fixDuration() {
-  if (Number.isFinite(video.duration) && video.duration > 0) return;
-  video.currentTime = 1e101;
-  await Promise.race([once(video, 'durationchange'), sleep(3000)]);
-  video.currentTime = 0;
-  await Promise.race([once(video, 'seeked'), sleep(1000)]);
+async function fixDuration(el) {
+  if (Number.isFinite(el.duration) && el.duration > 0) return;
+  el.currentTime = 1e101;
+  await Promise.race([once(el, 'durationchange'), sleep(3000)]);
+  el.currentTime = 0;
+  await Promise.race([once(el, 'seeked'), sleep(1000)]);
+}
+
+async function prepare(el, url) {
+  el.src = url;
+  await once(el, 'loadedmetadata');
+  await fixDuration(el);
 }
 
 const once = (el, type) => new Promise((resolve) => el.addEventListener(type, resolve, { once: true }));
@@ -215,11 +229,16 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // ---------- Medición ----------
 
 // requestVideoFrameCallback dice qué cuadro (mediaTime) se muestra y cuándo (expectedDisplayTime).
-function onVideoFrame(_now, meta) {
-  frame = { mediaTime: meta.mediaTime, at: meta.expectedDisplayTime };
-  video.requestVideoFrameCallback(onVideoFrame);
+function watchFrames(el) {
+  if (!('requestVideoFrameCallback' in el)) return;
+  const onFrame = (_now, meta) => {
+    if (el === video) frame = { mediaTime: meta.mediaTime, at: meta.expectedDisplayTime };
+    el.requestVideoFrameCallback(onFrame);
+  };
+  el.requestVideoFrameCallback(onFrame);
 }
-if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) video.requestVideoFrameCallback(onVideoFrame);
+watchFrames(video);
+watchFrames(spare);
 
 function duration() {
   return Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
@@ -280,8 +299,13 @@ function tick() {
     return;
   }
 
+  if (state.loop) armLoop(perfT);
+  if (video.ended) {
+    // Terminó antes de la vuelta (iba adelantado): queda en el último cuadro hasta el cambio.
+    if (state.loop && !loopTimer) swapPlayers(false);
+    return;
+  }
   if (video.seeking || perfT < settleUntil) return;
-  if (!state.loop && video.ended) return;
   if (video.paused) {
     // Se llegó tarde al inicio (o se reconectó): arrancar y dejar que la corrección ajuste.
     startedFor = state.anchorTime;
@@ -290,11 +314,7 @@ function tick() {
     return;
   }
 
-  const actual = actualPositionAt(perfT);
-  // Un salto hacia atrás de más de 1 s es un loop o un salto del operador.
-  if (Number.isFinite(lastActual) && actual < lastActual - 1) jumpedAt = perfT;
-  lastActual = actual;
-  const errMs = circularDiff(actual, expectedPositionAt(perfT)) * 1000;
+  const errMs = circularDiff(actualPositionAt(perfT), expectedPositionAt(perfT)) * 1000;
   lastErrMs = errMs;
   errAbsAvgMs = errAbsAvgMs * 0.9 + Math.abs(errMs) * 0.1;
   correct(errMs, perfT);
@@ -318,10 +338,7 @@ function correct(errMs, perfT) {
     }
   }
 
-  // Después de un loop cada navegador tarda distinto en volver al cuadro 0 (hasta ~170 ms):
-  // ese error se corrige con un salto, porque con playbackRate tardaría varios segundos.
-  const seekBandMs = perfT - jumpedAt < JUMP_WINDOW_MS ? SEEK_AFTER_JUMP_MS : BAND_RATE_MS;
-  if (abs > seekBandMs) {
+  if (abs > BAND_RATE_MS) {
     seekRetries = 0;
     return seekTo(expectedPositionAt(perfT + seekLeadMs));
   }
@@ -345,6 +362,7 @@ function correct(errMs, perfT) {
 }
 
 function seekTo(pos) {
+  logEvent('seek', { to: pos, errMs: lastErrMs, leadMs: seekLeadMs });
   correcting = false;
   setRate(1);
   seeks++;
@@ -377,9 +395,42 @@ function armStart(untilStartMs) {
   }, Math.max(0, untilStartMs - startLeadMs));
 }
 
+// Loop sin cortes: el reproductor de reserva arranca justo cuando la posición esperada da la
+// vuelta, sin depender de lo que tarda cada navegador en reiniciar un video.
+function armLoop(perfT) {
+  const d = duration();
+  // Tras un cambio la posición esperada puede seguir unos ms antes del final (arrancó con lead).
+  if (!d || loopTimer || perfT - lastSwapAt < startLeadMs + 100) return;
+  const remainingMs = (d - expectedPositionAt(perfT)) * 1000;
+  if (remainingMs > LOOP_ARM_MS) return;
+  loopTimer = setTimeout(() => swapPlayers(true), Math.max(0, remainingMs - startLeadMs));
+}
+
+function swapPlayers(onTime) {
+  loopTimer = null;
+  if (!state.playing || !state.loop) return;
+  logEvent('swap', { onTime, spareSeeking: spare.seeking, spareAt: spare.currentTime, spareReady: spare.readyState, leadMs: startLeadMs });
+  [video, spare] = [spare, video];
+  video.classList.remove('atras');
+  spare.classList.add('atras');
+  frame = null;
+  correcting = false;
+  loops++;
+  lastSwapAt = performance.now();
+  justStarted = onTime;
+  settleUntil = lastSwapAt + 250;
+  playVideo();
+  // El que terminó se rebobina detrás, listo para la próxima vuelta.
+  spare.pause();
+  spare.playbackRate = 1;
+  spare.currentTime = 0;
+}
+
 function clearStart() {
   clearTimeout(startTimer);
+  clearTimeout(loopTimer);
   startTimer = null;
+  loopTimer = null;
   armedFor = null;
   startedFor = null;
 }
@@ -388,16 +439,22 @@ function playVideo() {
   video.play().catch((err) => {
     // Si el navegador bloquea el audio, se reproduce sin sonido y se avisa.
     if (err.name === 'NotAllowedError' && !video.muted) {
-      video.muted = true;
+      setMuted(true);
       ui.soundHint.classList.add('on');
       video.play().catch(() => {});
     }
   });
 }
 
-video.addEventListener('seeked', () => {
-  settleUntil = Math.max(settleUntil, performance.now() + 150);
-});
+function setMuted(muted) {
+  video.muted = spare.muted = muted;
+}
+
+for (const el of [video, spare]) {
+  el.addEventListener('seeked', () => {
+    if (el === video) settleUntil = Math.max(settleUntil, performance.now() + 150);
+  });
+}
 
 setInterval(tick, TICK_MS);
 
@@ -412,6 +469,7 @@ function stats() {
     errAvgMs: errAbsAvgMs,
     rate: video.playbackRate,
     seeks,
+    loops,
     seekLeadMs,
     startLeadMs,
     progress,
@@ -429,7 +487,7 @@ setInterval(() => {
     ui.debug.textContent =
       `${displayName}\n` +
       `offset ${f(s.offsetMs)} ms · rtt ${f(s.rttMs)} ms · deriva ${f(s.driftPpm)} ppm\n` +
-      `error ${f(s.errMs)} ms (prom ${f(s.errAvgMs)}) · vel ${f(s.rate, 3)} · saltos ${s.seeks}\n` +
+      `error ${f(s.errMs)} ms (prom ${f(s.errAvgMs)}) · vel ${f(s.rate, 3)} · saltos ${s.seeks} · loops ${s.loops}\n` +
       `lead salto ${f(s.seekLeadMs, 0)} ms · lead inicio ${f(s.startLeadMs, 0)} ms`;
   }
 }, 1000);
@@ -448,13 +506,14 @@ window.__cef = {
     return !!state?.loop;
   },
   stats,
+  events,
   dropConnection: () => ws?.close(),
 };
 
 // ---------- Interacción ----------
 
 document.addEventListener('click', () => {
-  video.muted = false;
+  setMuted(false);
   ui.soundHint.classList.remove('on');
 });
 document.addEventListener('dblclick', () => {

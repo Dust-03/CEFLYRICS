@@ -36,11 +36,13 @@ También se puede subir cualquier mp4, m4v, webm o mov.
    200 ms:
    - error menor a 15 ms: nada;
    - de 15 a 120 ms: `playbackRate` entre 0,5 % y 2 % (en Safari/WebKit, micropausa);
-   - más de 120 ms: salto con un lead aprendido, y hasta 2 saltos más si quedó a más de 20 ms;
-   - en los 2 s siguientes a un loop o a un salto del operador, el salto se usa desde 40 ms:
-     cada navegador tarda distinto en volver al cuadro 0 (se midió hasta ~170 ms) y con
-     `playbackRate` ese error tardaría varios segundos en cerrarse.
-4. **Seguridad:** solo quien tiene el token puede mandar comandos o subir archivos. Las
+   - más de 120 ms: salto con un lead aprendido, y hasta 2 saltos más si quedó a más de 20 ms.
+4. **Loop sin cortes** (`public/pantalla.js`): no se usa el loop del navegador, porque cada uno
+   tarda distinto en volver al cuadro 0 (se midió hasta ~170 ms). Hay dos `<video>` con el mismo
+   blob: el de reserva espera quieto en el cuadro 0, detrás del activo, y arranca cuando la
+   posición esperada da la vuelta, adelantado por un lead aprendido (~45 ms). El que terminó se
+   rebobina detrás para la próxima vuelta.
+5. **Seguridad:** solo quien tiene el token puede mandar comandos o subir archivos. Las
    pantallas solo miran.
 
 ## Parámetros de la pantalla
@@ -61,14 +63,14 @@ Doble clic: pantalla completa. Un clic: activa el sonido (los navegadores arranc
 Banco de prueba con 3 pantallas: una normal, otra a +2 s con +80 ppm y 20 ms de jitter, y otra
 a −2 s con −120 ppm y 40 ms de jitter.
 
-| Prueba | p50 | p95 | Máximo |
-|---|---|---|---|
-| 15 s sin loop | 8,1 ms | 11,8 ms | 24 ms |
-| 40 s con dos loops (con la regla de salto tras loop) | 14,8 ms | 32,7 ms | 60 ms |
-| 30 s con un loop, antes de la regla de salto tras loop | 12,6 ms | 81,5 ms | 175 ms |
+| Prueba | p50 | p95 | Máximo | Saltos |
+|---|---|---|---|---|
+| Video de 5 s, 33 s, primera corrida (6 loops) | 5,4 ms | 20 ms | 24 ms | 0 |
+| Video de 5 s, 33 s, segunda corrida (7 loops) | 3,7 ms | 11 ms | 12,9 ms | 0 |
+| Antes, con el loop del navegador (video de 20 s, 1 loop) | 12,6 ms | 81,5 ms | 175 ms | 1 a 4 |
 
-Los loops son el punto débil: la prueba de 40 s pasa justo. En la app conviene que el loop no
-dependa del navegador (ver "Pendiente").
+- Pausa: las tres pantallas quedan a menos de 15 ms de la posición del servidor.
+- Reanudar: hasta ~37 ms de error a los 1,5 s, que la corrección por velocidad va cerrando.
 
 - Corte del WebSocket: la pantalla sigue reproduciendo con el último estado; el error se
   mantuvo entre −9 y +6 ms durante el corte y la reconexión.
@@ -78,6 +80,5 @@ dependa del navegador (ver "Pendiente").
 ## Pendiente
 
 - Medir en Wi-Fi real con una TV o TV box: estas pruebas corren todas en la misma PC.
-- Loop sin cortes: dos elementos `<video>` alternados (uno precarga el inicio mientras el otro
-  termina), para no depender de lo que tarda cada navegador en reiniciar.
+- Comprobar que un TV box aguanta dos `<video>` cargados a la vez (memoria y decodificador).
 - Automatizar el banco con Playwright (Etapa 0.5).

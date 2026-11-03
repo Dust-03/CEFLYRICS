@@ -265,7 +265,9 @@ function handleCommand(msg) {
     case 'load': {
       const media = msg.media == null ? null : String(msg.media);
       if (media && (!isSafeName(media) || !fs.existsSync(path.join(MEDIA_DIR, media)))) return;
-      Object.assign(state, { media, duration: 0, playing: false, anchorTime: t, anchorPos: 0 });
+      // Con el mismo video se conserva la duración: las pantallas no la reenvían si ya lo tienen.
+      const duration = media === state.media ? state.duration : 0;
+      Object.assign(state, { media, duration, playing: false, anchorTime: t, anchorPos: 0 });
       break;
     }
     case 'play': {

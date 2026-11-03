@@ -43,6 +43,11 @@ body.pantalla {
   background: #000;
 }
 
+/* Reproductor de reserva: queda detrás del activo, sin ocultarlo, para que ya tenga el cuadro listo. */
+.pantalla video.atras {
+  z-index: -1;
+}
+
 .capa-texto,
 .capa-negro,
 .capa-espera {

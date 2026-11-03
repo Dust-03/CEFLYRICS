@@ -55,6 +55,7 @@ function sampleSpread() {
   const loop = h[0].loop;
   const p0 = h[0].positionAtEpoch(epoch);
   const rel = h.map((x) => circularDiff(x.positionAtEpoch(epoch), p0, d, loop) * 1000);
+  window.__bench.series.push({ epoch, rel });
   return Math.max(...rel) - Math.min(...rel);
 }
 
@@ -125,7 +126,7 @@ async function run({ media = $('medio').value, seconds = Number($('segundos').va
   return summary;
 }
 
-window.__bench = { run, sampleSpread, last: null };
+window.__bench = { run, sampleSpread, last: null, series: [], events: () => hooks().map((h) => h.events) };
 
 $('btn-correr').onclick = () => run().catch((err) => ($('resultado').textContent = `Error: ${err.message}`));
 $('btn-cortar').onclick = () => hooks()[1]?.dropConnection();
