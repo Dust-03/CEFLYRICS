@@ -4,7 +4,7 @@ Software de escritorio para proyectar versículos, letras, videos y anuncios en 
 Incluye envío de contenido y videos guardados a otras pantallas de la red local (TV, PC,
 TV box) con reproducción sincronizada, sin internet.
 
-Estado: **Etapa 0 (fundaciones)**. Ver [docs/plan-etapa-0.md](docs/plan-etapa-0.md).
+Estado: **Etapa 1 (MVP de proyección)**. Ver [docs/plan-etapa-1.md](docs/plan-etapa-1.md).
 
 ## Requisitos de desarrollo
 
