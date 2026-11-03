@@ -3,7 +3,7 @@ import { defineConfig } from '@playwright/test';
 const PORT = 8799;
 
 export default defineConfig({
-  testDir: 'tests/sync',
+  testDir: 'tests',
   // Las pruebas miden tiempos: de a una, para que no compitan por la CPU.
   workers: 1,
   fullyParallel: false,
@@ -23,7 +23,8 @@ export default defineConfig({
   },
   projects: [
     { name: 'patron', testMatch: /patron\.setup\.ts/ },
-    { name: 'sincronia', testMatch: /\.spec\.ts/, dependencies: ['patron'] },
+    { name: 'sincronia', testMatch: /sync[\\/].*\.spec\.ts/, dependencies: ['patron'] },
+    { name: 'app', testMatch: /app[\\/].*\.spec\.ts/ },
   ],
   webServer: {
     command: `"${process.execPath}" prototype/server.js --port ${PORT} --token test --media tests/.media`,

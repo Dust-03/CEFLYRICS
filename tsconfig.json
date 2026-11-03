@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "types": ["node", "svelte"],
+    "paths": {
+      "@shared/*": ["./src/shared/*"],
+      "@render-engine/*": ["./packages/render-engine/src/*"]
+    }
+  },
+  "include": ["src", "packages", "tests", "*.ts"]
+}

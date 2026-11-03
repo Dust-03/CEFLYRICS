@@ -11,6 +11,14 @@ Estado: **Etapa 0 (fundaciones)**. Ver [docs/plan-etapa-0.md](docs/plan-etapa-0.
 - Windows 10/11
 - Node.js 26 LTS
 - Git
+- Microsoft Edge, para las pruebas de sincronía
+
+```bash
+npm install
+npm run dev        # abre la app
+npm run test:app   # prueba de arranque
+npm run test:sync  # pruebas de sincronía
+```
 
 ## Licencia
 
