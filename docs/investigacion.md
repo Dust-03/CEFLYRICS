@@ -219,9 +219,15 @@ reforma: hay que verificar qué está vigente antes de lanzar el programa.
    `bpm`, `time_sig`, `groups` y `archived`. **Hace falta un archivo real exportado por un usuario**
    con su propio contenido. Estudiar ese archivo es interoperabilidad y está permitido; descompilar
    el programa no lo está.
-3. **¿Son 18 los casos del mapa de versificación RV1909 vs KJV?** El número viene del planteo del
-   proyecto y no se verificó. Hay que calcularlo comparando los USFM de las dos versiones en la
-   Etapa 1, y documentar la lista resultante.
+3. **Mapa de versificación RV1909 vs KJV.** Medido en la Etapa 1 con el USFM de eBible: **son 18 los
+   números de versículo sin texto**: Nm 12:16, Nm 29:40, 1 S 23:29, 2 S 20:26, 2 Cr 33:25, Job 35:16,
+   Job 38:39-41, Job 40:20-24, Os 11:12, Jon 1:17, Hch 19:41 y 2 Co 13:14. Ahí la RV1909 corta los capítulos en otro punto, y en varios capítulos toda la numeración
+   queda corrida respecto de la KJV: su Nm 13:2 es el 13:1 de la KJV. **Defecto de esta fuente:** para
+   no pasarse de la cantidad de versículos de la KJV, pega los últimos versículos del capítulo en uno
+   solo (Job 39:30 tiene 575 caracteres, y Nm 13:34 no existe como tal). Se guarda el texto como viene.
+   Falta armar el mapa completo para comparar versiones (paso 1.5) y decidir si se separan esos
+   versículos con otra fuente. La WEB, aparte, lleva Ro 16:25-27 a 14:24-26, y a la BSB le faltan 16
+   versículos que omite (Mt 17:21 y otros).
 4. **¿La sincronía cumple en equipos reales?** Hay una prueba de 38 s con un equipo, con valores
    informados por la pantalla. Falta medir con cámara, con varios equipos y con el patrón de cadencia
    pareja. También falta ver si un TV box aguanta dos videos cargados a la vez.

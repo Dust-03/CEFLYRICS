@@ -54,4 +54,24 @@ export const MIGRATIONS: Migration[] = [
       END;
     `,
   },
+  {
+    version: 2,
+    name: 'libros y versificación',
+    sql: `
+      CREATE TABLE bible_books (
+        bible_id INTEGER NOT NULL REFERENCES bibles (id) ON DELETE CASCADE,
+        book_no INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        PRIMARY KEY (bible_id, book_no)
+      );
+
+      CREATE TABLE versification_map (
+        from_scheme TEXT NOT NULL,
+        from_vid INTEGER NOT NULL,
+        to_scheme TEXT NOT NULL,
+        to_vid INTEGER NOT NULL,
+        PRIMARY KEY (from_scheme, from_vid, to_scheme)
+      );
+    `,
+  },
 ];

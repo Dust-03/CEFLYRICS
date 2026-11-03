@@ -33,3 +33,7 @@ prototype/media/*
 .idea/
 Thumbs.db
 .DS_Store
+
+# Textos fuente descargados y base generada
+data/usfm/
+resources/bibles.db

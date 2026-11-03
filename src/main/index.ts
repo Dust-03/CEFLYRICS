@@ -1,3 +1,4 @@
+import { copyFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { BrowserWindow, Menu, app, ipcMain, type WebContents } from 'electron';
 import { IPC, type AppInfo } from '@shared/api';
@@ -36,7 +37,13 @@ app.whenReady().then(() => {
   // Sin menú: F10 abriría el de Windows en vez de poner negro.
   Menu.setApplicationMenu(null);
 
-  const db = openDatabase(join(app.getPath('userData'), 'ceflirics.db'));
+  const dbFile = join(app.getPath('userData'), 'ceflirics.db');
+  // La primera vez se parte de la base de fábrica, que ya trae las biblias y su índice.
+  const factoryDb = app.isPackaged
+    ? join(process.resourcesPath, 'bibles.db')
+    : join(app.getAppPath(), 'resources/bibles.db');
+  if (!existsSync(dbFile) && existsSync(factoryDb)) copyFileSync(factoryDb, dbFile);
+  const db = openDatabase(dbFile);
   app.on('will-quit', () => db.close());
 
   const output = new OutputWindow(

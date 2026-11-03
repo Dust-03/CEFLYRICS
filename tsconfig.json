@@ -13,5 +13,5 @@
       "@render-engine/*": ["./packages/render-engine/src/*"]
     }
   },
-  "include": ["src", "packages", "tests", "*.ts", "*.mts"]
+  "include": ["src", "packages", "tests", "scripts", "*.ts", "*.mts"]
 }

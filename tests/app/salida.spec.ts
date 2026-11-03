@@ -5,7 +5,7 @@ import { extname, join, normalize } from 'node:path';
 import { _electron as electron, chromium, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 
 const SLIDE = {
-  body: 'Porque de tal manera amó Dios al mundo, que haya dado á su Hijo unigénito',
+  body: 'Porque de tal manera amó Dios al mundo, que ha dado á su Hijo unigénito',
   title: 'Juan 3:16 · RV1909',
 };
 

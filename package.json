@@ -14,7 +14,8 @@
     "test": "vitest run",
     "check": "svelte-check --tsconfig ./tsconfig.json && eslint . && prettier --check .",
     "format": "prettier --write .",
-    "dist": "electron-vite build && electron-builder --win"
+    "dist": "npm run bibles && electron-vite build && electron-builder --win",
+    "bibles": "tsx scripts/build-bibles.mts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -33,6 +34,7 @@
     "svelte": "^5.57.3",
     "svelte-check": "^4.7.8",
     "svelte-eslint-parser": "^1.10.1",
+    "tsx": "^4.23.15",
     "typescript": "~6.0",
     "typescript-eslint": "^8.72.1",
     "vite": "^8.3.5",

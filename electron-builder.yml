@@ -11,6 +11,9 @@ npmRebuild: false
 # La GPL pide entregar la licencia junto con el programa.
 extraFiles:
   - LICENSE
+extraResources:
+  - from: resources/bibles.db
+    to: bibles.db
 win:
   target: nsis
 nsis:
