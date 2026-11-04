@@ -203,7 +203,7 @@
 <style>
   .app {
     display: grid;
-    grid-template-columns: 122px minmax(0, 1fr);
+    grid-template-columns: 100px minmax(0, 1fr);
     height: 100%;
   }
 
@@ -219,11 +219,11 @@
   /* Con máscara, el logo toma el color del tema. */
   .logo {
     justify-self: center;
-    width: 106px;
-    height: 52px;
+    width: 64px;
+    height: 64px;
     margin: 2px 0 8px;
     background: var(--text);
-    mask: url('../../../assets/logo-ceflirics.svg') center / contain no-repeat;
+    mask: url('../../../assets/logo-cef.svg') center / contain no-repeat;
   }
 
   .logo span {
