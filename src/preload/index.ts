@@ -23,6 +23,7 @@ const api: CefliricsApi = {
     setEnabled: (enabled) => ipcRenderer.send(IPC.lanSetEnabled, enabled),
     setSound: (sound) => ipcRenderer.send(IPC.lanSetSound, sound),
     renewPin: () => ipcRenderer.send(IPC.lanRenewPin),
+    unlink: (id) => ipcRenderer.send(IPC.lanUnlink, id),
     onInfo: (listener) => subscribe(IPC.lanInfoChanged, listener),
   },
   bible: {
@@ -59,6 +60,7 @@ const api: CefliricsApi = {
     add: (ref) => ipcRenderer.invoke(IPC.shortcutAdd, ref),
     remove: (id) => ipcRenderer.invoke(IPC.shortcutRemove, id),
     reorder: (ids) => ipcRenderer.invoke(IPC.shortcutReorder, ids),
+    onChange: (listener) => subscribe(IPC.shortcutsChanged, listener),
   },
 };
 

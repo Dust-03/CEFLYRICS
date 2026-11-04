@@ -9,7 +9,8 @@ type Pending = { resolve: (value: never) => void; reject: (reason: Error) => voi
 type Listeners = {
   onState: (state: OnAirState) => void;
   onOnline: (online: boolean) => void;
-  // El PIN cambió: este celular quedó desvinculado.
+  onShortcuts: () => void;
+  // Lo desvincularon desde la PC.
   onRejected: () => void;
 };
 
@@ -29,14 +30,15 @@ export function forgetToken() {
   }
 }
 
-export async function pair(pin: string): Promise<'ok' | 'pin' | 'locked' | 'offline'> {
+export async function pair(pin: string, name: string): Promise<'ok' | 'pin' | 'locked' | 'name' | 'offline'> {
   let response: Response;
   try {
-    response = await fetch('/api/vincular', { method: 'POST', body: JSON.stringify({ pin }) });
+    response = await fetch('/api/vincular', { method: 'POST', body: JSON.stringify({ pin, name }) });
   } catch {
     return 'offline';
   }
   if (response.status === 429) return 'locked';
+  if (response.status === 400) return 'name';
   if (!response.ok) return 'pin';
   const { token } = (await response.json()) as { token: string };
   try {
@@ -47,7 +49,7 @@ export async function pair(pin: string): Promise<'ok' | 'pin' | 'locked' | 'offl
   return 'ok';
 }
 
-export function connect(token: string, { onState, onOnline, onRejected }: Listeners) {
+export function connect(token: string, { onState, onOnline, onShortcuts, onRejected }: Listeners) {
   let socket: WebSocket | null = null;
   let heardAt = 0;
   let nextId = 1;
@@ -65,6 +67,8 @@ export function connect(token: string, { onState, onOnline, onRejected }: Listen
       if (message.t === 'state') {
         onOnline(true);
         onState(message.state);
+      } else if (message.t === 'shortcuts') {
+        onShortcuts();
       } else if (message.id !== undefined) {
         pending.get(message.id)?.resolve(message.r);
         pending.delete(message.id);
@@ -103,6 +107,10 @@ export function connect(token: string, { onState, onOnline, onRejected }: Listen
     },
     dispatch(action: Action) {
       if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ t: 'dispatch', a: action }));
+    },
+    // Se va este celular: la PC lo saca de la lista.
+    forget() {
+      if (socket?.readyState === WebSocket.OPEN) socket.send('{"t":"forget"}');
     },
     stop() {
       stopped = true;

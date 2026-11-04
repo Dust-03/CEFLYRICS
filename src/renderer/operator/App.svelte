@@ -62,6 +62,7 @@
     shortcuts = await api.shortcuts.list();
   }
   loadShortcuts();
+  api.shortcuts.onChange(loadShortcuts);
 
   async function toggleShortcut(ref: string) {
     const existing = shortcuts.find((item) => item.ref === ref);

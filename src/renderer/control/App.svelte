@@ -8,12 +8,14 @@
 
   let token = $state(startToken);
   let pin = $state(linkPin);
+  let name = $state('');
   let error = $state('');
   let busy = $state(false);
   let connection = $state<Connection | null>(null);
 
   const MESSAGES = {
     pin: 'El PIN no coincide. Miralo en Transmisión, en la PC.',
+    name: 'Escribí un nombre para reconocer este celular.',
     locked: 'Demasiados intentos. Esperá un minuto.',
     offline: 'No se pudo llegar a la PC.',
   };
@@ -22,13 +24,13 @@
     event?.preventDefault();
     busy = true;
     error = '';
-    const result = await pair(pin.trim());
+    const result = await pair(pin.trim(), name);
     busy = false;
     if (result === 'ok') token = savedToken();
     else error = MESSAGES[result];
   }
 
-  function leave() {
+  function close() {
     connection?.stop();
     connection = null;
     forgetToken();
@@ -36,11 +38,13 @@
     pin = '';
   }
 
-  // Sale de la pantalla el PIN que vino en el enlace, para que no quede en el historial.
-  if (linkPin && !startToken) {
-    history.replaceState(null, '', location.pathname);
-    submit();
+  function leave() {
+    connection?.forget();
+    close();
   }
+
+  // Sale de la pantalla el PIN que vino en el enlace, para que no quede en el historial.
+  if (linkPin && !startToken) history.replaceState(null, '', location.pathname);
 </script>
 
 {#if token}
@@ -48,15 +52,24 @@
     {token}
     onConnection={(value) => (connection = value)}
     onRejected={() => {
-      leave();
-      error = 'Se cambió el PIN en la PC. Volvé a vincular este celular.';
+      close();
+      error = 'Este celular fue desvinculado desde la PC. Volvé a vincularlo.';
     }}
     onLeave={leave}
   />
 {:else}
   <form class="pair" onsubmit={submit}>
     <h1>Control de CEFLIRICS</h1>
-    <p>Escribí el PIN que aparece en la PC, en el menú Transmisión.</p>
+    <p>Se hace una sola vez. El PIN aparece en la PC, en el menú Transmisión.</p>
+    <input
+      id="control-nombre"
+      class="name"
+      maxlength="30"
+      autocomplete="off"
+      placeholder="Nombre de este celular"
+      aria-label="Nombre de este celular"
+      bind:value={name}
+    />
     <input
       id="control-pin"
       inputmode="numeric"
@@ -66,7 +79,9 @@
       aria-label="PIN"
       bind:value={pin}
     />
-    <button id="control-vincular" class="primary" disabled={busy || pin.trim().length !== 6}>Vincular</button>
+    <button id="control-vincular" class="primary" disabled={busy || pin.trim().length !== 6 || !name.trim()}
+      >Vincular</button
+    >
     {#if error}<p id="control-error" class="error">{error}</p>{/if}
     {#if nativeApp}<button type="button" onclick={() => nativeApp.reset()}>Elegir otra PC</button>{/if}
   </form>
@@ -99,6 +114,11 @@
     font-size: 34px;
     text-align: center;
     letter-spacing: 0.2em;
+  }
+
+  input.name {
+    font-size: 18px;
+    letter-spacing: normal;
   }
 
   button {

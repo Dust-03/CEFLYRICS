@@ -96,6 +96,7 @@ export type ShortcutApi = {
   add: (ref: string) => Promise<void>;
   remove: (id: number) => Promise<void>;
   reorder: (ids: number[]) => Promise<void>;
+  onChange: (listener: () => void) => () => void;
 };
 
 export type CefliricsApi = {
@@ -146,10 +147,12 @@ export const IPC = {
   shortcutAdd: 'shortcuts:add',
   shortcutRemove: 'shortcuts:remove',
   shortcutReorder: 'shortcuts:reorder',
+  shortcutsChanged: 'shortcuts:changed',
   lanInfo: 'lan:info',
   lanSetPort: 'lan:set-port',
   lanSetEnabled: 'lan:set-enabled',
   lanSetSound: 'lan:set-sound',
   lanRenewPin: 'lan:renew-pin',
+  lanUnlink: 'lan:unlink',
   lanInfoChanged: 'lan:info-changed',
 } as const;

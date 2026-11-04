@@ -46,15 +46,17 @@ async function openPhone() {
   return phone;
 }
 
-async function pairPhone() {
+async function pairPhone(name = 'Celular de prueba') {
   const phone = await openPhone();
+  await phone.locator('#control-nombre').fill(name);
   await phone.locator('#control-pin').fill(await currentPin());
   await phone.locator('#control-vincular').click();
   await expect(phone.locator('#control-tab-biblia')).toBeVisible();
   return phone;
 }
 
-const tryPin = (pin: string) => fetch(`${BASE}/api/vincular`, { method: 'POST', body: JSON.stringify({ pin }) });
+const tryPin = (pin: string, name: unknown = 'Prueba') =>
+  fetch(`${BASE}/api/vincular`, { method: 'POST', body: JSON.stringify({ pin, name }) });
 
 test.beforeAll(async () => {
   browser = await chromium.launch({ channel: 'msedge' });
@@ -88,7 +90,8 @@ test('el celular se vincula con el PIN y manda un versículo al aire', async () 
   await expect(output.locator('.cef-body')).toContainText('de tal manera');
   await expect(output.locator('.cef-title')).toHaveText('Juan 3:16 · RV1909');
   await expect(phone.locator('#control-aire .cef-body')).toContainText('de tal manera');
-  await expect(operator.locator('#transmision')).toContainText('1 conectado');
+  await expect(operator.locator('#lan-celulares li')).toContainText('Celular de prueba');
+  await expect(operator.locator('#lan-celulares li')).toContainText('Conectado');
 });
 
 test('el mismo versículo se puede mandar en otra versión', async () => {
@@ -162,6 +165,7 @@ test('nada se sale de la pantalla en un celular angosto', async () => {
   const box = (await phone.locator('#control-vincular').boundingBox())!;
   expect(box.x + box.width).toBeLessThanOrEqual(320);
 
+  await phone.locator('#control-nombre').fill('Angosto');
   await phone.locator('#control-pin').fill(await currentPin());
   await phone.locator('#control-vincular').click();
   for (const tab of ['biblia', 'canciones', 'medios', 'atajos']) {
@@ -175,6 +179,7 @@ test('sin el PIN no se entra, y el PIN equivocado se bloquea', async () => {
   await phone.locator('#control-pin').fill('000000');
   const right = await currentPin();
   const wrong = right === '000000' ? '111111' : '000000';
+  await phone.locator('#control-nombre').fill('Intruso');
   await phone.locator('#control-pin').fill(wrong);
   await phone.locator('#control-vincular').click();
   await expect(phone.locator('#control-error')).toContainText('no coincide');
@@ -227,13 +232,83 @@ test('desvincular pide confirmación', async () => {
   await expect(phone.locator('#control-pin')).toBeVisible();
 });
 
-test('cambiar el PIN desvincula al celular', async () => {
+test('cambiar el PIN no toca a los vinculados, y el viejo ya no sirve', async () => {
   const phone = await pairPhone();
   const old = await currentPin();
   await operator.locator('#lan-pin-cambiar').click();
   await expect(operator.locator('#lan-pin')).not.toHaveText(old);
-  await expect(phone.locator('#control-error')).toContainText('Se cambió el PIN', { timeout: 10_000 });
-  await expect(phone.locator('#control-pin')).toBeVisible();
+  expect((await tryPin(old)).status).toBe(403);
+  await phone.reload();
+  await expect(phone.locator('#control-tab-biblia')).toBeVisible();
+});
+
+test('hace falta un nombre para vincular', async () => {
+  const phone = await openPhone();
+  await phone.locator('#control-pin').fill(await currentPin());
+  await expect(phone.locator('#control-vincular')).toBeDisabled();
+  await phone.locator('#control-nombre').fill('   ');
+  await expect(phone.locator('#control-vincular')).toBeDisabled();
+  expect((await tryPin(await currentPin(), '   ')).status).toBe(400);
+});
+
+test('una vez vinculado no vuelve a pedir nada', async () => {
+  const phone = await pairPhone();
+  await phone.reload();
+  await expect(phone.locator('#control-tab-biblia')).toBeVisible();
+  await expect(phone.locator('#control-pin')).toHaveCount(0);
+});
+
+test('la PC ve cada celular con su nombre y desvincula uno solo', async () => {
+  const first = await pairPhone('Celular del sonido');
+  const second = await pairPhone('Celular del pastor');
+  const rows = operator.locator('#lan-celulares li');
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText('Celular del sonido');
+  await expect(rows.nth(1)).toContainText('Celular del pastor');
+
+  await rows.nth(0).getByRole('button', { name: 'Desvincular' }).click();
+  await expect(first.locator('#control-error')).toContainText('desvinculado desde la PC');
+  await expect(first.locator('#control-pin')).toBeVisible();
+  await expect(rows).toHaveCount(1);
+
+  await second.locator('[data-modo="black"]').click();
+  await expect(output.locator('.cef-black')).toHaveClass(/cef-on/);
+
+  await first.reload();
+  await expect(first.locator('#control-pin')).toBeVisible();
+});
+
+test('al cerrar un celular figura sin conexión, y al desvincularse desaparece', async () => {
+  const phone = await pairPhone();
+  const row = operator.locator('#lan-celulares li');
+  await expect(row).toContainText('Conectado');
+  await phone.locator('#control-salir').click();
+  await phone.locator('#control-salir-si').click();
+  await expect(row).toHaveCount(0);
+
+  const again = await pairPhone('Otro');
+  await again.context().close();
+  await expect(operator.locator('#lan-celulares li')).toContainText('Sin conexión');
+});
+
+test('las estrellas del celular llegan a la PC, y las de la PC al celular', async () => {
+  const phone = await pairPhone();
+  await phone.locator('#control-buscar').fill('jn 3 16');
+  const verseStar = phone.locator('[data-estrella^="verse:RV1909"]').first();
+  await verseStar.click();
+  await expect(verseStar).toHaveClass(/saved/);
+
+  await operator.locator('#tab-atajos').click();
+  await expect(operator.locator('#atajos .card')).toHaveCount(1);
+  await expect(operator.locator('#atajos .card').first()).toContainText('Juan 3:16');
+
+  await phone.locator('#control-tab-atajos').click();
+  await expect(phone.locator('#control-atajos li')).toHaveCount(1);
+
+  await operator.locator('#atajos .card').first().locator('.remove').click();
+  await expect(phone.locator('#control-atajos li')).toHaveCount(0);
+  await phone.locator('#control-tab-biblia').click();
+  await expect(phone.locator('[data-estrella^="verse:RV1909"]').first()).not.toHaveClass(/saved/);
 });
 
 test('el celular queda vinculado al reiniciar la app', async () => {

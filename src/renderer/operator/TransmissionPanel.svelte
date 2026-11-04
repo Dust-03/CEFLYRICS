@@ -129,9 +129,7 @@
 
     {#if main && info.status === 'on'}
       <section>
-        <h3>
-          Control desde el celular{info.controls ? ` (${info.controls} conectado${info.controls > 1 ? 's' : ''})` : ''}
-        </h3>
+        <h3>Control desde el celular</h3>
         <div class="pairing">
           {#if info.apk && appQr}
             <figure>
@@ -150,10 +148,26 @@
             <strong id="lan-pin">{info.pin}</strong>
             <button id="lan-pin-cambiar" onclick={() => api.renewPin()}>Cambiar PIN</button>
             <p class="note">
-              La app encuentra esta PC sola y pide el PIN una vez. Cambiarlo desvincula todos los celulares.
+              La app encuentra esta PC sola y pide el PIN y un nombre una sola vez. El PIN sirve para vincular celulares
+              nuevos.
             </p>
           </div>
         </div>
+      </section>
+    {/if}
+
+    {#if info.devices.length}
+      <section>
+        <h3>Celulares vinculados ({info.devices.length})</h3>
+        <ul id="lan-celulares">
+          {#each info.devices as device (device.id)}
+            <li>
+              <b>{device.name}</b>
+              <span class:online={device.ip}>{device.ip ? `Conectado · ${device.ip}` : 'Sin conexión'}</span>
+              <button class="unlink" onclick={() => api.unlink(device.id)}>Desvincular</button>
+            </li>
+          {/each}
+        </ul>
       </section>
     {/if}
 
@@ -324,6 +338,16 @@
     font-size: 13px;
     border: 1px solid var(--line);
     border-radius: 8px;
+  }
+
+  ul li .unlink {
+    padding: 2px 10px;
+    margin-left: auto;
+    font-size: 12px;
+  }
+
+  ul li span.online {
+    color: var(--accent);
   }
 
   ul span {

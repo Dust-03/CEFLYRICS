@@ -126,9 +126,25 @@ app.whenReady().then(() => {
 
   const shortcuts = new ShortcutService(db, bible, songs, media);
   ipcMain.handle(IPC.shortcutList, () => shortcuts.list());
-  ipcMain.handle(IPC.shortcutAdd, (_event, ref: string) => shortcuts.add(String(ref)));
-  ipcMain.handle(IPC.shortcutRemove, (_event, id: number) => shortcuts.remove(Number(id)));
-  ipcMain.handle(IPC.shortcutReorder, (_event, ids: number[]) => shortcuts.reorder(ids.map(Number)));
+  // Los atajos se tocan desde la PC y desde los celulares: todos tienen que quedar al día.
+  const shortcutsChanged = () => {
+    broadcast(IPC.shortcutsChanged, null);
+    control.shortcutsChanged();
+  };
+  const addShortcut = (ref: unknown) => {
+    shortcuts.add(String(ref));
+    shortcutsChanged();
+  };
+  const removeShortcut = (id: unknown) => {
+    shortcuts.remove(Number(id));
+    shortcutsChanged();
+  };
+  ipcMain.handle(IPC.shortcutAdd, (_event, ref: string) => addShortcut(ref));
+  ipcMain.handle(IPC.shortcutRemove, (_event, id: number) => removeShortcut(id));
+  ipcMain.handle(IPC.shortcutReorder, (_event, ids: number[]) => {
+    shortcuts.reorder(ids.map(Number));
+    shortcutsChanged();
+  });
 
   const control = new LanControl({
     db,
@@ -146,6 +162,8 @@ app.whenReady().then(() => {
       'songs.get': (id) => songs.get(Number(id)),
       'media.list': () => media.list(),
       'shortcuts.list': () => shortcuts.list(),
+      'shortcuts.add': addShortcut,
+      'shortcuts.remove': removeShortcut,
       'themes.list': () => themes.list(),
       'themes.assignment': () => themes.assignment(),
     },
@@ -173,6 +191,7 @@ app.whenReady().then(() => {
   ipcMain.on(IPC.lanSetEnabled, (_event, enabled: unknown) => lan.setEnabled(enabled === true));
   ipcMain.on(IPC.lanSetSound, (_event, sound: unknown) => lan.setSound(sound === true));
   ipcMain.on(IPC.lanRenewPin, () => lan.renewPin());
+  ipcMain.on(IPC.lanUnlink, (_event, id: unknown) => lan.unlink(Number(id)));
   lan.start();
 
   ipcMain.handle(IPC.getOutputInfo, () => output.info);

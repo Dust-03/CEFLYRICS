@@ -61,6 +61,19 @@
   let themes = $state<ThemeEntry[]>([]);
   let assignment = $state<ThemeAssignment | null>(null);
 
+  const savedRefs = $derived(new Map(shortcuts.map((item) => [item.ref, item.id])));
+
+  async function loadShortcuts() {
+    shortcuts = await connection.call<Shortcut[]>('shortcuts.list');
+  }
+
+  async function toggleStar(ref: string) {
+    const id = savedRefs.get(ref);
+    if (id === undefined) await connection.call('shortcuts.add', ref);
+    else await connection.call('shortcuts.remove', id);
+    await loadShortcuts();
+  }
+
   // svelte-ignore state_referenced_locally
   const connection = connect(token, {
     onState: (value) => (onAir = value),
@@ -69,6 +82,7 @@
       online = value;
       if (value && wasOffline) load();
     },
+    onShortcuts: () => loadShortcuts(),
     onRejected: () => onRejected(),
   });
   $effect(() => onConnection(connection));
@@ -183,6 +197,28 @@
   const chapters = $derived(Array.from({ length: book?.chapters ?? 0 }, (_, index) => index + 1));
 </script>
 
+{#snippet star(ref: string)}
+  <button
+    class="star"
+    class:saved={savedRefs.has(ref)}
+    data-estrella={ref}
+    aria-label={savedRefs.has(ref) ? 'Quitar de atajos' : 'Guardar en atajos'}
+    onclick={() => toggleStar(ref)}
+  >
+    <svg
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m12 4 2.4 5 5.6.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.6-.8L12 4Z" />
+    </svg>
+  </button>
+{/snippet}
+
 <div class="remote">
   <header>
     <div class="screen-row">
@@ -234,11 +270,12 @@
         <ul>
           {#each verses as verse (verse.vid)}
             {@const item = verseItem(verse)}
-            <li>
+            <li class="starred">
               <button class="row" class:on={selected?.key === item.key} onclick={() => (selected = item)}>
                 <small>{verse.label}</small>
                 {verse.text}
               </button>
+              {@render star(`verse:${version}:${verse.vid}`)}
             </li>
           {/each}
         </ul>
@@ -254,7 +291,10 @@
     {:else if tab === 'canciones'}
       {#if song}
         <button class="back" onclick={() => (song = null)}>‹ Canciones</button>
-        <h2>{song.title}</h2>
+        <div class="starred heading">
+          <h2>{song.title}</h2>
+          {@render star(`song:${song.id}`)}
+        </div>
         <ul id="control-diapositivas">
           {#each song.slides as slide, index (index)}
             <li>
@@ -287,9 +327,12 @@
         <div class="grid photos">
           {#each media as file (file.id)}
             {@const item = mediaItem(file)}
-            <button class="photo" class:on={selected?.key === item.key} onclick={() => (selected = item)}>
-              {#if file.thumb}<img src={file.thumb} alt={file.name} loading="lazy" />{:else}{file.name}{/if}
-            </button>
+            <div class="starred">
+              <button class="photo" class:on={selected?.key === item.key} onclick={() => (selected = item)}>
+                {#if file.thumb}<img src={file.thumb} alt={file.name} loading="lazy" />{:else}{file.name}{/if}
+              </button>
+              {@render star(`media:${file.id}`)}
+            </div>
           {/each}
         </div>
       {:else}
@@ -298,11 +341,12 @@
     {:else if shortcuts.length}
       <ul id="control-atajos">
         {#each shortcuts as shortcut, index (shortcut.id)}
-          <li>
+          <li class="starred">
             <button class="row" onclick={() => useShortcut(shortcut)}>
               <small>{index + 1} · {shortcut.title}</small>
               {shortcut.text}
             </button>
+            {@render star(shortcut.ref)}
           </li>
         {/each}
       </ul>
@@ -470,7 +514,57 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .starred {
+    position: relative;
+  }
+
+  .starred .row {
+    padding-right: 46px;
+  }
+
+  .heading {
+    min-height: 40px;
+    padding-right: 46px;
+  }
+
+  .star {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+  }
+
+  .star svg {
+    fill: none;
+  }
+
+  .star.saved {
+    color: var(--accent);
+  }
+
+  .star.saved svg {
+    fill: currentColor;
+  }
+
+  .starred .photo + .star {
+    color: #fff;
+    background: rgb(0 0 0 / 0.45);
+    border-radius: 50%;
+  }
+
+  .starred .photo + .star.saved {
+    color: var(--accent);
+  }
+
   .photo {
+    width: 100%;
     padding: 0;
     overflow: hidden;
     aspect-ratio: 16 / 9;

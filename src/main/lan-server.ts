@@ -126,7 +126,7 @@ export class LanServer {
       previousIp: moved ? lastIp : null,
       sound: this.sound,
       pin: this.options.control.pin,
-      controls: this.options.control.connected,
+      devices: this.options.control.list,
       apk: existsSync(this.options.apk),
       screens: [...this.clients.values()].map(({ id, ip, device, width, height }) => ({
         id,
@@ -182,6 +182,10 @@ export class LanServer {
     this.notify();
   }
 
+  unlink(id: number) {
+    this.options.control.unlink(id);
+  }
+
   private soundMessage() {
     return JSON.stringify({ t: 'sound', on: this.sound });
   }
@@ -208,7 +212,7 @@ export class LanServer {
     });
     sockets.on('connection', (socket, request) => {
       if (request.url === '/ws') this.accept(socket, request);
-      else this.options.control.accept(socket);
+      else this.options.control.accept(socket, addressOf(request));
     });
     // ws repite acá los errores del servidor: puerto ocupado, o reservado por Windows.
     sockets.on('error', () => {
@@ -347,14 +351,15 @@ export class LanServer {
         return;
       }
     }
-    let pin: unknown;
+    let input: { pin?: unknown; name?: unknown } | null = null;
     try {
-      pin = (JSON.parse(body) as { pin?: unknown } | null)?.pin;
+      input = JSON.parse(body);
     } catch {
-      pin = null;
+      // Sin datos válidos cuenta como un PIN equivocado.
     }
-    const result = this.options.control.pair(addressOf(request), pin);
-    const status = 'token' in result ? 200 : result.error === 'locked' ? 429 : 403;
+    const result = this.options.control.pair(addressOf(request), input?.pin, input?.name);
+    const errors = { locked: 429, name: 400, pin: 403 };
+    const status = 'token' in result ? 200 : errors[result.error];
     response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
   }
 

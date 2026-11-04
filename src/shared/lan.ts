@@ -4,6 +4,8 @@ export const DEFAULT_LAN_PORT = 8787;
 export type LanAddress = { ip: string; adapter: string; mac: string };
 export type LanScreen = { id: number; ip: string; device: string; width: number; height: number };
 export type LanStatus = 'on' | 'off' | 'busy';
+// Un celular vinculado. Sin ip, no está conectado ahora.
+export type LanDevice = { id: number; name: string; ip: string | null };
 
 export type LanInfo = {
   status: LanStatus;
@@ -16,7 +18,7 @@ export type LanInfo = {
   sound: boolean;
   // Para vincular un celular como control.
   pin: string;
-  controls: number;
+  devices: LanDevice[];
   // Si la PC tiene el instalador de la app para ofrecerlo.
   apk: boolean;
 };
@@ -27,6 +29,7 @@ export type LanApi = {
   setEnabled: (enabled: boolean) => void;
   setSound: (sound: boolean) => void;
   renewPin: () => void;
+  unlink: (id: number) => void;
   onInfo: (listener: (info: LanInfo) => void) => () => void;
 };
 
@@ -34,6 +37,15 @@ export type LanApi = {
 export function parsePort(input: unknown) {
   const port = Number(input);
   return Number.isInteger(port) && port >= 1024 && port <= 65535 ? port : null;
+}
+
+const MAX_NAME = 30;
+
+// Vacío o solo espacios no vale: el nombre es lo que permite reconocerlo después en la PC.
+export function cleanDeviceName(input: unknown) {
+  if (typeof input !== 'string') return null;
+  const name = input.trim().replace(/\s+/g, ' ').slice(0, MAX_NAME);
+  return name || null;
 }
 
 export function lanAddress(ip: string, port: number) {

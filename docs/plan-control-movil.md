@@ -9,8 +9,10 @@ todo, y el celular elige qué sale al aire.
   escritorio. Actualizar el programa de la PC actualiza el control, sin reinstalar nada.
 - **Android nativo, sin Capacitor:** alcanza con un WebView. Sin dependencias nuevas y compila con el
   SDK 34 y el JDK 17 que ya están en `D:\Programas`.
-- **PIN de 6 dígitos:** se muestra en Transmisión y sirve para vincular un celular. Cambiarlo
-  desvincula a todos. Cinco intentos fallidos bloquean esa IP por un minuto.
+- **PIN de 6 dígitos y nombre:** cada celular se vincula una sola vez con el PIN de Transmisión y un
+  nombre, y recibe su propia llave. La PC lista los vinculados, muestra cuáles están conectados y
+  desvincula cualquiera. Cambiar el PIN solo afecta a los nuevos. Cinco PIN equivocados bloquean esa IP
+  por un minuto.
 - **Sin cifrado:** va por HTTP en la red local, como las teles. El PIN viaja una sola vez.
 - **Descarga desde la propia PC:** Transmisión muestra un QR que baja el APK, sin tienda.
 - **iPhone:** sin app, porque publicarla necesita una Mac y una cuenta paga. Usa la misma pantalla
