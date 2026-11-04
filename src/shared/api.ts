@@ -100,6 +100,14 @@ export type ShortcutApi = {
   onChange: (listener: () => void) => () => void;
 };
 
+export type DataCounts = { songs: number; media: number; themes: number; timers: number; shortcuts: number };
+export type DataResult = { canceled: true } | { counts: DataCounts } | { error: string };
+
+export type DataApi = {
+  export: () => Promise<DataResult>;
+  import: () => Promise<DataResult>;
+};
+
 export type CefliricsApi = {
   getAppInfo: () => Promise<AppInfo>;
   getState: () => Promise<OnAirState>;
@@ -115,6 +123,7 @@ export type CefliricsApi = {
   timers: TimerApi;
   shortcuts: ShortcutApi;
   lan: LanApi;
+  data: DataApi;
 };
 
 export const IPC = {
@@ -150,6 +159,8 @@ export const IPC = {
   shortcutRemove: 'shortcuts:remove',
   shortcutReorder: 'shortcuts:reorder',
   shortcutsChanged: 'shortcuts:changed',
+  dataExport: 'data:export',
+  dataImport: 'data:import',
   lanInfo: 'lan:info',
   lanSetPort: 'lan:set-port',
   lanSetEnabled: 'lan:set-enabled',

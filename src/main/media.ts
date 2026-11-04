@@ -42,7 +42,7 @@ type MediaRow = {
   size: number;
 };
 
-function hashFile(file: string) {
+export function hashFile(file: string) {
   return new Promise<string>((resolve, reject) => {
     const hash = createHash('sha256');
     createReadStream(file)

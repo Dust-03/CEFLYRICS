@@ -47,7 +47,8 @@ deriva cada 200 ms, token solo para el operador. La app final reutiliza esa lóg
 - Fastify + ws, mDNS (bonjour-service), QR (qrcode), HTTP Range para medios.
 - NDI: @stagetimerio/grandiose (Apache-2.0) sobre BrowserWindow offscreen.
 - FFmpeg (LGPL) para miniaturas y proxies H.264 1080p. whisper.cpp local para voz.
-- Empaquetado: electron-builder NSIS por usuario, reglas de firewall en el instalador.
+- Empaquetado: electron-builder NSIS de un clic y para toda la PC, con la regla de firewall en el
+  instalador (`scripts/installer.nsh`). Control móvil: APK propio, ver `docs/plan-control-movil.md`.
 
 ## Arquitectura
 Proceso main (Node): store único de estado ("lo que está al aire"), SQLite, servidor

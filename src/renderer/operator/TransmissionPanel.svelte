@@ -134,7 +134,7 @@
           {#if info.apk && appQr}
             <figure>
               <img id="lan-qr-app" src={appQr} alt="Código QR para bajar la app" />
-              <figcaption>Bajar la app de Android</figcaption>
+              <figcaption>Bajar el control para Android</figcaption>
             </figure>
           {/if}
           {#if controlQr}

@@ -1,10 +1,19 @@
 import { copyFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { BrowserWindow, Menu, app, dialog, ipcMain, nativeImage, protocol, type WebContents } from 'electron';
-import { IPC, type AppInfo, type SongInput, type ThemeAssignment, type ThemeInput, type TimerInput } from '@shared/api';
+import {
+  IPC,
+  type AppInfo,
+  type DataResult,
+  type SongInput,
+  type ThemeAssignment,
+  type ThemeInput,
+  type TimerInput,
+} from '@shared/api';
 import { parsePort } from '@shared/lan';
 import { parseAction, type Action } from '@shared/state';
 import { createTimerRun, remainingMs } from '@shared/timers';
+import { BackupService } from './backup';
 import { BibleService } from './bible/service';
 import { openDatabase } from './db/database';
 import { LanControl } from './lan-control';
@@ -190,6 +199,41 @@ app.whenReady().then(() => {
     shortcutsChanged();
   };
   ipcMain.handle(IPC.shortcutReorder, (_event, ids: number[]) => reorderShortcuts(ids));
+
+  const backup = new BackupService(db, join(app.getPath('userData'), 'media'));
+  const DATA_FILTER = { name: 'Datos de CEFLIRICS', extensions: ['ceflirics'] };
+  const guarded = async (action: () => Promise<DataResult>): Promise<DataResult> => {
+    try {
+      return await action();
+    } catch (error) {
+      return { error: (error as Error).message };
+    }
+  };
+  ipcMain.handle(IPC.dataExport, () =>
+    guarded(async () => {
+      const date = new Date().toLocaleDateString('sv');
+      const { canceled, filePath } = await dialog.showSaveDialog({
+        title: 'Exportar datos',
+        defaultPath: `CEFLIRICS-datos-${date}.ceflirics`,
+        filters: [DATA_FILTER],
+      });
+      return canceled || !filePath ? { canceled: true } : { counts: await backup.export(filePath) };
+    }),
+  );
+  ipcMain.handle(IPC.dataImport, () =>
+    guarded(async () => {
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: 'Importar datos',
+        properties: ['openFile'],
+        filters: [DATA_FILTER],
+      });
+      if (canceled || !filePaths[0]) return { canceled: true };
+      const counts = await backup.import(filePaths[0]);
+      shortcutsChanged();
+      timersChanged();
+      return { counts };
+    }),
+  );
 
   const control = new LanControl({
     db,

@@ -43,8 +43,12 @@ extraResources:
 win:
   icon: assets/icono.ico
   target: nsis
+# De un clic y para toda la PC: instalar para todos es lo que permite crear la regla del firewall.
 nsis:
-  oneClick: false
-  perMachine: false
-  allowToChangeInstallationDirectory: true
-  license: LICENSE
+  oneClick: true
+  perMachine: true
+  runAfterFinish: true
+  createDesktopShortcut: always
+  shortcutName: CEFLIRICS
+  artifactName: CEFLIRICS-Instalador-${version}.${ext}
+  include: scripts/installer.nsh

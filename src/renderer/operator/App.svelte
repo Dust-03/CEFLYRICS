@@ -3,6 +3,7 @@
   import { initialState, type OnAirState, type OverrideMode } from '@shared/state';
   import { FACTORY_THEMES, type ThemeEntry } from '@shared/theme';
   import BiblePanel from './BiblePanel.svelte';
+  import DataTools from './DataTools.svelte';
   import Icon from './Icon.svelte';
   import MediaPanel from './MediaPanel.svelte';
   import type { PreviewItem } from './preview-item';
@@ -256,7 +257,10 @@
         {/if}
       </div>
       <div class="pane settings" hidden={tab !== 'configuracion'}>
-        <h2>Configuración · Estilos y fuentes</h2>
+        <div class="settings-head">
+          <h2>Configuración · Estilos y fuentes</h2>
+          <DataTools />
+        </div>
         {#if opened.configuracion}
           <StylesPanel home={homes.configuracion ?? 0} {themes} {assignment} {media} onChange={loadLibrary} />
         {/if}
@@ -420,6 +424,14 @@
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     gap: 10px;
+  }
+
+  .settings-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .text-pane {

@@ -7,7 +7,7 @@
     <application
         android:allowBackup="false"
         android:icon="@mipmap/icono"
-        android:label="CEFLIRICS"
+        android:label="CEFLIRICS Control"
         android:roundIcon="@mipmap/icono"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:usesCleartextTraffic="true">
