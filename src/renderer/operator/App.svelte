@@ -270,6 +270,7 @@
         <div class="settings-head">
           <h2>Configuración</h2>
           <div class="settings-tabs">
+            <button id="btn-pantalla-completa" onclick={() => api.toggleFullscreen()}>Pantalla completa (F11)</button>
             <button
               id="config-estilos"
               class:primary={settingsTab === 'estilos'}

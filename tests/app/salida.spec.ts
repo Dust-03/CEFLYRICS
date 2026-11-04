@@ -77,6 +77,32 @@ test('el texto de la consola se proyecta y también se ve en la vista al aire', 
   await expect(operator.locator('#vista-aire .cef-body')).toHaveText(SLIDE.body);
 });
 
+test('F11 y Configuración ponen el programa en pantalla completa', async () => {
+  const isFull = (page: string) =>
+    app.evaluate(
+      ({ BrowserWindow }, target) =>
+        BrowserWindow.getAllWindows()
+          .find((w) => w.webContents.getURL().includes(target))!
+          .isFullScreen(),
+      page,
+    );
+  await pressKey('operator', 'F11');
+  await expect.poll(() => isFull('operator')).toBe(true);
+  await pressKey('operator', 'F11');
+  await expect.poll(() => isFull('operator')).toBe(false);
+
+  await operator.locator('#tab-configuracion').click();
+  await operator.locator('#btn-pantalla-completa').click();
+  await expect.poll(() => isFull('operator')).toBe(true);
+  await operator.locator('#btn-pantalla-completa').click();
+  await expect.poll(() => isFull('operator')).toBe(false);
+
+  await pressKey('output', 'F11');
+  await expect.poll(() => isFull('output')).toBe(true);
+  await pressKey('output', 'F11');
+  await expect.poll(() => isFull('output')).toBe(false);
+});
+
 test('F8, F9, F10 y ESC funcionan desde la consola y desde la salida', async () => {
   await dispatch(operator, { type: 'show-slide', slide: SLIDE });
   await expect(layerOn('text')).toHaveCount(1);

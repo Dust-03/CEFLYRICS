@@ -46,10 +46,21 @@ const SHORTCUTS: Record<string, Action> = {
 };
 
 // Los atajos se atienden acá para que funcionen desde cualquier ventana, con cualquier foco.
-function handleShortcuts(contents: WebContents) {
+function toggleFullscreen(contents: WebContents) {
+  const window = BrowserWindow.fromWebContents(contents);
+  window?.setFullScreen(!window.isFullScreen());
+}
+
+function handleShortcuts(contents: WebContents, canChangeSize: () => boolean = () => true) {
   contents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown' || input.isAutoRepeat) return;
+    if (input.key === 'F11') {
+      event.preventDefault();
+      if (canChangeSize()) toggleFullscreen(contents);
+      return;
+    }
     const action = SHORTCUTS[input.key];
-    if (input.type !== 'keyDown' || input.isAutoRepeat || !action) return;
+    if (!action) return;
     event.preventDefault();
     store.dispatch(action);
   });
@@ -74,7 +85,8 @@ app.whenReady().then(() => {
 
   const output = new OutputWindow(
     (info) => broadcast(IPC.outputInfoChanged, info),
-    (window) => handleShortcuts(window.webContents),
+    // En el segundo monitor la salida siempre ocupa toda la pantalla.
+    (window) => handleShortcuts(window.webContents, () => !output.info.fullscreen),
   );
 
   store.subscribe((state) => broadcast(IPC.stateChanged, state));
@@ -327,6 +339,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle(IPC.getOutputInfo, () => output.info);
   ipcMain.on(IPC.toggleOutput, () => output.toggle());
+  ipcMain.on(IPC.toggleFullscreen, (event) => toggleFullscreen(event.sender));
 
   const operator = createOperatorWindow();
   handleShortcuts(operator.webContents);

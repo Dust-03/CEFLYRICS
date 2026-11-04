@@ -130,6 +130,7 @@ export type CeflyricsApi = {
   onState: (listener: (state: OnAirState) => void) => () => void;
   getOutputInfo: () => Promise<OutputInfo>;
   toggleOutput: () => void;
+  toggleFullscreen: () => void;
   onOutputInfo: (listener: (info: OutputInfo) => void) => () => void;
   bible: BibleApi;
   songs: SongApi;
@@ -148,6 +149,7 @@ export const IPC = {
   stateChanged: 'state:changed',
   getOutputInfo: 'output:get-info',
   toggleOutput: 'output:toggle',
+  toggleFullscreen: 'window:toggle-fullscreen',
   outputInfoChanged: 'output:info-changed',
   bibleList: 'bible:list',
   bibleBooks: 'bible:books',
