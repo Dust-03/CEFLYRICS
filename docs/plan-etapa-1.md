@@ -69,6 +69,9 @@ Después, también a pedido: menú **Temporizadores** (varios a la vez, de durac
 pantalla completa o en la esquina, con mensaje al llegar a cero) y menú **Configuración**, que reúne
 estilos y fuentes. Del paso 1.10 faltan las alertas sobre lo proyectado.
 
+Menú **Atajos** (adelantado de Favoritos): versículos, canciones, fotos y videos guardados con una
+estrella, numerados, con Ctrl+1 a Ctrl+9 hacia la vista previa.
+
 ## Fuera de esta etapa
 
 Remoto y stage view por la LAN, pantallas sincronizadas dentro de la app, importadores (salvo USFM

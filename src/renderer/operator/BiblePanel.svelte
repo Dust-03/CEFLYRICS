@@ -7,8 +7,10 @@
     onAirKey: string | undefined;
     onPreview: (item: PreviewItem) => void;
     onAir: (item: PreviewItem) => void;
+    saved: Set<string>;
+    onToggleShortcut: (ref: string) => void;
   };
-  let { onAirKey, onPreview, onAir }: Props = $props();
+  let { onAirKey, onPreview, onAir, saved, onToggleShortcut }: Props = $props();
 
   const api = window.ceflirics.bible;
   const SEARCH_DELAY_MS = 90;
@@ -183,10 +185,21 @@
       <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
       <ol id="biblia-versos" class="verses" tabindex="0" bind:this={list} onkeydown={onListKey}>
         {#each verses as verse, index (verse.vid)}
+          {@const ref = `verse:${version}:${verse.vid}`}
           <li class:selected={index === selected} class:on-air={`bible:${verse.vid}` === onAirKey}>
             <button class="verse" onclick={() => select(index)} ondblclick={() => onAir(toItem(verse))}>
               <span class="label">{verse.label}</span>
               <span>{verse.text}</span>
+            </button>
+            <button
+              class="star"
+              class:on={saved.has(ref)}
+              data-atajo={verse.label}
+              aria-label={saved.has(ref) ? 'Quitar de atajos' : 'Guardar en atajos'}
+              title={saved.has(ref) ? 'Quitar de atajos' : 'Guardar en atajos'}
+              onclick={() => onToggleShortcut(ref)}
+            >
+              {saved.has(ref) ? '★' : '☆'}
             </button>
           </li>
         {:else}
@@ -309,6 +322,7 @@
 
   /* El navegador no dibuja los resultados que están fuera de la vista. */
   .verses li {
+    position: relative;
     content-visibility: auto;
     contain-intrinsic-size: auto 64px;
   }
@@ -317,7 +331,7 @@
     display: grid;
     gap: 2px;
     width: 100%;
-    padding: 8px 10px;
+    padding: 8px 34px 8px 10px;
     font-size: 15px;
     line-height: 1.35;
     text-align: left;
@@ -329,6 +343,24 @@
     font-size: 11px;
     font-weight: 700;
     color: var(--muted);
+  }
+
+  .star {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--muted);
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .star.on {
+    color: var(--accent);
   }
 
   li.selected .verse {

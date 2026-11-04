@@ -1,5 +1,5 @@
 <script lang="ts">
-  type Props = { name: 'bible' | 'songs' | 'media' | 'timer' | 'settings' | 'text' };
+  type Props = { name: 'bible' | 'songs' | 'media' | 'star' | 'timer' | 'settings' | 'text' };
   let { name }: Props = $props();
 </script>
 
@@ -15,6 +15,8 @@
     <rect x="3.5" y="5" width="17" height="14" rx="2" />
     <circle cx="9" cy="10" r="1.6" />
     <path d="m4 17 5-4 3 2.5 3.5-3.5 5 4.5" stroke-linejoin="round" />
+  {:else if name === 'star'}
+    <path d="m12 4 2.4 5 5.6.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.6-.8L12 4Z" stroke-linejoin="round" />
   {:else if name === 'timer'}
     <circle cx="12" cy="13.5" r="7.5" />
     <path d="M12 9v4.5l3 2M9.5 3h5" stroke-linecap="round" stroke-linejoin="round" />

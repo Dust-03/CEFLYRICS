@@ -46,6 +46,11 @@ const api: CefliricsApi = {
     save: (input) => ipcRenderer.invoke(IPC.timerSave, input),
     remove: (id) => ipcRenderer.invoke(IPC.timerRemove, id),
   },
+  shortcuts: {
+    list: () => ipcRenderer.invoke(IPC.shortcutList),
+    add: (ref) => ipcRenderer.invoke(IPC.shortcutAdd, ref),
+    remove: (id) => ipcRenderer.invoke(IPC.shortcutRemove, id),
+  },
 };
 
 contextBridge.exposeInMainWorld('ceflirics', api);

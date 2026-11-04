@@ -6,6 +6,7 @@ import { parseAction, type Action } from '@shared/state';
 import { BibleService } from './bible/service';
 import { openDatabase } from './db/database';
 import { MEDIA_EXTENSIONS, MEDIA_SCHEME, MediaService } from './media';
+import { ShortcutService } from './shortcuts';
 import { SongService } from './songs';
 import { OnAirStore } from './store';
 import { ThemeService } from './themes';
@@ -119,6 +120,11 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC.timerList, () => timers.list());
   ipcMain.handle(IPC.timerSave, (_event, input: TimerInput) => timers.save(input));
   ipcMain.handle(IPC.timerRemove, (_event, id: number) => timers.remove(Number(id)));
+
+  const shortcuts = new ShortcutService(db, bible, songs, media);
+  ipcMain.handle(IPC.shortcutList, () => shortcuts.list());
+  ipcMain.handle(IPC.shortcutAdd, (_event, ref: string) => shortcuts.add(String(ref)));
+  ipcMain.handle(IPC.shortcutRemove, (_event, id: number) => shortcuts.remove(Number(id)));
 
   ipcMain.handle(IPC.getOutputInfo, () => output.info);
   ipcMain.on(IPC.toggleOutput, () => output.toggle());

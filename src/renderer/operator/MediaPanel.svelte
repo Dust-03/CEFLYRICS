@@ -7,8 +7,10 @@
     onPreview: (item: PreviewItem) => void;
     onAir: (item: PreviewItem) => void;
     onChange: () => void;
+    saved: Set<string>;
+    onToggleShortcut: (ref: string) => void;
   };
-  let { onAirKey, onPreview, onAir, onChange }: Props = $props();
+  let { onAirKey, onPreview, onAir, onChange, saved, onToggleShortcut }: Props = $props();
 
   const api = window.ceflirics.media;
   const FILTERS = [
@@ -73,6 +75,10 @@
     </div>
     <label><input id="medio-repetir" type="checkbox" bind:checked={loop} /> Repetir videos</label>
     {#if selected}
+      {@const ref = `media:${selected.id}`}
+      <button id="medio-atajo" class:primary={saved.has(ref)} onclick={() => onToggleShortcut(ref)}>
+        {saved.has(ref) ? '★ En atajos' : '☆ Atajo'}
+      </button>
       {#if confirmDelete}
         <button id="medio-borrar-si" class="live" onclick={remove}>Sí, borrar</button>
         <button onclick={() => (confirmDelete = false)}>No</button>

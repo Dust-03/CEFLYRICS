@@ -42,6 +42,10 @@ export class BibleService {
     return this.range(code, from, from + 999);
   }
 
+  verse(code: string, vid: number): BibleVerse | undefined {
+    return this.range(code, vid, vid)[0];
+  }
+
   search(code: string, query: string): BibleSearchResult {
     const reference = parseReference(query);
     if (reference?.chapter !== undefined) {

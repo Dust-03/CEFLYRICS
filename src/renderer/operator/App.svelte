@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AppInfo, MediaItem, OutputInfo, ThemeAssignment } from '@shared/api';
+  import type { AppInfo, MediaItem, OutputInfo, Shortcut, ThemeAssignment } from '@shared/api';
   import { initialState, type OnAirState, type OverrideMode } from '@shared/state';
   import { FACTORY_THEMES, type ThemeEntry } from '@shared/theme';
   import BiblePanel from './BiblePanel.svelte';
@@ -7,6 +7,7 @@
   import MediaPanel from './MediaPanel.svelte';
   import type { PreviewItem } from './preview-item';
   import Screen from './Screen.svelte';
+  import ShortcutsPanel from './ShortcutsPanel.svelte';
   import SongsPanel from './SongsPanel.svelte';
   import StylesPanel from './StylesPanel.svelte';
   import TimersPanel from './TimersPanel.svelte';
@@ -17,6 +18,7 @@
     { id: 'biblia', label: 'Biblia', icon: 'bible' },
     { id: 'canciones', label: 'Canciones', icon: 'songs' },
     { id: 'medios', label: 'Medios', icon: 'media' },
+    { id: 'atajos', label: 'Atajos', icon: 'star' },
     { id: 'temporizadores', label: 'Temporizadores', icon: 'timer' },
     { id: 'texto', label: 'Texto', icon: 'text' },
     { id: 'configuracion', label: 'Configuración', icon: 'settings' },
@@ -35,6 +37,9 @@
   let themes = $state<ThemeEntry[]>(FACTORY_THEMES);
   let assignment = $state<ThemeAssignment>({ song: FACTORY_THEMES[0].id, bible: FACTORY_THEMES[0].id });
   let media = $state<MediaItem[]>([]);
+  let shortcuts = $state<Shortcut[]>([]);
+  let openSongId = $state<number>();
+  const savedRefs = $derived(new Set(shortcuts.map((item) => item.ref)));
 
   api.getAppInfo().then((value) => (info = value));
   api.getOutputInfo().then((value) => (output = value));
@@ -49,6 +54,54 @@
     [themes, assignment, media] = await Promise.all([api.themes.list(), api.themes.assignment(), api.media.list()]);
   }
   loadLibrary();
+
+  async function loadShortcuts() {
+    shortcuts = await api.shortcuts.list();
+  }
+  loadShortcuts();
+
+  async function toggleShortcut(ref: string) {
+    const existing = shortcuts.find((item) => item.ref === ref);
+    if (existing) await api.shortcuts.remove(existing.id);
+    else await api.shortcuts.add(ref);
+    await loadShortcuts();
+  }
+
+  function shortcutItem(shortcut: Shortcut): PreviewItem | null {
+    if (shortcut.kind === 'verse') {
+      const [, , vid] = shortcut.ref.split(':');
+      return { kind: 'bible', key: `bible:${vid}`, slide: { body: shortcut.text, title: shortcut.title } };
+    }
+    if (shortcut.kind === 'media' && shortcut.media) {
+      const { id, kind, url, thumb, name } = shortcut.media;
+      return {
+        kind: 'media',
+        key: `media:${id}`,
+        slide: { body: '', title: name, media: { kind, url, thumb, loop: true } },
+      };
+    }
+    return null;
+  }
+
+  // Una canción tiene varias diapositivas: el atajo la abre. Lo demás va a la vista previa.
+  function useShortcut(shortcut: Shortcut) {
+    const item = shortcutItem(shortcut);
+    if (item) {
+      showPreview(item);
+      return;
+    }
+    openSongId = undefined;
+    openTab('canciones');
+    queueMicrotask(() => (openSongId = shortcut.songId));
+  }
+
+  function onGlobalKey(event: KeyboardEvent) {
+    if (!event.ctrlKey || event.key < '1' || event.key > '9') return;
+    const shortcut = shortcuts[Number(event.key) - 1];
+    if (!shortcut) return;
+    event.preventDefault();
+    useShortcut(shortcut);
+  }
 
   function readTheme() {
     try {
@@ -99,6 +152,8 @@
   });
 </script>
 
+<svelte:window onkeydown={onGlobalKey} />
+
 <div class="app">
   <nav class="menu" aria-label="Menú principal">
     <h1 class="logo"><span>Ceflirics</span></h1>
@@ -122,16 +177,52 @@
   <main>
     <section class="card work">
       <div class="pane" hidden={tab !== 'biblia'}>
-        <BiblePanel {onAirKey} onPreview={showPreview} onAir={sendToAir} />
+        <BiblePanel
+          {onAirKey}
+          onPreview={showPreview}
+          onAir={sendToAir}
+          saved={savedRefs}
+          onToggleShortcut={toggleShortcut}
+        />
       </div>
       <div class="pane" hidden={tab !== 'canciones'}>
         {#if opened.canciones}
-          <SongsPanel {onAirKey} onPreview={showPreview} onAir={sendToAir} />
+          <SongsPanel
+            {onAirKey}
+            {openSongId}
+            onPreview={showPreview}
+            onAir={sendToAir}
+            saved={savedRefs}
+            onToggleShortcut={toggleShortcut}
+            onChange={loadShortcuts}
+          />
         {/if}
       </div>
       <div class="pane" hidden={tab !== 'medios'}>
         {#if opened.medios}
-          <MediaPanel {onAirKey} onPreview={showPreview} onAir={sendToAir} onChange={loadLibrary} />
+          <MediaPanel
+            {onAirKey}
+            onPreview={showPreview}
+            onAir={sendToAir}
+            onChange={() => {
+              loadLibrary();
+              loadShortcuts();
+            }}
+            saved={savedRefs}
+            onToggleShortcut={toggleShortcut}
+          />
+        {/if}
+      </div>
+      <div class="pane" hidden={tab !== 'atajos'}>
+        {#if opened.atajos}
+          <ShortcutsPanel
+            {shortcuts}
+            {onAirKey}
+            onUse={useShortcut}
+            onAir={sendToAir}
+            toItem={shortcutItem}
+            onRemove={(item) => toggleShortcut(item.ref)}
+          />
         {/if}
       </div>
       <div class="pane" hidden={tab !== 'temporizadores'}>
@@ -209,7 +300,7 @@
 
   .menu {
     display: grid;
-    grid-template-rows: auto repeat(6, auto) 1fr;
+    grid-template-rows: auto repeat(7, auto) 1fr;
     gap: 4px;
     padding: 10px 8px;
     background: var(--surface);
@@ -219,8 +310,8 @@
   /* Con máscara, el logo toma el color del tema. */
   .logo {
     justify-self: center;
-    width: 64px;
-    height: 64px;
+    width: 58px;
+    height: 58px;
     margin: 2px 0 8px;
     background: var(--text);
     mask: url('../../../assets/logo-cef.svg') center / contain no-repeat;

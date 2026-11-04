@@ -77,6 +77,22 @@ export type TimerApi = {
   remove: (id: number) => Promise<void>;
 };
 
+export type Shortcut = {
+  id: number;
+  ref: string;
+  kind: 'verse' | 'song' | 'media';
+  title: string;
+  text: string;
+  songId?: number;
+  media?: MediaItem;
+};
+
+export type ShortcutApi = {
+  list: () => Promise<Shortcut[]>;
+  add: (ref: string) => Promise<void>;
+  remove: (id: number) => Promise<void>;
+};
+
 export type CefliricsApi = {
   getAppInfo: () => Promise<AppInfo>;
   getState: () => Promise<OnAirState>;
@@ -90,6 +106,7 @@ export type CefliricsApi = {
   media: MediaApi;
   themes: ThemeApi;
   timers: TimerApi;
+  shortcuts: ShortcutApi;
 };
 
 export const IPC = {
@@ -119,4 +136,7 @@ export const IPC = {
   timerList: 'timers:list',
   timerSave: 'timers:save',
   timerRemove: 'timers:remove',
+  shortcutList: 'shortcuts:list',
+  shortcutAdd: 'shortcuts:add',
+  shortcutRemove: 'shortcuts:remove',
 } as const;

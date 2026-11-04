@@ -134,4 +134,14 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 5,
+    name: 'atajos',
+    sql: `
+      CREATE TABLE shortcuts (
+        id INTEGER PRIMARY KEY,
+        ref TEXT NOT NULL UNIQUE
+      );
+    `,
+  },
 ];

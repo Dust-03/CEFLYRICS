@@ -7,8 +7,12 @@
     onAirKey: string | undefined;
     onPreview: (item: PreviewItem) => void;
     onAir: (item: PreviewItem) => void;
+    openSongId: number | undefined;
+    saved: Set<string>;
+    onToggleShortcut: (ref: string) => void;
+    onChange: () => void;
   };
-  let { onAirKey, onPreview, onAir }: Props = $props();
+  let { onAirKey, onPreview, onAir, openSongId, saved, onToggleShortcut, onChange }: Props = $props();
 
   const api = window.ceflirics.songs;
   const EXAMPLE =
@@ -44,6 +48,11 @@
     confirmDelete = false;
   }
 
+  // Un atajo puede pedir abrir una canción desde otro menú.
+  $effect(() => {
+    if (openSongId) open(openSongId);
+  });
+
   function startNew() {
     form = { id: undefined, title: '', author: '', text: '' };
     song = null;
@@ -63,6 +72,7 @@
       const id = await api.save($state.snapshot(form));
       await refresh();
       await open(id);
+      onChange();
     } catch (err) {
       error = (err as Error).message.replace(/^.*Error: /, '');
     }
@@ -74,6 +84,7 @@
     song = null;
     confirmDelete = false;
     await refresh();
+    onChange();
   }
 
   const toItem = (index: number): PreviewItem => ({
@@ -152,6 +163,13 @@
           {#if song.author}<small>{song.author}</small>{/if}
         </div>
         <div class="actions">
+          <button
+            id="cancion-atajo"
+            class:primary={saved.has(`song:${song.id}`)}
+            onclick={() => onToggleShortcut(`song:${song!.id}`)}
+          >
+            {saved.has(`song:${song.id}`) ? '★ En atajos' : '☆ Atajo'}
+          </button>
           <button id="cancion-editar" onclick={startEdit}>Editar</button>
           {#if confirmDelete}
             <button id="cancion-borrar-si" class="live" onclick={remove}>Sí, borrar</button>
