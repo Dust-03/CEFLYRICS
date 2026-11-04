@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { LOGO_PARTS } from './splash-logo';
+  import { dovePose, LOGO_PARTS } from './splash-logo';
 
   const { ring, dove, cef, letters } = LOGO_PARTS;
 
@@ -7,6 +7,15 @@
   let skipped = $state(false);
 
   const skip = () => (skipped = true);
+
+  // Aletea en la vuelta y, al posarse, cada vez menos hasta plegar el ala como en el logo.
+  const WING_BEATS = [0, -62, 10, -62, 10, -62, 10, -62, 10, -62, 10, -44, 7, -24, 4, 0];
+  const FLAP_MS = 1600;
+
+  function flap(dovePath: SVGPathElement) {
+    const frames = WING_BEATS.map((degrees) => ({ d: `path("${dovePose(degrees)}")` }));
+    dovePath.animate(frames, { duration: FLAP_MS, delay: 150, easing: 'linear' });
+  }
 
   function onEnd(event: AnimationEvent) {
     if (event.target === event.currentTarget) done = true;
@@ -58,7 +67,7 @@
       <!-- La paloma da la vuelta adelante del pincel y se posa en el hueco del círculo. -->
       <g class="orbit">
         <circle class="comet" cx="2367" cy="559" r="560" fill="url(#inicio-cometa)" />
-        <path class="gold" d={dove} fill-rule="evenodd" />
+        <path class="gold" d={dove} fill-rule="evenodd" {@attach flap} />
       </g>
 
       {#each letters as letter, index (index)}

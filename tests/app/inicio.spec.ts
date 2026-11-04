@@ -25,6 +25,10 @@ test('al abrir se anima el logo, con todas sus partes, y después se va solo', a
   await expect(splash).toBeVisible();
   await expect(splash.locator('.letter')).toHaveCount(6);
   await expect(splash.locator('.orbit path')).toHaveCount(1);
+  const flapping = await operator.evaluate(() =>
+    document.getAnimations().some((animation) => (animation.effect as KeyframeEffect).getKeyframes()[0]?.d),
+  );
+  expect(flapping).toBe(true);
   await expect(splash).toHaveCount(0, { timeout: 8000 });
 });
 
