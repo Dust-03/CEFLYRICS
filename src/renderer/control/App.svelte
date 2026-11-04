@@ -75,6 +75,7 @@
 <style>
   .pair {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
     max-width: 340px;
     padding: 48px 20px;
@@ -93,6 +94,8 @@
   }
 
   input {
+    box-sizing: border-box;
+    width: 100%;
     font-size: 34px;
     text-align: center;
     letter-spacing: 0.2em;

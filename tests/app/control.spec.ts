@@ -137,6 +137,25 @@ test('las fotos se ven y salen al aire, y los modos funcionan', async () => {
   await expect(output.locator('.cef-black')).not.toHaveClass(/cef-on/);
 });
 
+test('nada se sale de la pantalla en un celular angosto', async () => {
+  const fits = (page: Page) =>
+    page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+  const context = await browser.newContext({ viewport: { width: 320, height: 640 }, hasTouch: true, isMobile: true });
+  const phone = await context.newPage();
+  await phone.goto(`${BASE}/control/`);
+  await expect(phone.locator('#control-pin')).toBeVisible();
+  expect(await fits(phone), 'PIN').toBe(true);
+  const box = (await phone.locator('#control-vincular').boundingBox())!;
+  expect(box.x + box.width).toBeLessThanOrEqual(320);
+
+  await phone.locator('#control-pin').fill(await currentPin());
+  await phone.locator('#control-vincular').click();
+  for (const tab of ['biblia', 'canciones', 'medios', 'atajos']) {
+    await phone.locator(`#control-tab-${tab}`).click();
+    expect(await fits(phone), tab).toBe(true);
+  }
+});
+
 test('sin el PIN no se entra, y el PIN equivocado se bloquea', async () => {
   const phone = await openPhone();
   await phone.locator('#control-pin').fill('000000');
