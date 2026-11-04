@@ -125,6 +125,7 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC.shortcutList, () => shortcuts.list());
   ipcMain.handle(IPC.shortcutAdd, (_event, ref: string) => shortcuts.add(String(ref)));
   ipcMain.handle(IPC.shortcutRemove, (_event, id: number) => shortcuts.remove(Number(id)));
+  ipcMain.handle(IPC.shortcutReorder, (_event, ids: number[]) => shortcuts.reorder(ids.map(Number)));
 
   ipcMain.handle(IPC.getOutputInfo, () => output.info);
   ipcMain.on(IPC.toggleOutput, () => output.toggle());

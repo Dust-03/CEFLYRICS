@@ -74,6 +74,18 @@ test('al borrar lo guardado, el atajo desaparece', async () => {
   expect(db.prepare('SELECT COUNT(*) AS n FROM shortcuts').get()).toEqual({ n: 0 });
 });
 
+test('el orden elegido se guarda, y lo nuevo va al final', async () => {
+  const ids = ['Uno', 'Dos', 'Tres'].map((title) => songs.save({ title, author: '', text: 'Letra' }));
+  ids.forEach((id) => shortcuts.add(`song:${id}`));
+  const list = await shortcuts.list();
+
+  shortcuts.reorder([list[2].id, list[0].id, list[1].id]);
+  expect((await shortcuts.list()).map((s) => s.title)).toEqual(['Tres', 'Uno', 'Dos']);
+
+  shortcuts.add(`song:${songs.save({ title: 'Cuatro', author: '', text: 'Letra' })}`);
+  expect((await shortcuts.list()).map((s) => s.title)).toEqual(['Tres', 'Uno', 'Dos', 'Cuatro']);
+});
+
 test('rechaza referencias inválidas y se puede quitar', async () => {
   expect(() => shortcuts.add('archivo:c:/secreto')).toThrow();
   shortcuts.add('verse:RV1909:43003016');

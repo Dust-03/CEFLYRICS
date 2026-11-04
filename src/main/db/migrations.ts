@@ -144,4 +144,12 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 6,
+    name: 'orden de los atajos',
+    sql: `
+      ALTER TABLE shortcuts ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+      UPDATE shortcuts SET position = id;
+    `,
+  },
 ];

@@ -91,6 +91,7 @@ export type ShortcutApi = {
   list: () => Promise<Shortcut[]>;
   add: (ref: string) => Promise<void>;
   remove: (id: number) => Promise<void>;
+  reorder: (ids: number[]) => Promise<void>;
 };
 
 export type CefliricsApi = {
@@ -139,4 +140,5 @@ export const IPC = {
   shortcutList: 'shortcuts:list',
   shortcutAdd: 'shortcuts:add',
   shortcutRemove: 'shortcuts:remove',
+  shortcutReorder: 'shortcuts:reorder',
 } as const;

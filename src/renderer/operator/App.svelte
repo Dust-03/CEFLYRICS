@@ -222,6 +222,10 @@
             onAir={sendToAir}
             toItem={shortcutItem}
             onRemove={(item) => toggleShortcut(item.ref)}
+            onReorder={async (ids) => {
+              await api.shortcuts.reorder(ids);
+              await loadShortcuts();
+            }}
           />
         {/if}
       </div>

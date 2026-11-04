@@ -17,7 +17,10 @@ export class ShortcutService {
   ) {}
 
   async list(): Promise<Shortcut[]> {
-    const rows = this.db.prepare('SELECT id, ref FROM shortcuts ORDER BY id').all() as { id: number; ref: string }[];
+    const rows = this.db.prepare('SELECT id, ref FROM shortcuts ORDER BY position, id').all() as {
+      id: number;
+      ref: string;
+    }[];
     const files = new Map((await this.media.list()).map((item) => [item.id, item]));
     const shortcuts: Shortcut[] = [];
     for (const { id, ref } of rows) {
@@ -45,7 +48,17 @@ export class ShortcutService {
 
   add(ref: string) {
     if (!REF.test(ref)) throw new Error('Atajo inválido');
-    this.db.prepare('INSERT OR IGNORE INTO shortcuts (ref) VALUES (?)').run(ref);
+    this.db
+      .prepare(
+        `INSERT OR IGNORE INTO shortcuts (ref, position)
+         VALUES (?, (SELECT COALESCE(MAX(position), 0) + 1 FROM shortcuts))`,
+      )
+      .run(ref);
+  }
+
+  reorder(ids: number[]) {
+    const update = this.db.prepare('UPDATE shortcuts SET position = ? WHERE id = ?');
+    this.db.transaction(() => ids.forEach((id, index) => update.run(index + 1, id)))();
   }
 
   remove(id: number) {

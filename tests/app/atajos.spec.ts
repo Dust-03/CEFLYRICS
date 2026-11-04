@@ -123,6 +123,67 @@ test('se quita con la estrella o con la cruz, y sobrevive al cerrar la app', asy
   await expect(cards()).toHaveCount(0);
 });
 
+async function saveVerses() {
+  await operator.locator('#biblia-buscar').fill('sal 23');
+  for (const verse of [1, 2, 3]) await operator.locator(`[data-atajo="Salmos 23:${verse}"]`).click();
+  await expect(operator.locator('[data-atajo="Salmos 23:3"]')).toHaveClass(/on/);
+  await operator.locator('#tab-atajos').click();
+  await expect(cards()).toHaveCount(3);
+}
+
+const titles = async () =>
+  (await operator.locator('#atajos .foot strong').allTextContents()).map((text) => text.replace(/ · .*/, ''));
+
+async function drag(from: number, to: number, holdMs: number) {
+  const start = (await cards().nth(from).boundingBox())!;
+  const end = (await cards().nth(to).boundingBox())!;
+  await operator.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+  await operator.mouse.down();
+  await operator.waitForTimeout(holdMs);
+  await operator.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 8 });
+  await operator.mouse.up();
+}
+
+test('manteniendo apretado se arrastra, y el orden queda guardado', async () => {
+  await saveVerses();
+  expect(await titles()).toEqual(['Salmos 23:1', 'Salmos 23:2', 'Salmos 23:3']);
+
+  await drag(2, 0, 350);
+  await expect.poll(titles).toEqual(['Salmos 23:3', 'Salmos 23:1', 'Salmos 23:2']);
+  await expect(cards().first().locator('kbd')).toHaveText('1');
+  // Soltar no cuenta como clic: no manda nada a la vista previa.
+  await expect(operator.locator('#vista-previa .cef-body')).toHaveText('');
+
+  await operator.keyboard.press('Control+1');
+  await expect(operator.locator('#vista-previa .cef-title')).toContainText('Salmos 23:3');
+
+  await app.close();
+  await launch();
+  await operator.locator('#tab-atajos').click();
+  await expect.poll(titles).toEqual(['Salmos 23:3', 'Salmos 23:1', 'Salmos 23:2']);
+});
+
+test('sin mantener apretado no se mueve, y el clic sigue andando', async () => {
+  await saveVerses();
+  await drag(2, 0, 0);
+  await operator.waitForTimeout(400);
+  expect(await titles()).toEqual(['Salmos 23:1', 'Salmos 23:2', 'Salmos 23:3']);
+
+  await cards().nth(1).locator('.open').click();
+  await expect(operator.locator('#vista-previa .cef-title')).toContainText('Salmos 23:2');
+  await cards().nth(2).locator('.open').dblclick();
+  await expect(output.locator('.cef-title')).toContainText('Salmos 23:3');
+});
+
+test('con un filtro no se reordena', async () => {
+  await saveVerses();
+  await operator.getByRole('button', { name: 'Versículos' }).click();
+  await drag(2, 0, 350);
+  await operator.waitForTimeout(300);
+  expect(await titles()).toEqual(['Salmos 23:1', 'Salmos 23:2', 'Salmos 23:3']);
+  await expect(operator.locator('.hint')).toContainText('elegí Todo');
+});
+
 test('borrar la canción la saca de los atajos', async () => {
   await saveSong();
   await operator.locator('#cancion-borrar').click();

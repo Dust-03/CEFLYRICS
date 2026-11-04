@@ -9,8 +9,12 @@
     onAir: (item: PreviewItem) => void;
     toItem: (shortcut: Shortcut) => PreviewItem | null;
     onRemove: (shortcut: Shortcut) => void;
+    onReorder: (ids: number[]) => Promise<void>;
   };
-  let { shortcuts, onAirKey, onUse, onAir, toItem, onRemove }: Props = $props();
+  let { shortcuts, onAirKey, onUse, onAir, toItem, onRemove, onReorder }: Props = $props();
+
+  const HOLD_MS = 250;
+  const MOVE_TOLERANCE_PX = 8;
 
   const FILTERS = [
     { id: 'all', label: 'Todo' },
@@ -21,14 +25,69 @@
   ] as const;
 
   let filter = $state<(typeof FILTERS)[number]['id']>('all');
+  // Mientras se arrastra, el orden nuevo vive acá; se guarda al soltar.
+  let draft = $state<Shortcut[] | null>(null);
+  let draggingId = $state<number>();
+  let hold: ReturnType<typeof setTimeout> | undefined;
+  let pressAt = { x: 0, y: 0 };
+  let justDragged = false;
 
   const typeOf = (shortcut: Shortcut) => shortcut.media?.kind ?? shortcut.kind;
   const TYPE_NAMES: Record<string, string> = { song: 'Canción', verse: 'Versículo', image: 'Foto', video: 'Video' };
-  const visible = $derived(shortcuts.filter((item) => filter === 'all' || typeOf(item) === filter));
+  const ordered = $derived(draft ?? shortcuts);
+  const visible = $derived(ordered.filter((item) => filter === 'all' || typeOf(item) === filter));
+
+  function use(shortcut: Shortcut) {
+    if (!justDragged) onUse(shortcut);
+  }
 
   function airNow(shortcut: Shortcut) {
     const item = toItem(shortcut);
-    if (item) onAir(item);
+    if (item && !justDragged) onAir(item);
+  }
+
+  // Mantener apretado y arrastrar. Solo con "Todo": con un filtro no se ven todos los lugares.
+  function onPress(event: PointerEvent, shortcut: Shortcut) {
+    justDragged = false;
+    if (filter !== 'all' || event.button !== 0 || (event.target as HTMLElement).closest('.remove')) return;
+    const card = event.currentTarget as HTMLElement;
+    pressAt = { x: event.clientX, y: event.clientY };
+    hold = setTimeout(() => {
+      draggingId = shortcut.id;
+      draft = [...shortcuts];
+      card.setPointerCapture(event.pointerId);
+    }, HOLD_MS);
+  }
+
+  function onMove(event: PointerEvent) {
+    if (draggingId === undefined) {
+      const moved = Math.hypot(event.clientX - pressAt.x, event.clientY - pressAt.y);
+      if (moved > MOVE_TOLERANCE_PX) clearTimeout(hold);
+      return;
+    }
+    const over = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-atajo-id]');
+    const targetId = Number(over?.dataset.atajoId);
+    if (!draft || !targetId || targetId === draggingId) return;
+    const from = draft.findIndex((item) => item.id === draggingId);
+    const to = draft.findIndex((item) => item.id === targetId);
+    const next = [...draft];
+    next.splice(to, 0, ...next.splice(from, 1));
+    draft = next;
+  }
+
+  async function onRelease() {
+    clearTimeout(hold);
+    if (draggingId === undefined) return;
+    justDragged = true;
+    draggingId = undefined;
+    if (draft) await onReorder(draft.map((item) => item.id));
+    draft = null;
+  }
+
+  function onCancel() {
+    clearTimeout(hold);
+    draggingId = undefined;
+    draft = null;
   }
 </script>
 
@@ -37,22 +96,44 @@
     {#each FILTERS as item (item.id)}
       <button class:active={filter === item.id} onclick={() => (filter = item.id)}>{item.label}</button>
     {/each}
+    {#if ordered.length > 1}
+      <small class="hint">
+        {filter === 'all' ? 'Mantené apretado y arrastrá para reordenar' : 'Para reordenar, elegí Todo'}
+      </small>
+    {/if}
   </div>
 
   <div class="grid" id="atajos">
     {#each visible as shortcut (shortcut.id)}
-      {@const number = shortcuts.indexOf(shortcut) + 1}
+      {@const number = ordered.indexOf(shortcut) + 1}
       {@const preview = toItem(shortcut)}
-      <div class="card" class:on-air={preview?.key === onAirKey} data-tipo={typeOf(shortcut)}>
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="card"
+        class:on-air={preview?.key === onAirKey}
+        class:dragging={shortcut.id === draggingId}
+        data-tipo={typeOf(shortcut)}
+        data-atajo-id={shortcut.id}
+        onpointerdown={(event) => onPress(event, shortcut)}
+        onpointermove={onMove}
+        onpointerup={onRelease}
+        onpointercancel={onCancel}
+      >
         <button
           class="open"
           title={shortcut.kind === 'song' ? 'Abrir la canción' : 'A la vista previa. Doble clic: al aire'}
-          onclick={() => onUse(shortcut)}
+          onclick={() => use(shortcut)}
           ondblclick={() => airNow(shortcut)}
         >
           {#if shortcut.media}
             {#if shortcut.media.thumb || shortcut.media.kind === 'image'}
-              <img src={shortcut.media.thumb ?? shortcut.media.url} alt="" loading="lazy" decoding="async" />
+              <img
+                src={shortcut.media.thumb ?? shortcut.media.url}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                draggable="false"
+              />
             {:else}
               <video src={`${shortcut.media.url}#t=1`} preload="metadata" muted></video>
             {/if}
@@ -98,7 +179,13 @@
   .filters {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 2px;
+  }
+
+  .hint {
+    margin-left: auto;
+    color: var(--muted);
   }
 
   .filters button {
@@ -124,6 +211,19 @@
 
   .card {
     position: relative;
+    user-select: none;
+  }
+
+  .card.dragging {
+    z-index: 1;
+    cursor: grabbing;
+    opacity: 0.75;
+    transform: scale(1.03);
+  }
+
+  .card.dragging .open {
+    cursor: grabbing;
+    border-color: var(--accent);
   }
 
   .open {

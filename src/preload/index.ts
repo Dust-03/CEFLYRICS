@@ -50,6 +50,7 @@ const api: CefliricsApi = {
     list: () => ipcRenderer.invoke(IPC.shortcutList),
     add: (ref) => ipcRenderer.invoke(IPC.shortcutAdd, ref),
     remove: (id) => ipcRenderer.invoke(IPC.shortcutRemove, id),
+    reorder: (ids) => ipcRenderer.invoke(IPC.shortcutReorder, ids),
   },
 };
 
