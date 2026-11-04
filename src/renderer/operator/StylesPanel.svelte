@@ -1,15 +1,17 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import type { MediaItem, ThemeAssignment } from '@shared/api';
   import { BACKGROUNDS, FONTS, type Background, type Theme, type ThemeEntry } from '@shared/theme';
   import Screen from './Screen.svelte';
 
   type Props = {
+    home: number;
     themes: ThemeEntry[];
     assignment: ThemeAssignment;
     media: MediaItem[];
     onChange: () => void;
   };
-  let { themes, assignment, media, onChange }: Props = $props();
+  let { home, themes, assignment, media, onChange }: Props = $props();
 
   const api = window.ceflirics.themes;
   const SAMPLE = 'Jehová es mi pastor;\nnada me faltará.';
@@ -18,6 +20,16 @@
   let draft = $state<Theme | null>(null);
   let name = $state('');
   let error = $state('');
+
+  $effect(() => {
+    if (home) untrack(goHome);
+  });
+
+  function goHome() {
+    current = null;
+    draft = null;
+    error = '';
+  }
 
   function choose(entry: ThemeEntry) {
     current = entry;

@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import type { Shortcut } from '@shared/api';
   import type { PreviewItem } from './preview-item';
 
   type Props = {
+    home: number;
     shortcuts: Shortcut[];
     onAirKey: string | undefined;
     onUse: (shortcut: Shortcut) => void;
@@ -11,7 +13,7 @@
     onRemove: (shortcut: Shortcut) => void;
     onReorder: (ids: number[]) => Promise<void>;
   };
-  let { shortcuts, onAirKey, onUse, onAir, toItem, onRemove, onReorder }: Props = $props();
+  let { home, shortcuts, onAirKey, onUse, onAir, toItem, onRemove, onReorder }: Props = $props();
 
   const HOLD_MS = 250;
   const MOVE_TOLERANCE_PX = 8;
@@ -28,6 +30,14 @@
   // Mientras se arrastra, el orden nuevo vive acá; se guarda al soltar.
   let draft = $state<Shortcut[] | null>(null);
   let draggingId = $state<number>();
+
+  $effect(() => {
+    if (home) untrack(goHome);
+  });
+
+  function goHome() {
+    filter = 'all';
+  }
   let hold: ReturnType<typeof setTimeout> | undefined;
   let pressAt = { x: 0, y: 0 };
   let justDragged = false;

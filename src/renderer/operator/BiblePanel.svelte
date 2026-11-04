@@ -1,16 +1,19 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import type { BibleBook, BibleInfo, BibleVerse } from '@shared/api';
   import { TESTAMENTS, bookGroup, bookShortName } from '@shared/bible-groups';
   import type { PreviewItem } from './preview-item';
 
   type Props = {
+    // Sube cada vez que se vuelve a tocar el menú: hay que volver al inicio.
+    home: number;
     onAirKey: string | undefined;
     onPreview: (item: PreviewItem) => void;
     onAir: (item: PreviewItem) => void;
     saved: Set<string>;
     onToggleShortcut: (ref: string) => void;
   };
-  let { onAirKey, onPreview, onAir, saved, onToggleShortcut }: Props = $props();
+  let { home, onAirKey, onPreview, onAir, saved, onToggleShortcut }: Props = $props();
 
   const api = window.ceflirics.bible;
   const SEARCH_DELAY_MS = 90;
@@ -66,6 +69,20 @@
       verses = [];
     }
     selected = -1;
+  }
+
+  $effect(() => {
+    if (home) untrack(goHome);
+  });
+
+  function goHome() {
+    searchRun++;
+    query = '';
+    book = undefined;
+    chapter = undefined;
+    verses = [];
+    selected = -1;
+    searchBox?.focus();
   }
 
   function chooseBook(value: number) {

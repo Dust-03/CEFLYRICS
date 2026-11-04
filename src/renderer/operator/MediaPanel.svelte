@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import type { MediaItem } from '@shared/api';
   import type { PreviewItem } from './preview-item';
 
   type Props = {
+    home: number;
     onAirKey: string | undefined;
     onPreview: (item: PreviewItem) => void;
     onAir: (item: PreviewItem) => void;
@@ -10,7 +12,7 @@
     saved: Set<string>;
     onToggleShortcut: (ref: string) => void;
   };
-  let { onAirKey, onPreview, onAir, onChange, saved, onToggleShortcut }: Props = $props();
+  let { home, onAirKey, onPreview, onAir, onChange, saved, onToggleShortcut }: Props = $props();
 
   const api = window.ceflirics.media;
   const FILTERS = [
@@ -25,6 +27,16 @@
   let loop = $state(true);
   let confirmDelete = $state(false);
   let message = $state('');
+
+  $effect(() => {
+    if (home) untrack(goHome);
+  });
+
+  function goHome() {
+    filter = 'all';
+    selected = null;
+    confirmDelete = false;
+  }
 
   const visible = $derived(items.filter((item) => filter === 'all' || item.kind === filter));
 

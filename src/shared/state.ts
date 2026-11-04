@@ -32,7 +32,8 @@ export const initialState: OnAirState = { rev: 0, slide: null, mode: 'live', tim
 export function reduce(state: OnAirState, action: Action): OnAirState {
   switch (action.type) {
     case 'show-slide':
-      return { ...state, rev: state.rev + 1, slide: action.slide };
+      // Lo que se manda al aire siempre gana: Logo, Fondo y Negro son accesos directos, no un bloqueo.
+      return { ...state, rev: state.rev + 1, slide: action.slide, mode: 'live' };
     case 'clear':
       // Con ESC se vuelve al estado limpio. Sin nada que limpiar, no hay cambio.
       // Los temporizadores siguen corriendo: solo dejan de verse.
@@ -55,7 +56,7 @@ export function reduce(state: OnAirState, action: Action): OnAirState {
       };
     case 'timer-show':
       if (!state.timers.some((run) => run.id === action.id)) return state;
-      return { ...state, rev: state.rev + 1, shownTimer: { id: action.id, layout: action.layout } };
+      return { ...state, rev: state.rev + 1, mode: 'live', shownTimer: { id: action.id, layout: action.layout } };
     case 'timer-hide':
       return state.shownTimer ? { ...state, rev: state.rev + 1, shownTimer: null } : state;
   }

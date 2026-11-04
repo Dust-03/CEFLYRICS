@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import type { Song, SongSummary } from '@shared/api';
   import { labelName, toSongText } from '@shared/song-text';
   import type { PreviewItem } from './preview-item';
 
   type Props = {
+    home: number;
     onAirKey: string | undefined;
     onPreview: (item: PreviewItem) => void;
     onAir: (item: PreviewItem) => void;
@@ -12,7 +14,7 @@
     onToggleShortcut: (ref: string) => void;
     onChange: () => void;
   };
-  let { onAirKey, onPreview, onAir, openSongId, saved, onToggleShortcut, onChange }: Props = $props();
+  let { home, onAirKey, onPreview, onAir, openSongId, saved, onToggleShortcut, onChange }: Props = $props();
 
   const api = window.ceflirics.songs;
   const EXAMPLE =
@@ -35,6 +37,20 @@
     songs = await api.list(query);
   }
   refresh();
+
+  $effect(() => {
+    if (home) untrack(goHome);
+  });
+
+  function goHome() {
+    // Una letra a medio escribir no se pierde por tocar el menú.
+    if (editing) return;
+    song = null;
+    selected = -1;
+    confirmDelete = false;
+    query = '';
+    refresh();
+  }
 
   function onType() {
     clearTimeout(typing);

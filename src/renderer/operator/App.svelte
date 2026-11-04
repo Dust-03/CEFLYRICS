@@ -32,6 +32,8 @@
   let onAir = $state<OnAirState>(initialState);
   let tab = $state<(typeof MENU)[number]['id']>('biblia');
   let opened = $state<Record<string, boolean>>({ biblia: true });
+  // Cuántas veces se volvió a tocar cada menú estando en él: lo devuelve a su inicio.
+  let homes = $state<Record<string, number>>({});
   let preview = $state<PreviewItem | null>(null);
   let onAirKey = $state<string>();
   let body = $state('');
@@ -140,6 +142,7 @@
   const showPreview = (item: PreviewItem) => (preview = item);
 
   function openTab(id: typeof tab) {
+    if (tab === id) homes[id] = (homes[id] ?? 0) + 1;
     tab = id;
     opened[id] = true;
   }
@@ -187,6 +190,7 @@
     <section class="card work">
       <div class="pane" hidden={tab !== 'biblia'}>
         <BiblePanel
+          home={homes.biblia ?? 0}
           {onAirKey}
           onPreview={showPreview}
           onAir={sendToAir}
@@ -197,6 +201,7 @@
       <div class="pane" hidden={tab !== 'canciones'}>
         {#if opened.canciones}
           <SongsPanel
+            home={homes.canciones ?? 0}
             {onAirKey}
             {openSongId}
             onPreview={showPreview}
@@ -210,6 +215,7 @@
       <div class="pane" hidden={tab !== 'medios'}>
         {#if opened.medios}
           <MediaPanel
+            home={homes.medios ?? 0}
             {onAirKey}
             onPreview={showPreview}
             onAir={sendToAir}
@@ -225,6 +231,7 @@
       <div class="pane" hidden={tab !== 'atajos'}>
         {#if opened.atajos}
           <ShortcutsPanel
+            home={homes.atajos ?? 0}
             {shortcuts}
             {onAirKey}
             onUse={useShortcut}
@@ -241,6 +248,7 @@
       <div class="pane" hidden={tab !== 'temporizadores'}>
         {#if opened.temporizadores}
           <TimersPanel
+            home={homes.temporizadores ?? 0}
             {onAir}
             active={tab === 'temporizadores'}
             theme={themes.find((entry) => entry.id === assignment.song)?.theme}
@@ -250,7 +258,7 @@
       <div class="pane settings" hidden={tab !== 'configuracion'}>
         <h2>Configuración · Estilos y fuentes</h2>
         {#if opened.configuracion}
-          <StylesPanel {themes} {assignment} {media} onChange={loadLibrary} />
+          <StylesPanel home={homes.configuracion ?? 0} {themes} {assignment} {media} onChange={loadLibrary} />
         {/if}
       </div>
       <div class="pane" hidden={tab !== 'transmision'}>

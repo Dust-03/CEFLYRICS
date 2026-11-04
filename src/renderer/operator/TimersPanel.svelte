@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import type { OnAirState } from '@shared/state';
   import type { Theme } from '@shared/theme';
   import {
@@ -10,8 +11,8 @@
     type TimerRun,
   } from '@shared/timers';
 
-  type Props = { onAir: OnAirState; theme: Theme | undefined; active: boolean };
-  let { onAir, theme, active }: Props = $props();
+  type Props = { home: number; onAir: OnAirState; theme: Theme | undefined; active: boolean };
+  let { home, onAir, theme, active }: Props = $props();
 
   const api = window.ceflirics;
   const EMPTY = {
@@ -29,6 +30,15 @@
   let error = $state('');
   let confirmDelete = $state<number>();
   let now = $state(Date.now());
+
+  $effect(() => {
+    if (home) untrack(goHome);
+  });
+
+  function goHome() {
+    form = null;
+    confirmDelete = undefined;
+  }
 
   async function refresh() {
     timers = await api.timers.list();

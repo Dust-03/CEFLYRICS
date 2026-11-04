@@ -156,6 +156,53 @@ test('los atajos se reordenan manteniendo apretado, y el orden llega a la PC', a
   expect(await titles()).toEqual(['Salmos 23:3', 'Salmos 23:1', 'Salmos 23:2']);
 });
 
+test('lo que se manda le gana al Logo, y se puede volver a mandar lo mismo', async () => {
+  const phone = await pairPhone();
+  await phone.locator('[data-modo="wallpaper"]').click();
+  await expect(output.locator('.cef-wallpaper')).toHaveClass(/cef-on/);
+
+  await phone.locator('#control-buscar').fill('jn 3 16');
+  await phone.locator('.row', { hasText: 'Juan 3:16' }).click();
+  await phone.locator('#control-aire-boton').click();
+  await expect(output.locator('.cef-wallpaper')).not.toHaveClass(/cef-on/);
+  await expect(output.locator('.cef-body')).toContainText('de tal manera');
+
+  await phone.locator('[data-modo="black"]').click();
+  await expect(output.locator('.cef-black')).toHaveClass(/cef-on/);
+  await phone.locator('#control-aire-boton').click();
+  await expect(output.locator('.cef-black')).not.toHaveClass(/cef-on/);
+
+  await phone.locator('#control-quitar').click();
+  await expect(output.locator('.cef-body')).toHaveText('');
+  await phone.locator('#control-aire-boton').click();
+  await expect(output.locator('.cef-body')).toContainText('de tal manera');
+});
+
+test('volver a tocar la pestaña lleva al inicio del menú', async () => {
+  await operator.evaluate(() => window.ceflirics.songs.save({ title: 'Prueba', author: '', text: 'Uno' }));
+  const phone = await pairPhone();
+  await phone.locator('#control-buscar').fill('jn 3 16');
+  await expect(phone.locator('.row', { hasText: 'Juan 3:16' })).toBeVisible();
+  await phone.locator('#control-tab-biblia').click();
+  await expect(phone.locator('#control-buscar')).toHaveValue('');
+  await expect(phone.getByRole('button', { name: 'Gén', exact: true })).toBeVisible();
+
+  await phone.getByRole('button', { name: 'Sal', exact: true }).click();
+  await phone.locator('#control-tab-biblia').click();
+  await expect(phone.getByRole('button', { name: 'Gén', exact: true })).toBeVisible();
+
+  await phone.locator('#control-tab-canciones').click();
+  await phone.getByRole('button', { name: /Prueba/ }).click();
+  await expect(phone.locator('#control-diapositivas')).toBeVisible();
+  await phone.locator('#control-tab-canciones').click();
+  await expect(phone.locator('#control-diapositivas')).toHaveCount(0);
+
+  await phone.locator('#control-tab-tiempo').click();
+  await phone.locator('#control-temporizador-nuevo').click();
+  await phone.locator('#control-tab-tiempo').click();
+  await expect(phone.locator('#control-temporizador-form')).toHaveCount(0);
+});
+
 test('se llega a un versículo por libro y capítulo', async () => {
   const phone = await pairPhone();
   await phone.getByRole('button', { name: 'Sal', exact: true }).click();

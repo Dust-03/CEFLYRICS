@@ -44,6 +44,7 @@
   let selected = $state<Item | null>(null);
   let airKey = $state<string>();
   let leaving = $state(false);
+  let content = $state<HTMLElement>();
 
   let bibles = $state<BibleInfo[]>([]);
   let version = $state('');
@@ -222,6 +223,21 @@
     verses = [];
   }
 
+  // Volver a tocar la pestaña en la que se está lleva al inicio de ese menú.
+  function openTab(id: typeof tab) {
+    if (tab === id) {
+      if (id === 'biblia') clearBible();
+      if (id === 'canciones') {
+        song = null;
+        songQuery = '';
+        searchSongs();
+      }
+      if (id === 'tiempo') timerForm = null;
+      content?.scrollTo({ top: 0 });
+    }
+    tab = id;
+  }
+
   async function searchSongs() {
     songs = await connection.call<SongSummary[]>('songs.list', songQuery);
   }
@@ -374,7 +390,7 @@
     {#if !online}<p id="control-offline" class="offline">Buscando la PC…</p>{/if}
   </header>
 
-  <main>
+  <main bind:this={content}>
     {#if tab === 'biblia'}
       <div class="search">
         <input
@@ -612,7 +628,7 @@
       <button
         id="control-aire-boton"
         class="live send"
-        disabled={!selected || selected.key === airKey}
+        disabled={!selected || (selected.key === airKey && !!onAir.slide && onAir.mode === 'live')}
         onclick={() => selected && sendToAir(selected)}
       >
         {selected ? `Al aire: ${selected.label}` : 'Un toque elige, dos van al aire'}
@@ -620,7 +636,7 @@
     {/if}
     <nav>
       {#each TABS as item (item.id)}
-        <button id={`control-tab-${item.id}`} class:active={tab === item.id} onclick={() => (tab = item.id)}>
+        <button id={`control-tab-${item.id}`} class:active={tab === item.id} onclick={() => openTab(item.id)}>
           {item.label}
         </button>
       {/each}
