@@ -5,7 +5,7 @@ test('con dos monitores la salida va a pantalla completa en el que no es el prin
   const env = { ...process.env } as Record<string, string>;
   delete env.CEF_OUTPUT;
   const app = await electron.launch({ args: ['.'], env });
-  const operator = await app.firstWindow();
+  await app.firstWindow();
 
   const displays = await app.evaluate(({ screen }) => screen.getAllDisplays().length);
   if (displays < 2) {
@@ -14,6 +14,8 @@ test('con dos monitores la salida va a pantalla completa en el que no es el prin
   }
 
   await expect.poll(() => app.windows().length).toBe(2);
+  // La salida a veces carga primero.
+  const operator = app.windows().find((w) => w.url().includes('operator'))!;
   await expect(operator.locator('#estado-salida')).toHaveText('Salida en el segundo monitor');
   // Entrar en pantalla completa lleva un momento, más en una PC cargada.
   await expect

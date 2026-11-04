@@ -108,6 +108,54 @@ test('el mismo versículo se puede mandar en otra versión', async () => {
   await expect(output.locator('.cef-body')).toContainText('For God so loved');
 });
 
+test('dos toques mandan directo al aire, y uno solo no', async () => {
+  const phone = await pairPhone();
+  await phone.locator('#control-buscar').fill('jn 3 16');
+  const verse = phone.locator('.row', { hasText: 'Juan 3:16' });
+  await verse.click();
+  await phone.waitForTimeout(500);
+  await verse.click();
+  await phone.waitForTimeout(100);
+  await expect(output.locator('.cef-body')).toHaveText('');
+
+  await phone.waitForTimeout(500);
+  await verse.dblclick();
+  await expect(output.locator('.cef-title')).toHaveText('Juan 3:16 · RV1909');
+});
+
+test('los atajos se reordenan manteniendo apretado, y el orden llega a la PC', async () => {
+  const phone = await pairPhone();
+  await phone.locator('#control-buscar').fill('sal 23');
+  for (const verse of [1, 2, 3])
+    await phone.locator(`[data-estrella$=":19023${String(verse).padStart(3, '0')}"]`).click();
+  await phone.locator('#control-tab-atajos').click();
+  const titles = async () =>
+    (await phone.locator('#control-atajos small').allTextContents()).map((text) => text.split(' · ')[1]);
+  await expect.poll(titles).toEqual(['Salmos 23:1', 'Salmos 23:2', 'Salmos 23:3']);
+
+  const rows = phone.locator('#control-atajos li');
+  const start = (await rows.nth(2).boundingBox())!;
+  const end = (await rows.nth(0).boundingBox())!;
+  await phone.mouse.move(start.x + 40, start.y + start.height / 2);
+  await phone.mouse.down();
+  await phone.waitForTimeout(450);
+  await phone.mouse.move(end.x + 40, end.y + end.height / 2, { steps: 6 });
+  await phone.mouse.up();
+  await expect.poll(titles).toEqual(['Salmos 23:3', 'Salmos 23:1', 'Salmos 23:2']);
+
+  await operator.locator('#tab-atajos').click();
+  await expect(operator.locator('#atajos .card').first()).toContainText('Salmos 23:3');
+
+  // Sin mantener apretado, arrastrar no reordena.
+  const quick = (await rows.nth(2).boundingBox())!;
+  await phone.mouse.move(quick.x + 40, quick.y + quick.height / 2);
+  await phone.mouse.down();
+  await phone.mouse.move(end.x + 40, end.y + end.height / 2, { steps: 4 });
+  await phone.mouse.up();
+  await phone.waitForTimeout(400);
+  expect(await titles()).toEqual(['Salmos 23:3', 'Salmos 23:1', 'Salmos 23:2']);
+});
+
 test('se llega a un versículo por libro y capítulo', async () => {
   const phone = await pairPhone();
   await phone.getByRole('button', { name: 'Sal', exact: true }).click();
@@ -168,10 +216,72 @@ test('nada se sale de la pantalla en un celular angosto', async () => {
   await phone.locator('#control-nombre').fill('Angosto');
   await phone.locator('#control-pin').fill(await currentPin());
   await phone.locator('#control-vincular').click();
-  for (const tab of ['biblia', 'canciones', 'medios', 'atajos']) {
+  for (const tab of ['biblia', 'canciones', 'medios', 'atajos', 'tiempo']) {
     await phone.locator(`#control-tab-${tab}`).click();
     expect(await fits(phone), tab).toBe(true);
   }
+});
+
+test('un temporizador se crea y se maneja desde el celular', async () => {
+  await operator.locator('#tab-temporizadores').click();
+  const phone = await pairPhone();
+  await phone.locator('#control-tab-tiempo').click();
+  await phone.locator('#control-temporizador-nuevo').click();
+  await phone.locator('#control-temporizador-guardar').click();
+  await expect(phone.locator('.timer-error')).toContainText('nombre');
+
+  await phone.locator('#control-temporizador-nombre').fill('Comienza el culto');
+  await phone.locator('#control-temporizador-minutos').fill('5');
+  await phone.locator('#control-temporizador-guardar').click();
+  const row = phone.locator('#control-temporizadores li');
+  await expect(row).toContainText('05:00');
+  // La PC se entera sin tocar nada.
+  await expect(operator.locator('#temporizadores')).toContainText('Comienza el culto');
+
+  await row.locator('[data-iniciar]').click();
+  await expect(row.locator('strong')).toHaveText(/^0[45]:\d\d$/);
+  await row.locator('[data-completa]').click();
+  await expect(output.locator('.cef-timer-time')).toHaveText(/^0[45]:\d\d$/);
+  await expect(output.locator('.cef-timer-label')).toHaveText('Comienza el culto');
+  await expect(row.locator('[data-completa]')).toHaveClass(/live/);
+
+  await row.locator('[data-pausar]').click();
+  await expect(row.locator('[data-iniciar]')).toHaveText('Seguir');
+  await row.locator('[data-iniciar]').click();
+  await expect(row.locator('[data-pausar]')).toBeVisible();
+
+  await row.locator('[data-esquina]').click();
+  await expect(output.locator('.cef-timer')).toHaveClass(/cef-timer-corner/);
+  await row.locator('[data-detener]').click();
+  await expect(output.locator('.cef-timer')).not.toHaveClass(/cef-on/);
+  await expect(row.locator('strong')).toHaveText('05:00');
+});
+
+test('una cuenta atrás hasta una hora usa el reloj de la PC, aunque el del celular esté corrido', async () => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 800 } });
+  await context.addInitScript(() => {
+    const real = Date.now.bind(Date);
+    Date.now = () => real() + 3_600_000;
+  });
+  const phone = await context.newPage();
+  await phone.goto(`${BASE}/control/`);
+  await phone.locator('#control-nombre').fill('Corrido');
+  await phone.locator('#control-pin').fill(await currentPin());
+  await phone.locator('#control-vincular').click();
+  await phone.locator('#control-tab-tiempo').click();
+  await phone.locator('#control-temporizador-nuevo').click();
+  await phone.locator('#control-temporizador-nombre').fill('Culto');
+  await phone.locator('#control-temporizador-hasta').click();
+  const target = await operator.evaluate(() => {
+    const date = new Date(Date.now() + 30 * 60_000);
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  });
+  await phone.locator('#control-temporizador-hora').fill(target);
+  await phone.locator('#control-temporizador-guardar').click();
+  const row = phone.locator('#control-temporizadores li');
+  await expect(row).toContainText(`Hasta las ${target}`);
+  await row.locator('[data-iniciar]').click();
+  await expect(row.locator('strong')).toHaveText(/^(29|30):\d\d$/);
 });
 
 test('sin el PIN no se entra, y el PIN equivocado se bloquea', async () => {

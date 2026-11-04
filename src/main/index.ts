@@ -4,6 +4,7 @@ import { BrowserWindow, Menu, app, dialog, ipcMain, nativeImage, protocol, type 
 import { IPC, type AppInfo, type SongInput, type ThemeAssignment, type ThemeInput, type TimerInput } from '@shared/api';
 import { parsePort } from '@shared/lan';
 import { parseAction, type Action } from '@shared/state';
+import { createTimerRun, remainingMs } from '@shared/timers';
 import { BibleService } from './bible/service';
 import { openDatabase } from './db/database';
 import { LanControl } from './lan-control';
@@ -121,15 +122,57 @@ app.whenReady().then(() => {
 
   const timers = new TimerService(db);
   ipcMain.handle(IPC.timerList, () => timers.list());
-  ipcMain.handle(IPC.timerSave, (_event, input: TimerInput) => timers.save(input));
-  ipcMain.handle(IPC.timerRemove, (_event, id: number) => timers.remove(Number(id)));
+  // Los temporizadores también se manejan desde los celulares, con la hora de esta PC: el reloj del
+  // teléfono puede estar corrido.
+  const timersChanged = () => {
+    broadcast(IPC.timersChanged, null);
+    control.notify('timers');
+  };
+  const saveTimer = (input: TimerInput) => {
+    const id = timers.save(input);
+    timersChanged();
+    return id;
+  };
+  const runOf = (id: unknown) => store.current.timers.find((run) => run.id === String(id));
+  const startTimer = (id: unknown) => {
+    const moment = Date.now();
+    const paused = runOf(id);
+    if (paused && paused.endsAt === null) {
+      store.dispatch({ type: 'timer-run', run: { ...paused, endsAt: moment + paused.remainingMs } });
+      return;
+    }
+    const config = timers.list().find((timer) => timer.id === Number(id));
+    const theme = themes.list().find((entry) => entry.id === themes.assignment().song)?.theme;
+    const run = config && createTimerRun(config, moment, theme);
+    if (run) store.dispatch({ type: 'timer-run', run });
+  };
+  const pauseTimer = (id: unknown) => {
+    const run = runOf(id);
+    const remaining = run && remainingMs(run, Date.now());
+    if (run) store.dispatch({ type: 'timer-run', run: { ...run, endsAt: null, remainingMs: remaining! } });
+  };
+  const toggleTimerShow = (id: unknown, input: unknown) => {
+    const layout = input === 'full' ? 'full' : 'corner';
+    const { shownTimer } = store.current;
+    if (shownTimer?.id === String(id) && shownTimer.layout === layout) {
+      store.dispatch({ type: 'timer-hide' });
+      return;
+    }
+    if (!runOf(id)) startTimer(id);
+    store.dispatch({ type: 'timer-show', id: String(id), layout });
+  };
+  ipcMain.handle(IPC.timerSave, (_event, input: TimerInput) => saveTimer(input));
+  ipcMain.handle(IPC.timerRemove, (_event, id: number) => {
+    timers.remove(Number(id));
+    timersChanged();
+  });
 
   const shortcuts = new ShortcutService(db, bible, songs, media);
   ipcMain.handle(IPC.shortcutList, () => shortcuts.list());
   // Los atajos se tocan desde la PC y desde los celulares: todos tienen que quedar al día.
   const shortcutsChanged = () => {
     broadcast(IPC.shortcutsChanged, null);
-    control.shortcutsChanged();
+    control.notify('shortcuts');
   };
   const addShortcut = (ref: unknown) => {
     shortcuts.add(String(ref));
@@ -141,10 +184,12 @@ app.whenReady().then(() => {
   };
   ipcMain.handle(IPC.shortcutAdd, (_event, ref: string) => addShortcut(ref));
   ipcMain.handle(IPC.shortcutRemove, (_event, id: number) => removeShortcut(id));
-  ipcMain.handle(IPC.shortcutReorder, (_event, ids: number[]) => {
+  const reorderShortcuts = (ids: unknown) => {
+    if (!Array.isArray(ids)) return;
     shortcuts.reorder(ids.map(Number));
     shortcutsChanged();
-  });
+  };
+  ipcMain.handle(IPC.shortcutReorder, (_event, ids: number[]) => reorderShortcuts(ids));
 
   const control = new LanControl({
     db,
@@ -164,6 +209,12 @@ app.whenReady().then(() => {
       'shortcuts.list': () => shortcuts.list(),
       'shortcuts.add': addShortcut,
       'shortcuts.remove': removeShortcut,
+      'shortcuts.reorder': reorderShortcuts,
+      'timers.list': () => timers.list(),
+      'timers.save': (input) => saveTimer(input as TimerInput),
+      'timers.start': startTimer,
+      'timers.pause': pauseTimer,
+      'timers.show': toggleTimerShow,
       'themes.list': () => themes.list(),
       'themes.assignment': () => themes.assignment(),
     },

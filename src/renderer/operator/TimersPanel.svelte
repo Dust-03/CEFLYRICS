@@ -2,8 +2,8 @@
   import type { OnAirState } from '@shared/state';
   import type { Theme } from '@shared/theme';
   import {
+    createTimerRun,
     formatRemaining,
-    nextClockTarget,
     remainingMs,
     type TimerConfig,
     type TimerLayout,
@@ -34,6 +34,7 @@
     timers = await api.timers.list();
   }
   refresh();
+  api.timers.onChange(refresh);
 
   $effect(() => {
     if (!active || !onAir.timers.length) return;
@@ -50,18 +51,6 @@
     return timer.kind === 'clock' ? `Hasta las ${timer.clock}` : formatRemaining(timer.seconds * 1000);
   }
 
-  function makeRun(timer: TimerConfig): TimerRun | null {
-    const id = String(timer.id);
-    const base = { id, label: timer.name, message: timer.message, theme: $state.snapshot(theme) };
-    const moment = Date.now();
-    if (timer.kind === 'clock') {
-      const endsAt = nextClockTarget(timer.clock, moment);
-      return endsAt ? { ...base, endsAt, remainingMs: endsAt - moment } : null;
-    }
-    const ms = timer.seconds * 1000;
-    return { ...base, endsAt: moment + ms, remainingMs: ms };
-  }
-
   function start(timer: TimerConfig) {
     const paused = runOf(timer);
     if (paused && paused.endsAt === null) {
@@ -69,7 +58,7 @@
       api.dispatch({ type: 'timer-run', run });
       return;
     }
-    const run = makeRun(timer);
+    const run = createTimerRun($state.snapshot(timer), Date.now(), $state.snapshot(theme));
     if (run) api.dispatch({ type: 'timer-run', run });
   }
 

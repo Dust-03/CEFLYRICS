@@ -29,8 +29,7 @@ todo, y el celular elige qué sale al aire.
 
 ## Fuera de esta etapa
 
-Temporizadores desde el celular, editar canciones, subir fotos, roles por operador y la tienda de
-Google.
+Editar canciones y temporizadores, subir fotos, roles por operador y la tienda de Google.
 
 ## Firma del APK
 

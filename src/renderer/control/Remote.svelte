@@ -12,6 +12,7 @@
   import { bookGroup, bookShortName } from '@shared/bible-groups';
   import { initialState, type OnAirState, type OverrideMode, type Slide } from '@shared/state';
   import type { ThemeEntry } from '@shared/theme';
+  import { formatRemaining, remainingMs, type TimerConfig, type TimerLayout } from '@shared/timers';
   import Screen from '../operator/Screen.svelte';
   import { connect, type Connection } from './connection';
 
@@ -29,6 +30,7 @@
     { id: 'canciones', label: 'Canciones' },
     { id: 'medios', label: 'Medios' },
     { id: 'atajos', label: 'Atajos' },
+    { id: 'tiempo', label: 'Tiempo' },
   ] as const;
   const MODES: { mode: OverrideMode; label: string }[] = [
     { mode: 'wallpaper', label: 'Logo' },
@@ -58,6 +60,16 @@
 
   let media = $state<MediaItem[]>([]);
   let shortcuts = $state<Shortcut[]>([]);
+  let timers = $state<TimerConfig[]>([]);
+  let timerForm = $state<{
+    name: string;
+    kind: 'duration' | 'clock';
+    minutes: number;
+    clock: string;
+    message: string;
+  } | null>(null);
+  let timerError = $state('');
+  let clockNow = $state(Date.now());
   let themes = $state<ThemeEntry[]>([]);
   let assignment = $state<ThemeAssignment | null>(null);
 
@@ -65,6 +77,36 @@
 
   async function loadShortcuts() {
     shortcuts = await connection.call<Shortcut[]>('shortcuts.list');
+  }
+
+  async function loadTimers() {
+    timers = await connection.call<TimerConfig[]>('timers.list');
+  }
+
+  const runOf = (timer: TimerConfig) => onAir.timers.find((run) => run.id === String(timer.id));
+  const isShown = (timer: TimerConfig, layout: TimerLayout) =>
+    onAir.shownTimer?.id === String(timer.id) && onAir.shownTimer.layout === layout;
+  const idleLabel = (timer: TimerConfig) =>
+    timer.kind === 'clock' ? `Hasta las ${timer.clock}` : formatRemaining(timer.seconds * 1000);
+
+  function newTimer() {
+    timerError = '';
+    timerForm = { name: '', kind: 'duration', minutes: 5, clock: '19:00', message: '' };
+  }
+
+  async function saveTimer() {
+    if (!timerForm) return;
+    const { name, kind, minutes, clock, message } = timerForm;
+    const seconds = Math.round((Number(minutes) || 0) * 60);
+    if (!name.trim()) timerError = 'Poné un nombre.';
+    else if (kind === 'duration' && seconds <= 0) timerError = 'Poné una duración mayor a cero.';
+    else if (kind === 'clock' && !clock) timerError = 'Elegí una hora.';
+    else {
+      const id = await connection.call<number | null>('timers.save', { name, kind, seconds, clock, message });
+      if (id) timerForm = null;
+      else timerError = 'No se pudo guardar.';
+      await loadTimers();
+    }
   }
 
   async function toggleStar(ref: string) {
@@ -83,20 +125,24 @@
       if (value && wasOffline) load();
     },
     onShortcuts: () => loadShortcuts(),
+    onTimers: () => loadTimers(),
     onRejected: () => onRejected(),
   });
   $effect(() => onConnection(connection));
 
   async function load() {
-    [bibles, themes, assignment, media, shortcuts, songs] = await Promise.all([
-      connection.call<BibleInfo[]>('bible.list'),
+    bibles = await connection.call<BibleInfo[]>('bible.list');
+    version ||= bibles[0]?.code ?? '';
+    // Lo que se escribió mientras cargaba necesitaba la versión para buscar.
+    if (query.trim()) searchBible();
+    [themes, assignment, media, shortcuts, songs] = await Promise.all([
       connection.call<ThemeEntry[]>('themes.list'),
       connection.call<ThemeAssignment>('themes.assignment'),
       connection.call<MediaItem[]>('media.list'),
       connection.call<Shortcut[]>('shortcuts.list'),
       connection.call<SongSummary[]>('songs.list', ''),
     ]);
-    version ||= bibles[0]?.code ?? '';
+    await loadTimers();
     books = await connection.call<BibleBook[]>('bible.books', version);
   }
 
@@ -104,6 +150,18 @@
     if (item.kind === 'media') return item.slide;
     const id = item.kind === 'bible' ? assignment?.bible : assignment?.song;
     return { ...item.slide, theme: themes.find((entry) => entry.id === id)?.theme };
+  }
+
+  const DOUBLE_TAP_MS = 350;
+  let lastTap = { key: '', at: 0 };
+
+  // Un toque elige; dos seguidos lo mandan al aire.
+  function tap(item: Item) {
+    const moment = performance.now();
+    const twice = lastTap.key === item.key && moment - lastTap.at < DOUBLE_TAP_MS;
+    lastTap = { key: item.key, at: twice ? 0 : moment };
+    if (twice) sendToAir(item);
+    else selected = item;
   }
 
   function sendToAir(item: Item) {
@@ -185,13 +243,90 @@
   }
 
   async function useShortcut(shortcut: Shortcut) {
+    if (justDragged) return;
     const item = shortcutItem(shortcut);
     if (item) {
-      selected = item;
+      tap(item);
     } else if (shortcut.songId) {
       tab = 'canciones';
       await openSong(shortcut.songId);
     }
+  }
+
+  $effect(() => {
+    if (tab !== 'tiempo' || !onAir.timers.length) return;
+    clockNow = connection.now();
+    const ticker = setInterval(() => (clockNow = connection.now()), 500);
+    return () => clearInterval(ticker);
+  });
+
+  const HOLD_MS = 350;
+  const MOVE_LIMIT = 10;
+  let draggedId = $state<number | null>(null);
+  let justDragged = false;
+
+  // Mantener apretado y arrastrar, como en la PC. Se cancela si el dedo se mueve antes de tiempo:
+  // ahí lo que quiere hacer es desplazar la lista.
+  function reorderable(list: HTMLElement) {
+    let hold: ReturnType<typeof setTimeout> | undefined;
+    let startY = 0;
+
+    function moveTo(y: number) {
+      const rows = [...list.children] as HTMLElement[];
+      const target = rows.findIndex((row) => {
+        const { top, bottom } = row.getBoundingClientRect();
+        return y >= top && y <= bottom;
+      });
+      const from = shortcuts.findIndex((item) => item.id === draggedId);
+      if (target < 0 || target === from) return;
+      const next = [...shortcuts];
+      next.splice(target, 0, next.splice(from, 1)[0]);
+      shortcuts = next;
+    }
+
+    function finish() {
+      clearTimeout(hold);
+      if (draggedId === null) return;
+      draggedId = null;
+      justDragged = true;
+      setTimeout(() => (justDragged = false), 300);
+      connection.call(
+        'shortcuts.reorder',
+        shortcuts.map((item) => item.id),
+      );
+    }
+
+    function onDown(event: PointerEvent) {
+      const row = (event.target as HTMLElement).closest('li');
+      if (!row || (event.target as HTMLElement).closest('.star')) return;
+      const id = Number(row.dataset.id);
+      startY = event.clientY;
+      hold = setTimeout(() => {
+        draggedId = id;
+        navigator.vibrate?.(30);
+      }, HOLD_MS);
+    }
+
+    function onMove(event: PointerEvent) {
+      if (draggedId !== null) moveTo(event.clientY);
+      else if (Math.abs(event.clientY - startY) > MOVE_LIMIT) clearTimeout(hold);
+    }
+
+    // Una vez agarrado, el dedo mueve la tarjeta y no la lista.
+    function onTouchMove(event: TouchEvent) {
+      if (draggedId === null) return;
+      event.preventDefault();
+      moveTo(event.touches[0].clientY);
+    }
+
+    const noMenu = (event: Event) => event.preventDefault();
+    list.addEventListener('pointerdown', onDown);
+    list.addEventListener('pointermove', onMove);
+    list.addEventListener('pointerup', finish);
+    list.addEventListener('pointercancel', finish);
+    list.addEventListener('touchmove', onTouchMove, { passive: false });
+    list.addEventListener('touchend', finish);
+    list.addEventListener('contextmenu', noMenu);
   }
 
   const chapters = $derived(Array.from({ length: book?.chapters ?? 0 }, (_, index) => index + 1));
@@ -222,7 +357,7 @@
 <div class="remote">
   <header>
     <div class="screen-row">
-      <div class="preview"><Screen id="control-aire" state={onAir} /></div>
+      <div class="preview"><Screen id="control-aire" state={onAir} now={connection.now} /></div>
       <div class="modes">
         {#each MODES as { mode, label } (mode)}
           <button
@@ -271,7 +406,7 @@
           {#each verses as verse (verse.vid)}
             {@const item = verseItem(verse)}
             <li class="starred">
-              <button class="row" class:on={selected?.key === item.key} onclick={() => (selected = item)}>
+              <button class="row" class:on={selected?.key === item.key} onclick={() => tap(item)}>
                 <small>{verse.label}</small>
                 {verse.text}
               </button>
@@ -328,7 +463,7 @@
           {#each media as file (file.id)}
             {@const item = mediaItem(file)}
             <div class="starred">
-              <button class="photo" class:on={selected?.key === item.key} onclick={() => (selected = item)}>
+              <button class="photo" class:on={selected?.key === item.key} onclick={() => tap(item)}>
                 {#if file.thumb}<img src={file.thumb} alt={file.name} loading="lazy" />{:else}{file.name}{/if}
               </button>
               {@render star(`media:${file.id}`)}
@@ -338,10 +473,107 @@
       {:else}
         <p class="empty">No hay fotos ni videos.</p>
       {/if}
+    {:else if tab === 'tiempo'}
+      {#if timerForm}
+        <div class="timer-form" id="control-temporizador-form">
+          <input
+            id="control-temporizador-nombre"
+            placeholder="Nombre: Comienza el culto"
+            maxlength="60"
+            bind:value={timerForm.name}
+          />
+          <div class="kinds">
+            <button
+              class:primary={timerForm.kind === 'duration'}
+              onclick={() => timerForm && (timerForm.kind = 'duration')}
+            >
+              Temporizador
+            </button>
+            <button
+              id="control-temporizador-hasta"
+              class:primary={timerForm.kind === 'clock'}
+              onclick={() => timerForm && (timerForm.kind = 'clock')}
+            >
+              Hasta una hora
+            </button>
+          </div>
+          {#if timerForm.kind === 'duration'}
+            <label
+              >Minutos <input
+                id="control-temporizador-minutos"
+                type="number"
+                min="0"
+                inputmode="decimal"
+                bind:value={timerForm.minutes}
+              /></label
+            >
+          {:else}
+            <label>Hora <input id="control-temporizador-hora" type="time" bind:value={timerForm.clock} /></label>
+          {/if}
+          <input placeholder="Mensaje al llegar a cero (opcional)" maxlength="200" bind:value={timerForm.message} />
+          {#if timerError}<p class="timer-error">{timerError}</p>{/if}
+          <div class="kinds">
+            <button onclick={() => (timerForm = null)}>Cancelar</button>
+            <button id="control-temporizador-guardar" class="primary" onclick={saveTimer}>Guardar</button>
+          </div>
+        </div>
+      {:else}
+        <button id="control-temporizador-nuevo" onclick={newTimer}>+ Nuevo</button>
+        {#if timers.length}
+          <ul id="control-temporizadores">
+            {#each timers as timer (timer.id)}
+              {@const run = runOf(timer)}
+              <li class="timer">
+                <div class="timer-head">
+                  <div>
+                    <b>{timer.name}</b>
+                    <small>{timer.kind === 'clock' ? `Hasta las ${timer.clock}` : 'Temporizador'}</small>
+                  </div>
+                  <strong>{run ? formatRemaining(remainingMs(run, clockNow)) : idleLabel(timer)}</strong>
+                </div>
+                <div class="timer-actions">
+                  {#if run?.endsAt && timer.kind === 'duration'}
+                    <button data-pausar onclick={() => connection.call('timers.pause', timer.id)}>Pausa</button>
+                  {:else if !run?.endsAt}
+                    <button data-iniciar class="primary" onclick={() => connection.call('timers.start', timer.id)}>
+                      {run ? 'Seguir' : 'Iniciar'}
+                    </button>
+                  {/if}
+                  {#if run}
+                    <button
+                      data-detener
+                      onclick={() => connection.dispatch({ type: 'timer-stop', id: String(timer.id) })}
+                    >
+                      Detener
+                    </button>
+                  {/if}
+                  <button
+                    data-completa
+                    class:live={isShown(timer, 'full')}
+                    onclick={() => connection.call('timers.show', timer.id, 'full')}
+                  >
+                    Pantalla
+                  </button>
+                  <button
+                    data-esquina
+                    class:live={isShown(timer, 'corner')}
+                    onclick={() => connection.call('timers.show', timer.id, 'corner')}
+                  >
+                    Esquina
+                  </button>
+                </div>
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="empty">Creá un temporizador o una cuenta atrás hasta una hora.</p>
+        {/if}
+      {/if}
     {:else if shortcuts.length}
-      <ul id="control-atajos">
+      <p class="hint">Mantené apretado y arrastrá para reordenar.</p>
+      <ul id="control-atajos" {@attach reorderable}>
         {#each shortcuts as shortcut, index (shortcut.id)}
-          <li class="starred">
+          <li class="starred" class:dragged={draggedId === shortcut.id} data-id={shortcut.id}>
             <button class="row" onclick={() => useShortcut(shortcut)}>
               <small>{index + 1} · {shortcut.title}</small>
               {shortcut.text}
@@ -383,7 +615,7 @@
         disabled={!selected || selected.key === airKey}
         onclick={() => selected && sendToAir(selected)}
       >
-        {selected ? `Al aire: ${selected.label}` : 'Elegí algo para mandar al aire'}
+        {selected ? `Al aire: ${selected.label}` : 'Un toque elige, dos van al aire'}
       </button>
     {/if}
     <nav>
@@ -420,6 +652,7 @@
 
   .remote {
     display: grid;
+    touch-action: manipulation;
     grid-template-rows: auto minmax(0, 1fr) auto;
     height: 100dvh;
     background: var(--bg);
@@ -518,6 +751,24 @@
     position: relative;
   }
 
+  #control-atajos {
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .dragged {
+    z-index: 1;
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+
+  .hint {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+  }
+
   .starred .row {
     padding-right: 46px;
   }
@@ -609,6 +860,80 @@
     white-space: pre-line;
   }
 
+  .timer {
+    display: grid;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+
+  .timer-head {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .timer-head div {
+    display: grid;
+    min-width: 0;
+  }
+
+  .timer-head small {
+    color: var(--muted);
+  }
+
+  .timer-head strong {
+    flex: none;
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .timer-actions {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 6px;
+  }
+
+  .timer-actions button {
+    padding: 9px 2px;
+    font-size: 13px;
+  }
+
+  .timer-form {
+    display: grid;
+    gap: 8px;
+  }
+
+  .timer-form label {
+    display: grid;
+    gap: 4px;
+    color: var(--muted);
+  }
+
+  .timer-form input {
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .kinds {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .kinds button {
+    padding: 11px 4px;
+  }
+
+  .timer-error {
+    margin: 0;
+    color: var(--live);
+  }
+
   .empty {
     color: var(--muted);
     text-align: center;
@@ -646,13 +971,14 @@
 
   nav {
     display: grid;
-    grid-template-columns: repeat(4, 1fr) 40px;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) 34px;
     gap: 4px;
   }
 
   nav button {
     padding: 8px 0;
-    font-size: 13px;
+    overflow: hidden;
+    font-size: 12px;
     color: var(--muted);
     background: transparent;
     border-color: transparent;

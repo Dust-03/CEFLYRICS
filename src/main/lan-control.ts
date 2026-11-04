@@ -28,7 +28,7 @@ type ControlOptions = {
 // De cada celular se guarda solo la huella de su llave, nunca la llave.
 type Device = { id: number; name: string; tokenHash: string };
 type Session = { deviceId: number; ip: string };
-type Message = { t?: unknown; token?: unknown; id?: unknown; m?: unknown; a?: unknown } | null;
+type Message = { t?: unknown; token?: unknown; id?: unknown; m?: unknown; a?: unknown; c?: unknown } | null;
 
 export type PairResult = { token: string } | { error: 'pin' | 'locked' | 'name' };
 
@@ -147,7 +147,7 @@ export class LanControl {
 
   private async receive(socket: WebSocket, message: Message) {
     if (message?.t === 'ping') {
-      socket.send('{"t":"pong"}');
+      socket.send(JSON.stringify({ t: 'pong', c: message.c, s: Date.now() }));
     } else if (message?.t === 'forget') {
       this.unlink(this.sessions.get(socket)!.deviceId);
     } else if (message?.t === 'dispatch') {
@@ -163,8 +163,9 @@ export class LanControl {
     this.send({ t: 'state', state });
   }
 
-  shortcutsChanged() {
-    this.send({ t: 'shortcuts' });
+  // Avisa que cambió una lista, para que los celulares la vuelvan a pedir.
+  notify(list: 'shortcuts' | 'timers') {
+    this.send({ t: list });
   }
 
   private send(message: object) {

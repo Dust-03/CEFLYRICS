@@ -79,6 +79,7 @@ export type TimerApi = {
   list: () => Promise<TimerConfig[]>;
   save: (input: TimerInput) => Promise<number>;
   remove: (id: number) => Promise<void>;
+  onChange: (listener: () => void) => () => void;
 };
 
 export type Shortcut = {
@@ -143,6 +144,7 @@ export const IPC = {
   timerList: 'timers:list',
   timerSave: 'timers:save',
   timerRemove: 'timers:remove',
+  timersChanged: 'timers:changed',
   shortcutList: 'shortcuts:list',
   shortcutAdd: 'shortcuts:add',
   shortcutRemove: 'shortcuts:remove',

@@ -49,6 +49,17 @@ export function nextClockTarget(clock: string, now: number) {
   return target.getTime();
 }
 
+// Pone en marcha un temporizador guardado. Null si la hora elegida no es válida.
+export function createTimerRun(timer: TimerConfig, now: number, theme?: Theme): TimerRun | null {
+  const base = { id: String(timer.id), label: timer.name, message: timer.message, theme };
+  if (timer.kind === 'clock') {
+    const endsAt = nextClockTarget(timer.clock, now);
+    return endsAt ? { ...base, endsAt, remainingMs: endsAt - now } : null;
+  }
+  const ms = timer.seconds * 1000;
+  return { ...base, endsAt: now + ms, remainingMs: ms };
+}
+
 // Lo que llega por IPC no se da por bueno.
 export function parseTimerRun(input: unknown): TimerRun | null {
   if (typeof input !== 'object' || input === null) return null;

@@ -109,7 +109,7 @@ type RendererOptions = {
 
 export function createRenderer(
   stage: HTMLElement,
-  { audio = false, playback = true, now = () => Date.now() }: RendererOptions = {},
+  { audio = false, playback = true, now = Date.now }: RendererOptions = {},
 ) {
   if (!document.getElementById('cef-styles')) {
     const style = document.createElement('style');

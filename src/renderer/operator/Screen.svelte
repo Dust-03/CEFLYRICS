@@ -1,15 +1,15 @@
 <script lang="ts">
   import { createRenderer, type RenderState } from '@render-engine/index';
 
-  type Props = { id: string; state: RenderState; aspect?: string };
-  let { id, state: renderState, aspect = '16 / 9' }: Props = $props();
+  type Props = { id: string; state: RenderState; aspect?: string; now?: () => number };
+  let { id, state: renderState, aspect = '16 / 9', now }: Props = $props();
 
   let stage = $state<HTMLElement>();
 
   // Las vistas de la consola usan el mismo motor que las salidas.
   $effect(() => {
     if (!stage) return;
-    const render = createRenderer(stage, { playback: false });
+    const render = createRenderer(stage, { playback: false, now });
     $effect(() => render(renderState));
   });
 </script>
