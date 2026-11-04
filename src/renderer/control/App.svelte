@@ -59,7 +59,7 @@
   />
 {:else}
   <form class="pair" onsubmit={submit}>
-    <h1>Control de CEFLIRICS</h1>
+    <h1>Control de CEFLYRICS</h1>
     <p>Se hace una sola vez. El PIN aparece en la PC, en el menú Transmisión.</p>
     <input
       id="control-nombre"

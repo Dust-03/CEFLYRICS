@@ -1,4 +1,4 @@
-# CEFLIRICS: software de proyección para iglesias (clon propio, de escritorio)
+# CEFLYRICS: software de proyección para iglesias (clon propio, de escritorio)
 
 ## Objetivo
 Programa de escritorio para proyectar versículos, letras, videos y anuncios en el culto,
@@ -11,9 +11,11 @@ comentado: español (Argentina). Nombres de variables y APIs en inglés.
   propio y se puede agregar la excepción de enlace que necesita la DLL de NDI (ver sección (e) del
   informe). Mirar qué funciones ofrecen esos programas sí está permitido.
 - UI del operador: **Svelte** (Svelte 5 + Vite).
+- El programa se llama CEFLYRICS, con y. Quedan con i, a propósito, la carpeta del proyecto, la de la
+  firma y la identidad de la app Android (`ar.ceflirics.control`), que no se ve y permite actualizarla.
 - Carpeta del proyecto: `D:\Proyectos Claude\CEFLIRICS`.
 - Logo de la iglesia: `assets/logo-cef.svg`, calcado de su imagen, sin color fijo (`currentColor`).
-  Es de la iglesia, no un recurso libre. `assets/logo-ceflirics.svg` le suma "lirics" en trazos, con
+  Es de la iglesia, no un recurso libre. `assets/logo-ceflyrics.svg` le suma "lyrics" en trazos, con
   la fuente Yellowtail (Apache-2.0).
 - `prototype/` y `docs/investigacion.md` se crearon en la Etapa 0
   (ver `docs/plan-etapa-0.md`). Las preguntas abiertas están en la sección (e) del informe.

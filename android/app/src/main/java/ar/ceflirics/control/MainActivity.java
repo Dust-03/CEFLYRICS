@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-// La app es una cáscara: encuentra la PC y abre la pantalla de control que sirve CEFLIRICS. Así,
+// La app es una cáscara: encuentra la PC y abre la pantalla de control que sirve CEFLYRICS. Así,
 // actualizar el programa de la PC actualiza el control sin reinstalar nada.
 public class MainActivity extends Activity {
     private static final String START_PAGE = "file:///android_asset/inicio.html";
@@ -74,16 +74,16 @@ public class MainActivity extends Activity {
         return "http://" + address + "/control/";
     }
 
-    private static boolean isCeflirics(String address) {
+    private static boolean isCeflyrics(String address) {
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) new URL("http://" + address + "/api/ceflirics").openConnection();
+            connection = (HttpURLConnection) new URL("http://" + address + "/api/ceflyrics").openConnection();
             connection.setConnectTimeout(500);
             connection.setReadTimeout(800);
             if (connection.getResponseCode() != 200) return false;
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
                 String line = reader.readLine();
-                return line != null && line.contains("ceflirics");
+                return line != null && line.contains("ceflyrics");
             }
         } catch (Exception error) {
             return false;
@@ -116,7 +116,7 @@ public class MainActivity extends Activity {
         for (int host = 1; host < 255; host++) {
             String address = prefix + host + ":" + DEFAULT_PORT;
             pool.execute(() -> {
-                if (found.get() == null && isCeflirics(address)) found.compareAndSet(null, address);
+                if (found.get() == null && isCeflyrics(address)) found.compareAndSet(null, address);
             });
         }
         pool.shutdown();

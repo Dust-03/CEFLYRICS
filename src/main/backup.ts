@@ -7,7 +7,7 @@ import { parseTheme } from '@shared/theme';
 import type { Db } from './db/database';
 import { hashFile, MEDIA_EXTENSIONS } from './media';
 
-const FORMAT = 'ceflirics-datos';
+const FORMAT = 'ceflyrics-datos';
 const VERSION = 1;
 const MAX_HEADER = 64 * 1024 * 1024;
 
@@ -35,7 +35,7 @@ type Header = {
   files: DataFile[];
 };
 
-const invalid = () => new Error('El archivo no es una copia de datos de CEFLIRICS');
+const invalid = () => new Error('El archivo no es una copia de datos de CEFLYRICS');
 
 function counts(tables: Record<string, Row[]>): DataCounts {
   return {

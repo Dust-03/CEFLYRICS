@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Prototipo de pantallas sincronizadas de CEFLIRICS (Etapa 0.4).
+// Prototipo de pantallas sincronizadas de CEFLYRICS (Etapa 0.4).
 // Servidor HTTP + WebSocket sin dependencias: reloj maestro, estado "al aire",
 // medios con HTTP Range y subida de archivos protegida con token de operador.
 'use strict';
@@ -461,7 +461,7 @@ server.on('upgrade', (req, socket) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   const urls = lanUrls();
-  console.log('CEFLIRICS · prototipo de pantallas sincronizadas');
+  console.log('CEFLYRICS · prototipo de pantallas sincronizadas');
   console.log(`  Operador:  ${urls[0]}/?token=${TOKEN}`);
   for (const u of urls) console.log(`  Pantallas: ${u}`);
   console.log(`  Banco de prueba: http://localhost:${PORT}/prueba?token=${TOKEN}`);

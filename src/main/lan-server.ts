@@ -39,7 +39,7 @@ const PAGE = `<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CEFLIRICS</title>
+    <title>CEFLYRICS</title>
     <link rel="stylesheet" href="/pantalla.css" />
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; background: #000; cursor: none; }
@@ -326,9 +326,9 @@ export class LanServer {
       response.writeHead(200, { 'Content-Type': FILES[path], 'Cache-Control': 'no-cache' }).end(data);
     } else if (path.startsWith('/media/')) {
       await this.sendMedia(path.slice('/media/'.length), request, response);
-    } else if (path === '/api/ceflirics') {
+    } else if (path === '/api/ceflyrics') {
       // Con esto la app del celular reconoce a la PC en la red.
-      response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"app":"ceflirics"}');
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"app":"ceflyrics"}');
     } else if (path === '/control') {
       response.writeHead(302, { Location: '/control/' }).end();
     } else if (path === '/control/') {
@@ -374,7 +374,7 @@ export class LanServer {
     response.writeHead(200, {
       'Content-Type': 'application/vnd.android.package-archive',
       'Content-Length': size,
-      'Content-Disposition': 'attachment; filename="ceflirics-control.apk"',
+      'Content-Disposition': 'attachment; filename="ceflyrics-control.apk"',
     });
     await pipeline(createReadStream(this.options.apk), response).catch(() => {});
   }

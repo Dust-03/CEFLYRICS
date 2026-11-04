@@ -1,6 +1,6 @@
 # Control móvil (adelantado de la Etapa 2)
 
-Una app de Android para manejar CEFLIRICS desde el celular. No proyecta sola: la PC sigue haciendo
+Una app de Android para manejar CEFLYRICS desde el celular. No proyecta sola: la PC sigue haciendo
 todo, y el celular elige qué sale al aire.
 
 ## Decisiones

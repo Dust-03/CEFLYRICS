@@ -1,5 +1,5 @@
-appId: ar.ceflirics.app
-productName: CEFLIRICS
+appId: ar.ceflyrics.app
+productName: CEFLYRICS
 copyright: GPL-3.0
 directories:
   output: release
@@ -36,8 +36,8 @@ extraFiles:
   - from: node_modules/@fontsource/merriweather/LICENSE
     to: licencias/fuente-merriweather.txt
 extraResources:
-  - from: resources/ceflirics-control.apk
-    to: ceflirics-control.apk
+  - from: resources/ceflyrics-control.apk
+    to: ceflyrics-control.apk
   - from: resources/bibles.db
     to: bibles.db
 win:
@@ -49,6 +49,6 @@ nsis:
   perMachine: true
   runAfterFinish: true
   createDesktopShortcut: always
-  shortcutName: CEFLIRICS
-  artifactName: CEFLIRICS-Instalador-${version}.${ext}
+  shortcutName: CEFLYRICS
+  artifactName: CEFLYRICS-Instalador-${version}.${ext}
   include: scripts/installer.nsh

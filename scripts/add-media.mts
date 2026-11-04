@@ -5,7 +5,7 @@ import { openDatabase } from '../src/main/db/database';
 import { MediaService } from '../src/main/media';
 
 mkdirSync('userdata', { recursive: true });
-const db = openDatabase('userdata/ceflirics.db');
+const db = openDatabase('userdata/ceflyrics.db');
 const media = new MediaService(db, 'userdata/media');
 console.log(await media.add(process.argv.slice(2)));
 console.log(`Medios en total: ${(await media.list()).length}`);

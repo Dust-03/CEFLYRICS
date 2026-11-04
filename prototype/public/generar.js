@@ -49,7 +49,7 @@ function draw(tSec, frameNo) {
   ctx.fillText(`cuadro ${frameNo}`, W / 2, H / 2 + 100);
   ctx.textAlign = 'left';
   ctx.font = '28px system-ui, sans-serif';
-  ctx.fillText('CEFLIRICS · patrón de sincronía', 40, 60);
+  ctx.fillText('CEFLYRICS · patrón de sincronía', 40, 60);
 }
 
 async function record(seconds) {

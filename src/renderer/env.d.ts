@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
-import type { CefliricsApi } from '@shared/api';
+import type { CeflyricsApi } from '@shared/api';
 
 declare global {
   interface Window {
-    ceflirics: CefliricsApi;
+    ceflyrics: CeflyricsApi;
   }
 }

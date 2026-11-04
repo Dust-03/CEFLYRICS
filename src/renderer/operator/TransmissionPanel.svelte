@@ -2,7 +2,7 @@
   import QRCode from 'qrcode';
   import { lanAddress, parsePort, type LanInfo } from '@shared/lan';
 
-  const api = window.ceflirics.lan;
+  const api = window.ceflyrics.lan;
 
   let info = $state<LanInfo | null>(null);
   let portText = $state('');

@@ -16,7 +16,7 @@
   };
   let { home, onAirKey, onPreview, onAir, openSongId, saved, onToggleShortcut, onChange }: Props = $props();
 
-  const api = window.ceflirics.songs;
+  const api = window.ceflyrics.songs;
   const EXAMPLE =
     'Verso 1\nPrimera estrofa de la canción\n\nCoro\nEl coro va en su propio bloque\n// Nota solo para el retorno';
 

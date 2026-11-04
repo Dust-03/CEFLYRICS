@@ -4,7 +4,7 @@ import type { Action, OnAirState } from './state';
 import type { Theme, ThemeEntry } from './theme';
 import type { TimerConfig } from './timers';
 
-// Lo que el preload expone a los renderers en window.ceflirics.
+// Lo que el preload expone a los renderers en window.ceflyrics.
 export type AppInfo = {
   name: string;
   version: string;
@@ -108,7 +108,7 @@ export type DataApi = {
   import: () => Promise<DataResult>;
 };
 
-export type CefliricsApi = {
+export type CeflyricsApi = {
   getAppInfo: () => Promise<AppInfo>;
   getState: () => Promise<OnAirState>;
   dispatch: (action: Action) => void;

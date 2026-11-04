@@ -25,9 +25,9 @@ test.afterEach(async () => {
 });
 
 test('los datos se exportan de una PC y se importan en otra', async () => {
-  const file = join(dir, 'copia.ceflirics');
+  const file = join(dir, 'copia.ceflyrics');
   await launch(join(dir, 'origen'));
-  await operator.evaluate(() => window.ceflirics.songs.save({ title: 'Santo', author: '', text: 'Letra' }));
+  await operator.evaluate(() => window.ceflyrics.songs.save({ title: 'Santo', author: '', text: 'Letra' }));
   await app.evaluate(({ dialog }, path) => {
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: path })) as typeof dialog.showSaveDialog;
   }, file);
@@ -52,7 +52,7 @@ test('los datos se exportan de una PC y se importan en otra', async () => {
 
 test('un archivo equivocado avisa y no toca nada', async () => {
   await launch(join(dir, 'pc'));
-  await operator.evaluate(() => window.ceflirics.songs.save({ title: 'Sigue', author: '', text: 'Letra' }));
+  await operator.evaluate(() => window.ceflyrics.songs.save({ title: 'Sigue', author: '', text: 'Letra' }));
   await app.evaluate(
     ({ dialog }, path) => {
       dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [path] })) as typeof dialog.showOpenDialog;

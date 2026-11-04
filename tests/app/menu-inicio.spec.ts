@@ -70,7 +70,7 @@ test('volver a tocar Temporizadores cierra el formulario, y Configuración el ed
 
 test('con Negro puesto, mandar al aire desde la PC lo saca', async () => {
   const output = app.windows().find((w) => w.url().includes('output'))!;
-  await operator.evaluate(() => window.ceflirics.dispatch({ type: 'toggle-mode', mode: 'black' }));
+  await operator.evaluate(() => window.ceflyrics.dispatch({ type: 'toggle-mode', mode: 'black' }));
   await expect(output.locator('.cef-black')).toHaveClass(/cef-on/);
   await operator.locator('#biblia-buscar').fill('jn 3 16');
   await operator.locator('[data-atajo="Juan 3:16"]').locator('xpath=..').locator('button').first().dblclick();

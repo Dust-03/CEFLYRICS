@@ -8,8 +8,8 @@ import { _electron as electron } from '@playwright/test';
 const VIDEO = resolve(process.argv[2] ?? 'tests/.media/patron-prueba-8s.mp4');
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const dir = mkdtempSync(join(tmpdir(), 'cef-perf-'));
-if (existsSync('userdata/ceflirics.db')) {
-  for (const name of ['ceflirics.db', 'media']) cpSync(join('userdata', name), join(dir, name), { recursive: true });
+if (existsSync('userdata/ceflyrics.db')) {
+  for (const name of ['ceflyrics.db', 'media']) cpSync(join('userdata', name), join(dir, name), { recursive: true });
 }
 
 const started = performance.now();

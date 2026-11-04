@@ -1,9 +1,9 @@
-# CEFLIRICS
+# CEFLYRICS
 
 Programa de escritorio para proyectar versículos, letras, fotos, videos y temporizadores en el
 culto. Funciona sin internet: las teles y los celulares se conectan por la red local.
 
-Versión actual: **1.1.0**.
+Versión actual: **1.1.1**.
 
 ## Qué hace
 
@@ -25,7 +25,7 @@ fondo o el negro.
 
 Hace falta Windows 10 u 11 de 64 bits.
 
-1. Abrí `CEFLIRICS-Instalador-1.1.0.exe`. Como no tiene firma digital, Windows puede avisar: tocá
+1. Abrí `CEFLYRICS-Instalador-1.1.1.exe`. Como no tiene firma digital, Windows puede avisar: tocá
    **Más información** y **Ejecutar de todas formas**.
 2. Aceptá el permiso de administrador. Se instala solo, crea la regla del firewall y abre el programa.
 
@@ -39,7 +39,7 @@ la IP tampoco cambie, reservala en el router.
 
 ## Control desde el celular
 
-**CEFLIRICS Control** es solo un control remoto: no proyecta sola y necesita el programa abierto en
+**CEFLYRICS Control** es solo un control remoto: no proyecta sola y necesita el programa abierto en
 una PC de la misma red.
 
 1. En **Transmisión**, escaneá el QR para bajar la app de Android. En iPhone se usa desde Safari,
@@ -80,7 +80,7 @@ La especificación está en [docs/investigacion.md](docs/investigacion.md), y lo
 
 GPL-3.0. Ver [LICENSE](LICENSE).
 
-Los logos de la iglesia CEF (`assets/logo-cef.svg`, `assets/logo-ceflirics.svg` y `assets/icono.*`)
+Los logos de la iglesia CEF (`assets/logo-cef.svg`, `assets/logo-ceflyrics.svg` y `assets/icono.*`)
 no están bajo esa licencia: pertenecen a la iglesia. Quien use este código en otro lado tiene que
 reemplazarlos.
 

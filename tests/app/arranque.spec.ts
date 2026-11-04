@@ -7,7 +7,7 @@ test('la app abre la consola del operador con el puente seguro', async () => {
   await expect.poll(() => app.windows().some((w) => w.url().includes('operator'))).toBe(true);
   const window = app.windows().find((w) => w.url().includes('operator'))!;
 
-  await expect(window.locator('h1')).toHaveText('Ceflirics');
+  await expect(window.locator('h1')).toHaveText('Ceflyrics');
   await expect(window.locator('small')).toContainText('Versión');
   await expect(window.locator('h1.logo')).toHaveCSS('mask-image', /logo-cef|svg/);
   await expect(window.locator('h1.logo')).toHaveCSS('width', '58px');

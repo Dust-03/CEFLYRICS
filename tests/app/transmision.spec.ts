@@ -47,7 +47,7 @@ async function openTv(viewport = { width: 1920, height: 1080 }, port = PORT) {
 
 function showText(body: string, title = '') {
   return operator.evaluate(
-    ([text, reference]) => window.ceflirics.dispatch({ type: 'show-slide', slide: { body: text, title: reference } }),
+    ([text, reference]) => window.ceflyrics.dispatch({ type: 'show-slide', slide: { body: text, title: reference } }),
     [body, title],
   );
 }
@@ -99,13 +99,13 @@ test('la tele muestra lo que está al aire y aparece en el menú con su resoluci
 
   await showText('Nada me faltará');
   await expect(tv.locator('.cef-body')).toHaveText('Nada me faltará');
-  await operator.evaluate(() => window.ceflirics.dispatch({ type: 'toggle-mode', mode: 'wallpaper' }));
+  await operator.evaluate(() => window.ceflyrics.dispatch({ type: 'toggle-mode', mode: 'wallpaper' }));
   await expect(tv.locator('.cef-wallpaper')).toHaveClass(/cef-on/);
   await expect(tv.locator('.cef-logo svg')).toBeVisible();
   await expect(tv.locator('.cef-logo')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-  await operator.evaluate(() => window.ceflirics.dispatch({ type: 'toggle-mode', mode: 'wallpaper' }));
+  await operator.evaluate(() => window.ceflyrics.dispatch({ type: 'toggle-mode', mode: 'wallpaper' }));
   await operator.keyboard.press('Escape');
-  await operator.evaluate(() => window.ceflirics.dispatch({ type: 'toggle-mode', mode: 'black' }));
+  await operator.evaluate(() => window.ceflyrics.dispatch({ type: 'toggle-mode', mode: 'black' }));
   await expect(tv.locator('.cef-black')).toHaveClass(/cef-on/);
 
   await tv.context().close();
@@ -169,7 +169,7 @@ test('la tele va muda salvo que se pida sonido, y el pedido queda guardado', asy
 
 test('desde la red no se llega a otros archivos', async () => {
   await launch();
-  for (const path of ['/media/../ceflirics.db', '/media/..%2Fceflirics.db', '/ceflirics.db', '/index.js']) {
+  for (const path of ['/media/../ceflyrics.db', '/media/..%2Fceflyrics.db', '/ceflyrics.db', '/index.js']) {
     const response = await fetch(`http://127.0.0.1:${PORT}${path}`);
     expect(response.status, path).toBe(404);
   }
@@ -181,8 +181,8 @@ test('un temporizador marca lo mismo aunque el reloj de la tele esté corrido', 
   await launch();
   await operator.evaluate(() => {
     const run = { id: 't', label: 'Inicio', message: '', endsAt: Date.now() + 300_000, remainingMs: 0 };
-    window.ceflirics.dispatch({ type: 'timer-run', run });
-    window.ceflirics.dispatch({ type: 'timer-show', id: 't', layout: 'full' });
+    window.ceflyrics.dispatch({ type: 'timer-run', run });
+    window.ceflyrics.dispatch({ type: 'timer-show', id: 't', layout: 'full' });
   });
   const context = await browser.newContext();
   await context.addInitScript(() => {
@@ -201,7 +201,7 @@ test('si se corta, la tele conserva lo proyectado y vuelve sola', async () => {
   await expect(tv.locator('.cef-body')).toHaveText('Lo que estaba al aire');
 
   await app.close();
-  await expect(tv.locator('#aviso')).toHaveText('Buscando CEFLIRICS…');
+  await expect(tv.locator('#aviso')).toHaveText('Buscando CEFLYRICS…');
   await expect(tv.locator('.cef-body')).toHaveText('Lo que estaba al aire');
 
   await launch();

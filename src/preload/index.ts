@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC, type CefliricsApi } from '@shared/api';
+import { IPC, type CeflyricsApi } from '@shared/api';
 
 function subscribe<T>(channel: string, listener: (payload: T) => void) {
   const handler = (_event: unknown, payload: T) => listener(payload);
@@ -9,7 +9,7 @@ function subscribe<T>(channel: string, listener: (payload: T) => void) {
   };
 }
 
-const api: CefliricsApi = {
+const api: CeflyricsApi = {
   getAppInfo: () => ipcRenderer.invoke(IPC.getAppInfo),
   getState: () => ipcRenderer.invoke(IPC.getState),
   dispatch: (action) => ipcRenderer.send(IPC.dispatch, action),
@@ -69,4 +69,4 @@ const api: CefliricsApi = {
   },
 };
 
-contextBridge.exposeInMainWorld('ceflirics', api);
+contextBridge.exposeInMainWorld('ceflyrics', api);

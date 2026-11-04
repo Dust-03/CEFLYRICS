@@ -1,6 +1,6 @@
 // Motor de render único: el mismo código dibuja en las ventanas de salida, en los navegadores de
 // la LAN, en OBS y en NDI. No puede depender de Electron ni de Node.
-import logoSvg from '../../../assets/logo-ceflirics.svg?raw';
+import logoSvg from '../../../assets/logo-ceflyrics.svg?raw';
 import type { OnAirState, SlideMedia } from '@shared/state';
 import { DEFAULT_THEME, fontCss, type Theme } from '@shared/theme';
 import { formatRemaining, remainingMs, type TimerLayout, type TimerRun } from '@shared/timers';
@@ -18,7 +18,7 @@ const STYLES = `
 .cef-media { background: #000; }
 .cef-media .cef-fill { object-fit: contain; }
 .cef-wallpaper { display: flex; align-items: center; justify-content: center; background: #05070d; }
-.cef-logo { width: 46u; height: 21.9u; color: #fff; }
+.cef-logo { width: 46u; height: 20.7u; color: #fff; }
 .cef-logo svg { display: block; width: 100%; height: 100%; }
 .cef-text { display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: 2.8u 6%; text-align: center; }
 .cef-body { margin: 0; max-width: 100%; line-height: 1.25; font-weight: 600; white-space: pre-line; overflow-wrap: break-word; word-wrap: break-word; }

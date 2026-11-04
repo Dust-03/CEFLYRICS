@@ -95,7 +95,7 @@ test('varios corren a la vez, y uno va en la esquina sobre lo proyectado', async
   await expect(second.locator('.time')).toHaveText(/^(05:00|04:\d\d)$/);
 
   await operator.evaluate(() =>
-    (window as any).ceflirics.dispatch({ type: 'show-slide', slide: { body: 'Versículo', title: '' } }),
+    (window as any).ceflyrics.dispatch({ type: 'show-slide', slide: { body: 'Versículo', title: '' } }),
   );
   await second.locator('[data-esquina]').click();
   await expect(output.locator('.cef-timer.cef-timer-corner')).toBeVisible();
@@ -128,9 +128,9 @@ test('F10 lo tapa, y detener lo saca', async () => {
   const timer = await addDuration('Tapado', 120);
   await timer.locator('[data-completa]').click();
   await expect(output.locator('.cef-timer.cef-on')).toHaveCount(1);
-  await operator.evaluate(() => (window as any).ceflirics.dispatch({ type: 'toggle-mode', mode: 'black' }));
+  await operator.evaluate(() => (window as any).ceflyrics.dispatch({ type: 'toggle-mode', mode: 'black' }));
   await expect(output.locator('.cef-timer.cef-on')).toHaveCount(0);
-  await operator.evaluate(() => (window as any).ceflirics.dispatch({ type: 'toggle-mode', mode: 'black' }));
+  await operator.evaluate(() => (window as any).ceflyrics.dispatch({ type: 'toggle-mode', mode: 'black' }));
   await expect(output.locator('.cef-timer.cef-on')).toHaveCount(1);
 
   await timer.locator('[data-detener]').click();

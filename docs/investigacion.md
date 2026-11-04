@@ -1,4 +1,4 @@
-# Especificación de sala limpia de CEFLIRICS
+# Especificación de sala limpia de CEFLYRICS
 
 Versión del 2026-11-03. Este documento es la base desde la que se implementa. Describe **qué** debe
 hacer el programa, con palabras propias, a partir de los objetivos del proyecto y de fuentes públicas.
@@ -239,5 +239,5 @@ reforma: hay que verificar qué está vigente antes de lanzar el programa.
 4. **¿La sincronía cumple en equipos reales?** Hay una prueba de 38 s con un equipo, con valores
    informados por la pantalla. Falta medir con cámara, con varios equipos y con el patrón de cadencia
    pareja. También falta ver si un TV box aguanta dos videos cargados a la vez.
-5. **¿Cómo se llama el producto?** "CEFLIRICS" se usa como nombre de trabajo. Antes de publicar,
+5. **¿Cómo se llama el producto?** "CEFLYRICS" se usa como nombre de trabajo. Antes de publicar,
    conviene revisar que no se confunda con la marca Holyrics, por la terminación parecida.

@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { DataCounts, DataResult } from '@shared/api';
 
-  const api = window.ceflirics.data;
+  const api = window.ceflyrics.data;
 
   let confirming = $state(false);
   let busy = $state(false);

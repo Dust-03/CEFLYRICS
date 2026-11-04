@@ -14,7 +14,7 @@
   };
   let { home, onAirKey, onPreview, onAir, onChange, saved, onToggleShortcut }: Props = $props();
 
-  const api = window.ceflirics.media;
+  const api = window.ceflyrics.media;
   const FILTERS = [
     { id: 'all', label: 'Todo' },
     { id: 'image', label: 'Fotos' },

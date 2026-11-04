@@ -27,7 +27,7 @@
 <!-- No frena a nadie: los clics y el teclado pasan a la consola, y cualquiera de los dos la saltea. -->
 {#if !done}
   <div id="inicio" class="splash" class:skipped aria-hidden="true" onanimationend={onEnd}>
-    <svg class="logo" viewBox="0 0 5962 2828">
+    <svg class="logo" viewBox="0 0 6281 2828">
       <defs>
         <mask id="inicio-pincel" maskUnits="userSpaceOnUse" x="-300" y="-300" width="3400" height="3400">
           <path class="brush" d="M2381 659A1230 1230 0 1 1 2118 410" pathLength="1" />
@@ -36,10 +36,10 @@
           <stop offset="0.85" stop-color="#fff" />
           <stop offset="1" stop-color="#fff" stop-opacity="0" />
         </linearGradient>
-        <mask id="inicio-escritura" maskUnits="userSpaceOnUse" x="0" y="0" width="5962" height="2828">
+        <mask id="inicio-escritura" maskUnits="userSpaceOnUse" x="0" y="0" width="6281" height="2828">
           <rect class="wipe" x="300" y="0" width="3000" height="2828" fill="url(#inicio-borde)" />
         </mask>
-        <mask id="inicio-todo" maskUnits="userSpaceOnUse" x="0" y="0" width="5962" height="2828">
+        <mask id="inicio-todo" maskUnits="userSpaceOnUse" x="0" y="0" width="6281" height="2828">
           <path d={ring} fill="#fff" />
           <path d={dove} fill="#fff" fill-rule="evenodd" />
           <path d={cef} fill="#fff" fill-rule="evenodd" />
@@ -75,7 +75,7 @@
       {/each}
 
       <!-- Su propio recuadro: el borde del brillo se escapa de la máscara y deja una rayita. -->
-      <svg width="5962" height="2828">
+      <svg width="6281" height="2828">
         <g mask="url(#inicio-todo)">
           <rect class="shine" x="-1600" y="-800" width="1500" height="4400" fill="url(#inicio-brillo)" />
         </g>
@@ -232,7 +232,7 @@
       transform: translateX(0) skewX(-18deg);
     }
     to {
-      transform: translateX(8400px) skewX(-18deg);
+      transform: translateX(8800px) skewX(-18deg);
     }
   }
 

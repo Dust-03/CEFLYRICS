@@ -1,15 +1,16 @@
-import logo from '../../../assets/logo-ceflirics.svg?raw';
+import logo from '../../../assets/logo-ceflyrics.svg?raw';
 
-// El logo son dos trazados: el círculo con la paloma y "cef", y la palabra "lirics". Acá se separan
-// sus partes para animarlas una por una, sin guardar una segunda copia del dibujo.
-const [mark, word] = [...logo.matchAll(/\sd="([^"]+)"/g)].map(([, path]) => path.split(/(?=M)/));
+// El logo es un trazado con el círculo, la paloma y "cef", y uno por cada letra de "lyrics". Acá se
+// separan sus partes para animarlas una por una, sin guardar una segunda copia del dibujo.
+const [mark, ...letters] = [...logo.matchAll(/\sd="([^"]+)"/g)].map(([, path]) => path);
+const markParts = mark.split(/(?=M)/);
 
 export const LOGO_PARTS = {
-  ring: mark[0],
-  dove: mark.slice(1, 6).join(''),
-  cef: mark.slice(6).join(''),
-  // l, i, r, i, c, s. Cada i lleva su punto, y la l el hueco del rulo.
-  letters: [word[0] + word[1], word[2] + word[3], word[4], word[5] + word[6], word[7], word[8]],
+  ring: markParts[0],
+  dove: markParts.slice(1, 6).join(''),
+  cef: markParts.slice(6).join(''),
+  // l, y, r, i, c, s.
+  letters,
 };
 
 const SHOULDER = { x: 2290, y: 560 };

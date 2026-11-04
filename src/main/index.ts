@@ -61,7 +61,7 @@ app.whenReady().then(() => {
   // Sin menú: F10 abriría el de Windows en vez de poner negro.
   Menu.setApplicationMenu(null);
 
-  const dbFile = join(app.getPath('userData'), 'ceflirics.db');
+  const dbFile = join(app.getPath('userData'), 'ceflyrics.db');
   // La primera vez se parte de la base de fábrica, que ya trae las biblias y su índice.
   const factoryDb = app.isPackaged
     ? join(process.resourcesPath, 'bibles.db')
@@ -78,7 +78,7 @@ app.whenReady().then(() => {
   store.subscribe((state) => broadcast(IPC.stateChanged, state));
 
   ipcMain.handle(IPC.getAppInfo, (): AppInfo => ({
-    name: 'CEFLIRICS',
+    name: 'CEFLYRICS',
     version: app.getVersion(),
     electron: process.versions.electron,
   }));
@@ -201,7 +201,7 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC.shortcutReorder, (_event, ids: number[]) => reorderShortcuts(ids));
 
   const backup = new BackupService(db, join(app.getPath('userData'), 'media'));
-  const DATA_FILTER = { name: 'Datos de CEFLIRICS', extensions: ['ceflirics'] };
+  const DATA_FILTER = { name: 'Datos de CEFLYRICS', extensions: ['ceflyrics'] };
   const guarded = async (action: () => Promise<DataResult>): Promise<DataResult> => {
     try {
       return await action();
@@ -214,7 +214,7 @@ app.whenReady().then(() => {
       const date = new Date().toLocaleDateString('sv');
       const { canceled, filePath } = await dialog.showSaveDialog({
         title: 'Exportar datos',
-        defaultPath: `CEFLIRICS-datos-${date}.ceflirics`,
+        defaultPath: `CEFLYRICS-datos-${date}.ceflyrics`,
         filters: [DATA_FILTER],
       });
       return canceled || !filePath ? { canceled: true } : { counts: await backup.export(filePath) };
@@ -270,8 +270,8 @@ app.whenReady().then(() => {
     folder: join(__dirname, '../lan'),
     rendererFolder: join(__dirname, '../renderer'),
     apk: app.isPackaged
-      ? join(process.resourcesPath, 'ceflirics-control.apk')
-      : join(app.getAppPath(), 'resources/ceflirics-control.apk'),
+      ? join(process.resourcesPath, 'ceflyrics-control.apk')
+      : join(app.getAppPath(), 'resources/ceflyrics-control.apk'),
     getState: () => store.current,
     serveMedia: (request) => media.serve(request),
     onChange: (info) => broadcast(IPC.lanInfoChanged, info),

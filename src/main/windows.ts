@@ -36,7 +36,7 @@ export function createOperatorWindow() {
     height: 800,
     minWidth: 960,
     minHeight: 600,
-    title: 'CEFLIRICS',
+    title: 'CEFLYRICS',
     backgroundColor: '#0e1320',
   });
   window.once('ready-to-show', () => window.show());
@@ -98,7 +98,7 @@ export class OutputWindow {
     const window = new BrowserWindow({
       ...baseOptions(),
       ...bounds,
-      title: 'CEFLIRICS · Salida',
+      title: 'CEFLYRICS · Salida',
       backgroundColor: '#000000',
       useContentSize: !display,
       frame: !display,

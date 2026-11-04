@@ -14,7 +14,7 @@
   type Props = { home: number; onAir: OnAirState; theme: Theme | undefined; active: boolean };
   let { home, onAir, theme, active }: Props = $props();
 
-  const api = window.ceflirics;
+  const api = window.ceflyrics;
   const EMPTY = {
     id: undefined as number | undefined,
     name: '',

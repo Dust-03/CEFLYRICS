@@ -1,6 +1,6 @@
 # Prototipo de pantallas sincronizadas
 
-Prueba de concepto del extra principal de CEFLIRICS: mandar versículos, letras y videos
+Prueba de concepto del extra principal de CEFLYRICS: mandar versículos, letras y videos
 guardados a otras pantallas de la red local (TV, PC, TV box) y reproducirlos sincronizados,
 sin internet. Es Node puro, sin dependencias. La app final reutiliza esta lógica.
 

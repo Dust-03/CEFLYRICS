@@ -15,7 +15,7 @@ function apply(state: OnAirState) {
 
 // La misma página corre fuera de Electron: ahí el estado llega por apply.
 (window as any).__cefApply = apply;
-if (window.ceflirics) {
-  window.ceflirics.onState(apply);
-  window.ceflirics.getState().then(apply);
+if (window.ceflyrics) {
+  window.ceflyrics.onState(apply);
+  window.ceflyrics.getState().then(apply);
 }

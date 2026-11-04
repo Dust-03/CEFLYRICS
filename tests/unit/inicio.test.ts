@@ -8,6 +8,8 @@ describe('partes del logo', () => {
     expect(LOGO_PARTS.dove.match(/M/g)).toHaveLength(5);
     expect(LOGO_PARTS.cef.match(/M/g)).toHaveLength(4);
     expect(LOGO_PARTS.letters).toHaveLength(6);
+    // La l y la i llevan un segundo trazo: el hueco del rulo y el punto.
+    expect(LOGO_PARTS.letters.map((letter) => letter.match(/M/g)?.length)).toEqual([2, 1, 1, 2, 1, 1]);
     expect(LOGO_PARTS.ring.match(/M/g)).toHaveLength(1);
   });
 });

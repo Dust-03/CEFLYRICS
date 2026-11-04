@@ -13,7 +13,7 @@
   };
   let { home, themes, assignment, media, onChange }: Props = $props();
 
-  const api = window.ceflirics.themes;
+  const api = window.ceflyrics.themes;
   const SAMPLE = 'Jehová es mi pastor;\nnada me faltará.';
 
   let current = $state<ThemeEntry | null>(null);

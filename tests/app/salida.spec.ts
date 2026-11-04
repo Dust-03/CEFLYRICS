@@ -13,7 +13,7 @@ let app: ElectronApplication;
 let operator: Page;
 let output: Page;
 
-const dispatch = (page: Page, action: object) => page.evaluate((a) => (window as any).ceflirics.dispatch(a), action);
+const dispatch = (page: Page, action: object) => page.evaluate((a) => (window as any).ceflyrics.dispatch(a), action);
 const layerOn = (name: string) => output.locator(`.cef-${name}.cef-on`);
 
 // Teclas por el camino nativo de Electron: keyboard.press de Playwright entra directo a Chromium
@@ -49,7 +49,7 @@ test('un cambio del operador llega a la salida en menos de 50 ms', async () => {
     const sentAt = await operator.evaluate(
       (slide) => {
         const at = performance.timeOrigin + performance.now();
-        (window as any).ceflirics.dispatch({ type: 'show-slide', slide });
+        (window as any).ceflyrics.dispatch({ type: 'show-slide', slide });
         return at;
       },
       { ...SLIDE, body: `${SLIDE.body} ${i}` },
@@ -95,7 +95,7 @@ test('F8, F9, F10 y ESC funcionan desde la consola y desde la salida', async () 
 
   await pressKey('operator', 'F8');
   await expect(layerOn('wallpaper')).toHaveCount(1);
-  await expect(output.locator('.cef-logo svg path')).toHaveCount(2);
+  await expect(output.locator('.cef-logo svg path')).toHaveCount(7);
   await expect(output.locator('.cef-logo')).toHaveCSS('mask-image', 'none');
 
   await pressKey('output', 'Escape');
@@ -108,7 +108,7 @@ test('la salida no tiene acceso a Node y rechaza acciones inválidas', async () 
   expect(await output.evaluate(() => typeof (globalThis as any).require)).toBe('undefined');
   await dispatch(output, { type: 'borrar-todo' });
   await dispatch(operator, { type: 'show-slide', slide: { body: 123 } });
-  await expect.poll(() => operator.evaluate(() => (window as any).ceflirics.getState())).toMatchObject({ rev: 0 });
+  await expect.poll(() => operator.evaluate(() => (window as any).ceflyrics.getState())).toMatchObject({ rev: 0 });
 });
 
 test('cerrar la salida no cierra la app, y se puede volver a abrir', async () => {

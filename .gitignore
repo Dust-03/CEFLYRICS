@@ -37,7 +37,7 @@ Thumbs.db
 # Textos fuente descargados y base generada
 data/usfm/
 resources/bibles.db
-resources/ceflirics-control.apk
+resources/ceflyrics-control.apk
 
 # App de Android: lo que genera Gradle y la clave de firma
 android/.gradle/

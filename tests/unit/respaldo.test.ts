@@ -56,7 +56,7 @@ async function fillOrigin() {
 
 test('pasa todo a otra PC, y las canciones se pueden buscar', async () => {
   await fillOrigin();
-  const file = join(dir, 'copia.ceflirics');
+  const file = join(dir, 'copia.ceflyrics');
   const exported = await origin.backup.export(file);
   expect(exported).toEqual({ songs: 1, media: 1, themes: 1, timers: 1, shortcuts: 1 });
 
@@ -77,7 +77,7 @@ test('pasa todo a otra PC, y las canciones se pueden buscar', async () => {
 
 test('el PIN y los celulares de una PC no viajan', async () => {
   await fillOrigin();
-  const file = join(dir, 'copia.ceflirics');
+  const file = join(dir, 'copia.ceflyrics');
   await origin.backup.export(file);
   expect(readFileSync(file, 'utf8')).not.toContain('123456');
   await target.backup.import(file);
@@ -86,7 +86,7 @@ test('el PIN y los celulares de una PC no viajan', async () => {
 
 test('borra los medios viejos de la PC que recibe', async () => {
   await fillOrigin();
-  const file = join(dir, 'copia.ceflirics');
+  const file = join(dir, 'copia.ceflyrics');
   await origin.backup.export(file);
   const old = join(dir, 'vieja.png');
   writeFileSync(old, 'otra imagen');
@@ -97,7 +97,7 @@ test('borra los medios viejos de la PC que recibe', async () => {
 });
 
 const header = (changes: object) => ({
-  format: 'ceflirics-datos',
+  format: 'ceflyrics-datos',
   version: 1,
   tables: { songs: [], song_slides: [], media: [], themes: [], timers: [], shortcuts: [] },
   settings: [],
@@ -107,7 +107,7 @@ const header = (changes: object) => ({
 
 test('rechaza lo que no es una copia, y los datos quedan como estaban', async () => {
   target.songs.save({ title: 'Sigue acá', author: '', text: 'Letra' });
-  const bad = join(dir, 'malo.ceflirics');
+  const bad = join(dir, 'malo.ceflyrics');
   const contents = [
     'cualquier cosa\n',
     'sin salto de línea',

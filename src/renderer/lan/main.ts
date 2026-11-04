@@ -66,7 +66,7 @@ function connect() {
   };
   current.onclose = () => {
     // Lo proyectado queda en pantalla: que se corte la red no tiene que dejar la tele en negro.
-    notice.textContent = 'Buscando CEFLIRICS…';
+    notice.textContent = 'Buscando CEFLYRICS…';
     setTimeout(connect, 1500);
   };
 }

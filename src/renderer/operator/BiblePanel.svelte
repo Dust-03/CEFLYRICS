@@ -15,7 +15,7 @@
   };
   let { home, onAirKey, onPreview, onAir, saved, onToggleShortcut }: Props = $props();
 
-  const api = window.ceflirics.bible;
+  const api = window.ceflyrics.bible;
   const SEARCH_DELAY_MS = 90;
 
   let bibles = $state<BibleInfo[]>([]);

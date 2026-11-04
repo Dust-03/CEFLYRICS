@@ -15,7 +15,7 @@
   import TimersPanel from './TimersPanel.svelte';
   import TransmissionPanel from './TransmissionPanel.svelte';
 
-  const api = window.ceflirics;
+  const api = window.ceflyrics;
   const THEME_KEY = 'cef-theme';
   const MENU = [
     { id: 'biblia', label: 'Biblia', icon: 'bible' },
@@ -169,7 +169,7 @@
 
 <div class="app">
   <nav class="menu" aria-label="Menú principal">
-    <h1 class="logo"><span>Ceflirics</span></h1>
+    <h1 class="logo"><span>Ceflyrics</span></h1>
     {#each MENU as item (item.id)}
       <button id={`tab-${item.id}`} class:active={tab === item.id} onclick={() => openTab(item.id)}>
         <Icon name={item.icon} />

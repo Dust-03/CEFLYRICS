@@ -179,7 +179,7 @@ test('lo que se manda le gana al Logo, y se puede volver a mandar lo mismo', asy
 });
 
 test('volver a tocar la pestaña lleva al inicio del menú', async () => {
-  await operator.evaluate(() => window.ceflirics.songs.save({ title: 'Prueba', author: '', text: 'Uno' }));
+  await operator.evaluate(() => window.ceflyrics.songs.save({ title: 'Prueba', author: '', text: 'Uno' }));
   const phone = await pairPhone();
   await phone.locator('#control-buscar').fill('jn 3 16');
   await expect(phone.locator('.row', { hasText: 'Juan 3:16' })).toBeVisible();
@@ -214,7 +214,7 @@ test('se llega a un versículo por libro y capítulo', async () => {
 
 test('las canciones se pasan con Siguiente y Anterior', async () => {
   await operator.evaluate(() =>
-    window.ceflirics.songs.save({ title: 'Prueba', author: '', text: 'Uno\n\nDos\n\nTres' }),
+    window.ceflyrics.songs.save({ title: 'Prueba', author: '', text: 'Uno\n\nDos\n\nTres' }),
   );
   const phone = await pairPhone();
   await phone.locator('#control-tab-canciones').click();
@@ -479,6 +479,6 @@ test('el celular queda vinculado al reiniciar la app', async () => {
 });
 
 test('la app del celular reconoce a la PC', async () => {
-  const response = await fetch(`${BASE}/api/ceflirics`);
-  expect(await response.json()).toEqual({ app: 'ceflirics' });
+  const response = await fetch(`${BASE}/api/ceflyrics`);
+  expect(await response.json()).toEqual({ app: 'ceflyrics' });
 });

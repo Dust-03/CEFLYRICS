@@ -9,9 +9,9 @@ const JAVA_HOME = join(TOOLS, 'JDK17');
 const ANDROID_HOME = join(TOOLS, 'AndroidSDK');
 const GRADLE = join(TOOLS, 'Gradle/gradle-8.7/bin/gradle.bat');
 const SIGNING = join(TOOLS, 'CEFLIRICS-firma');
-const KEYSTORE = join(SIGNING, 'ceflirics.jks');
+const KEYSTORE = join(SIGNING, 'ceflyrics.jks');
 const PROPERTIES = join(SIGNING, 'firma.properties');
-const ALIAS = 'ceflirics';
+const ALIAS = 'ceflyrics';
 
 if (!existsSync(KEYSTORE)) {
   mkdirSync(SIGNING, { recursive: true });
@@ -33,7 +33,7 @@ if (!existsSync(KEYSTORE)) {
     '-keypass',
     password,
     '-dname',
-    'CN=CEFLIRICS, O=CEF, C=AR',
+    'CN=CEFLYRICS, O=CEF, C=AR',
   ]);
   const path = resolve(KEYSTORE).replaceAll('\\', '/');
   writeFileSync(PROPERTIES, `storeFile=${path}\nalias=${ALIAS}\npassword=${password}\n`);
@@ -46,5 +46,5 @@ execFileSync('cmd.exe', ['/c', GRADLE.replaceAll('/', '\\'), 'assembleRelease', 
   env: { ...process.env, JAVA_HOME, ANDROID_HOME, GRADLE_USER_HOME: join(TOOLS, 'Gradle/home') },
 });
 
-copyFileSync('android/app/build/outputs/apk/release/app-release.apk', 'resources/ceflirics-control.apk');
-console.log('APK listo en resources/ceflirics-control.apk');
+copyFileSync('android/app/build/outputs/apk/release/app-release.apk', 'resources/ceflyrics-control.apk');
+console.log('APK listo en resources/ceflyrics-control.apk');
