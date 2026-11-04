@@ -351,7 +351,7 @@
         {/each}
       </ul>
     {:else}
-      <p class="empty">Marcá atajos con la estrella en la PC.</p>
+      <p class="empty">Marcá atajos con la estrella.</p>
     {/if}
   </main>
 
