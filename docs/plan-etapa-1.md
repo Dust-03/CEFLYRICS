@@ -81,10 +81,15 @@ física para reservar la IP en el router. Solo se lee: desde la red no se cambia
   cuando haya una API de verdad.
 - La página de las teles (`src/renderer/lan`) se compila aparte, en un script común con sintaxis de
   2017, porque el navegador de un televisor puede ser viejo. Por eso el motor no usa cqw, inset ni gap.
-- **Falta:** la sincronía de video del prototipo. Un video llega a la tele y se reproduce, sin sonido,
-  pero no va en el mismo cuadro que el proyector. Es el trabajo de la Etapa 2.
-- **Falta probarlo en una tele real y con el firewall:** las pruebas corren en la misma PC, y ese
-  tráfico no pasa por el firewall. La app empaquetada pide permiso a Windows la primera vez.
+- **Falta:** la sincronía de video del prototipo. Un video llega a la tele y se reproduce, pero no va
+  en el mismo cuadro que el proyector. Es el trabajo de la Etapa 2.
+- **Sonido:** apagado de fábrica, porque en la misma sala hay eco. Se activa en el menú. El navegador
+  de la tele necesita una tecla apretada para sonar.
+- **Probado en una tele real (2026-11-04):** texto, foto, video con sonido, pantalla completa y
+  reconexión sola tras reiniciar la app, a 1280 × 720, además de un celular Android.
+- **Firewall:** si el aviso de Windows queda sin responder, se guarda una regla de bloqueo y no vuelve
+  a preguntar. Pasó con esta PC: hubo que cambiarla a mano, como administrador. Conviene explicarlo en
+  el menú y detectarlo, porque desde la misma PC todo responde igual y el problema no se ve.
 
 **Cualquier resolución (paso 1.4):** el motor mide la pantalla y usa como unidad una centésima del
 ancho, o del alto en pantallas más anchas que 16:9. El texto que no entra se achica hasta entrar, con
