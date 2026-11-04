@@ -12,6 +12,8 @@ comentado: español (Argentina). Nombres de variables y APIs en inglés.
   informe). Mirar qué funciones ofrecen esos programas sí está permitido.
 - UI del operador: **Svelte** (Svelte 5 + Vite).
 - Carpeta del proyecto: `D:\Proyectos Claude\CEFLIRICS`.
+- Logo de la iglesia: `assets/logo-cef.svg`, calcado de su imagen, sin color fijo (`currentColor`).
+  Es de la iglesia, no un recurso libre.
 - `prototype/` y `docs/investigacion.md` se crearon en la Etapa 0
   (ver `docs/plan-etapa-0.md`). Las preguntas abiertas están en la sección (e) del informe.
 

@@ -95,7 +95,7 @@
 
 <div class="app">
   <nav class="menu" aria-label="Menú principal">
-    <h1>CEF</h1>
+    <h1 class="logo"><span>CEF</span></h1>
     {#each MENU as item (item.id)}
       <button id={`tab-${item.id}`} class:active={tab === item.id} onclick={() => (tab = item.id)}>
         <Icon name={item.icon} />
@@ -198,12 +198,22 @@
     border-right: 1px solid var(--line);
   }
 
-  h1 {
-    margin: 0 0 8px;
-    font-size: 15px;
-    letter-spacing: 0.1em;
-    color: var(--accent);
-    text-align: center;
+  /* Con máscara, el logo toma el color del tema. */
+  .logo {
+    justify-self: center;
+    width: 60px;
+    height: 60px;
+    margin: 2px 0 8px;
+    background: var(--text);
+    mask: url('../../../assets/logo-cef.svg') center / contain no-repeat;
+  }
+
+  .logo span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
 
   .menu button {
