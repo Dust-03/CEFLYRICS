@@ -1,3 +1,4 @@
+import type { LanApi } from './lan';
 import type { SongSlide } from './song-text';
 import type { Action, OnAirState } from './state';
 import type { Theme, ThemeEntry } from './theme';
@@ -14,6 +15,9 @@ export type OutputInfo = {
   open: boolean;
   fullscreen: boolean;
   displays: number;
+  // Resolución real de la salida, en píxeles. En cero si está cerrada.
+  width: number;
+  height: number;
 };
 
 export type BibleInfo = { code: string; name: string; language: string };
@@ -108,6 +112,7 @@ export type CefliricsApi = {
   themes: ThemeApi;
   timers: TimerApi;
   shortcuts: ShortcutApi;
+  lan: LanApi;
 };
 
 export const IPC = {
@@ -141,4 +146,8 @@ export const IPC = {
   shortcutAdd: 'shortcuts:add',
   shortcutRemove: 'shortcuts:remove',
   shortcutReorder: 'shortcuts:reorder',
+  lanInfo: 'lan:info',
+  lanSetPort: 'lan:set-port',
+  lanSetEnabled: 'lan:set-enabled',
+  lanInfoChanged: 'lan:info-changed',
 } as const;

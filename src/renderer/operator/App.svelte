@@ -11,6 +11,7 @@
   import SongsPanel from './SongsPanel.svelte';
   import StylesPanel from './StylesPanel.svelte';
   import TimersPanel from './TimersPanel.svelte';
+  import TransmissionPanel from './TransmissionPanel.svelte';
 
   const api = window.ceflirics;
   const THEME_KEY = 'cef-theme';
@@ -21,6 +22,7 @@
     { id: 'atajos', label: 'Atajos', icon: 'star' },
     { id: 'temporizadores', label: 'Temporizadores', icon: 'timer' },
     { id: 'texto', label: 'Texto', icon: 'text' },
+    { id: 'transmision', label: 'Transmisión', icon: 'cast' },
     { id: 'configuracion', label: 'Configuración', icon: 'settings' },
   ] as const;
 
@@ -150,6 +152,9 @@
     if (!output?.open) return 'Salida cerrada';
     return output.fullscreen ? 'Salida en el segundo monitor' : 'Salida en ventana';
   });
+
+  // Las vistas toman la forma de la pantalla real: lo que se ve acá corta las líneas igual que allá.
+  const outputAspect = $derived(output?.width && output.height ? `${output.width} / ${output.height}` : undefined);
 </script>
 
 <svelte:window onkeydown={onGlobalKey} />
@@ -244,6 +249,11 @@
           <StylesPanel {themes} {assignment} {media} onChange={loadLibrary} />
         {/if}
       </div>
+      <div class="pane" hidden={tab !== 'transmision'}>
+        {#if opened.transmision}
+          <TransmissionPanel />
+        {/if}
+      </div>
       <div class="pane text-pane" hidden={tab !== 'texto'}>
         <textarea id="cuerpo" rows="8" placeholder="Texto a proyectar" bind:value={body}></textarea>
         <input id="titulo" type="text" placeholder="Referencia o título" bind:value={title} />
@@ -263,7 +273,11 @@
     <aside>
       <section class="card">
         <h2>Vista previa</h2>
-        <Screen id="vista-previa" state={{ slide: preview ? withTheme(preview) : null, mode: 'live' }} />
+        <Screen
+          id="vista-previa"
+          aspect={outputAspect}
+          state={{ slide: preview ? withTheme(preview) : null, mode: 'live' }}
+        />
         <button id="btn-aire" class="live" disabled={!preview} onclick={() => preview && sendToAir(preview)}>
           Al aire
         </button>
@@ -271,7 +285,7 @@
 
       <section class="card">
         <h2>Al aire</h2>
-        <Screen id="vista-aire" state={onAir} />
+        <Screen id="vista-aire" aspect={outputAspect} state={onAir} />
         <div class="modes">
           {#each MODES as { mode, label } (mode)}
             <button class:primary={onAir.mode === mode} onclick={() => api.dispatch({ type: 'toggle-mode', mode })}>
@@ -283,7 +297,10 @@
       </section>
 
       <div class="status">
-        <span id="estado-salida">{outputLabel}</span>
+        <span>
+          <span id="estado-salida">{outputLabel}</span>
+          {#if output?.open}<span id="salida-resolucion">{output.width} × {output.height}</span>{/if}
+        </span>
         <button id="btn-salida" onclick={() => api.toggleOutput()}>
           {output?.open ? 'Cerrar salida' : 'Abrir salida'}
         </button>
@@ -304,7 +321,7 @@
 
   .menu {
     display: grid;
-    grid-template-rows: auto repeat(7, auto) 1fr;
+    grid-template-rows: auto repeat(8, auto) 1fr;
     gap: 4px;
     padding: 10px 8px;
     background: var(--surface);
@@ -434,6 +451,11 @@
   .status button {
     padding: 4px 10px;
     font-size: 13px;
+  }
+
+  #salida-resolucion {
+    display: block;
+    font-size: 12px;
   }
 
   small {

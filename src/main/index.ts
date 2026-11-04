@@ -2,9 +2,11 @@ import { copyFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { BrowserWindow, Menu, app, dialog, ipcMain, nativeImage, protocol, type WebContents } from 'electron';
 import { IPC, type AppInfo, type SongInput, type ThemeAssignment, type ThemeInput, type TimerInput } from '@shared/api';
+import { parsePort } from '@shared/lan';
 import { parseAction, type Action } from '@shared/state';
 import { BibleService } from './bible/service';
 import { openDatabase } from './db/database';
+import { LanServer } from './lan-server';
 import { MEDIA_EXTENSIONS, MEDIA_SCHEME, MediaService } from './media';
 import { ShortcutService } from './shortcuts';
 import { SongService } from './songs';
@@ -126,6 +128,23 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC.shortcutAdd, (_event, ref: string) => shortcuts.add(String(ref)));
   ipcMain.handle(IPC.shortcutRemove, (_event, id: number) => shortcuts.remove(Number(id)));
   ipcMain.handle(IPC.shortcutReorder, (_event, ids: number[]) => shortcuts.reorder(ids.map(Number)));
+
+  const lan = new LanServer({
+    db,
+    folder: join(__dirname, '../lan'),
+    getState: () => store.current,
+    serveMedia: (request) => media.serve(request),
+    onChange: (info) => broadcast(IPC.lanInfoChanged, info),
+  });
+  store.subscribe((state) => lan.broadcast(state));
+  app.on('will-quit', () => lan.stop());
+  ipcMain.handle(IPC.lanInfo, () => lan.info);
+  ipcMain.on(IPC.lanSetPort, (_event, input: unknown) => {
+    const port = parsePort(input);
+    if (port) lan.setPort(port);
+  });
+  ipcMain.on(IPC.lanSetEnabled, (_event, enabled: unknown) => lan.setEnabled(enabled === true));
+  lan.start();
 
   ipcMain.handle(IPC.getOutputInfo, () => output.info);
   ipcMain.on(IPC.toggleOutput, () => output.toggle());

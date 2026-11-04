@@ -72,9 +72,28 @@ estilos y fuentes. Del paso 1.10 faltan las alertas sobre lo proyectado.
 Menú **Atajos** (adelantado de Favoritos): versículos, canciones, fotos y videos guardados con una
 estrella, numerados, con Ctrl+1 a Ctrl+9 hacia la vista previa.
 
+Menú **Transmisión** (adelantado de la Etapa 2): la app sirve lo que está al aire a las teles de la
+red, en un puerto fijo (8787 de fábrica, guardado en `settings`). Si está ocupado avisa y espera: no
+se muda a otro. Muestra la dirección, un QR, las pantallas conectadas con su resolución y la dirección
+física para reservar la IP en el router. Solo se lee: desde la red no se cambia nada.
+
+- Por ahora va con `node:http` y `ws`, sin Fastify: son tres archivos y los medios. Fastify entra
+  cuando haya una API de verdad.
+- La página de las teles (`src/renderer/lan`) se compila aparte, en un script común con sintaxis de
+  2017, porque el navegador de un televisor puede ser viejo. Por eso el motor no usa cqw, inset ni gap.
+- **Falta:** la sincronía de video del prototipo. Un video llega a la tele y se reproduce, sin sonido,
+  pero no va en el mismo cuadro que el proyector. Es el trabajo de la Etapa 2.
+- **Falta probarlo en una tele real y con el firewall:** las pruebas corren en la misma PC, y ese
+  tráfico no pasa por el firewall. La app empaquetada pide permiso a Windows la primera vez.
+
+**Cualquier resolución (paso 1.4):** el motor mide la pantalla y usa como unidad una centésima del
+ancho, o del alto en pantallas más anchas que 16:9. El texto que no entra se achica hasta entrar, con
+un piso del 30 %. La salida se reacomoda si cambia la resolución del monitor, y las vistas de la
+consola toman la forma de la salida. Falta repartir un texto muy largo en varias diapositivas.
+
 ## Fuera de esta etapa
 
-Remoto y stage view por la LAN, pantallas sincronizadas dentro de la app, importadores (salvo USFM
+Remoto y stage view por la LAN, sincronía de video en las teles, importadores (salvo USFM
 para las biblias de fábrica), cultos, miembros, NDI y API.
 
 ## Pendientes de la Etapa 0 que conviene resolver acá

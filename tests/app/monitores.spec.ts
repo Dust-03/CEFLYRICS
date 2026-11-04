@@ -47,5 +47,26 @@ test('con dos monitores la salida va a pantalla completa en el que no es el prin
   expect(placement.operatorDisplay).toBe(placement.primary);
   expect(placement.outputBounds).toEqual(placement.displayBounds);
 
+  // Si la tele cambia de resolución, Windows no mueve la ventana: la tiene que acomodar la app.
+  await app.evaluate(({ BrowserWindow, screen }) => {
+    const output = BrowserWindow.getAllWindows().find((w) => w.webContents.getURL().includes('output'))!;
+    output.setFullScreen(false);
+    const { x, y } = output.getBounds();
+    output.setBounds({ x, y, width: 800, height: 450 });
+    screen.emit('display-metrics-changed', {}, ['bounds']);
+  });
+  await expect
+    .poll(() =>
+      app.evaluate(({ BrowserWindow, screen }) => {
+        const output = BrowserWindow.getAllWindows().find((w) => w.webContents.getURL().includes('output'))!;
+        const bounds = output.getBounds();
+        return output.isFullScreen() && bounds.width === screen.getDisplayMatching(bounds).bounds.width;
+      }),
+    )
+    .toBe(true);
+  await expect(operator.locator('#salida-resolucion')).toHaveText(
+    `${placement.displayBounds.width} × ${placement.displayBounds.height}`,
+  );
+
   await app.close();
 });

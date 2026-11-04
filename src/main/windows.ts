@@ -59,13 +59,18 @@ export class OutputWindow {
   ) {
     screen.on('display-added', () => this.syncWithDisplays());
     screen.on('display-removed', () => this.syncWithDisplays());
+    screen.on('display-metrics-changed', () => this.fitToDisplay());
   }
 
   get info(): OutputInfo {
+    const [width, height] = this.window?.getContentSize() ?? [0, 0];
+    const scale = this.window ? screen.getDisplayMatching(this.window.getBounds()).scaleFactor : 1;
     return {
       open: !!this.window,
       fullscreen: !!this.window && this.onExternalDisplay,
       displays: screen.getAllDisplays().length,
+      width: Math.round(width * scale),
+      height: Math.round(height * scale),
     };
   }
 
@@ -106,11 +111,29 @@ export class OutputWindow {
       window.showInactive();
       this.onChange(this.info);
     });
+    window.on('resize', () => this.onChange(this.info));
     window.on('closed', () => {
       this.window = null;
       this.onChange(this.info);
     });
     loadPage(window, 'output');
+  }
+
+  // Cambiar la resolución de la tele no mueve las ventanas: la salida se vuelve a acomodar.
+  private fitToDisplay() {
+    const { window } = this;
+    const display = externalDisplay();
+    if (window && this.onExternalDisplay && display) {
+      const now = window.getBounds();
+      const { x, y, width, height } = display.bounds;
+      // Este aviso también llega por cosas como mover la barra de tareas: ahí no hay nada que hacer.
+      if (now.x !== x || now.y !== y || now.width !== width || now.height !== height) {
+        window.setFullScreen(false);
+        window.setBounds(display.bounds);
+        window.setFullScreen(true);
+      }
+    }
+    this.onChange(this.info);
   }
 
   // Si se desconecta el monitor se cierra la salida; al volver, se abre sola.

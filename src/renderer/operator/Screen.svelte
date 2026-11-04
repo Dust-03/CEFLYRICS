@@ -1,8 +1,8 @@
 <script lang="ts">
   import { createRenderer, type RenderState } from '@render-engine/index';
 
-  type Props = { id: string; state: RenderState };
-  let { id, state: renderState }: Props = $props();
+  type Props = { id: string; state: RenderState; aspect?: string };
+  let { id, state: renderState, aspect = '16 / 9' }: Props = $props();
 
   let stage = $state<HTMLElement>();
 
@@ -14,12 +14,11 @@
   });
 </script>
 
-<div class="screen"><div {id} bind:this={stage}></div></div>
+<div class="screen" style:aspect-ratio={aspect}><div {id} bind:this={stage}></div></div>
 
 <style>
   .screen {
     position: relative;
-    aspect-ratio: 16 / 9;
     overflow: hidden;
     background: #000;
     border-radius: 8px;
