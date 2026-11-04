@@ -399,6 +399,19 @@ test('cambiar el PIN no toca a los vinculados, y el viejo ya no sirve', async ()
   await expect(phone.locator('#control-tab-biblia')).toBeVisible();
 });
 
+test('el celular abre con la intro del logo, y un toque la saltea', async () => {
+  const phone = await openPhone();
+  await expect(phone.locator('#inicio')).toBeVisible();
+  await expect(phone.locator('#inicio .letter')).toHaveCount(6);
+  await expect(phone.locator('#inicio')).toHaveCount(0, { timeout: 8000 });
+
+  await phone.reload();
+  await expect(phone.locator('#inicio')).toBeVisible();
+  await phone.locator('#control-nombre').click();
+  await expect(phone.locator('#inicio')).toHaveCount(0, { timeout: 1000 });
+  await expect(phone.locator('#control-nombre')).toBeFocused();
+});
+
 test('hace falta un nombre para vincular', async () => {
   const phone = await openPhone();
   await phone.locator('#control-pin').fill(await currentPin());

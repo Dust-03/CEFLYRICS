@@ -1,5 +1,6 @@
 <script lang="ts">
   import { forgetToken, pair, savedToken, type Connection } from './connection';
+  import Splash from '../operator/Splash.svelte';
   import Remote from './Remote.svelte';
 
   const startToken = savedToken();
@@ -46,6 +47,8 @@
   // Sale de la pantalla el PIN que vino en el enlace, para que no quede en el historial.
   if (linkPin && !startToken) history.replaceState(null, '', location.pathname);
 </script>
+
+<Splash />
 
 {#if token}
   <Remote

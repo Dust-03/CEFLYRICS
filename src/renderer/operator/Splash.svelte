@@ -101,7 +101,7 @@
   }
 
   .logo {
-    width: min(62vw, 780px);
+    width: min(86vw, 780px);
     overflow: visible;
     animation: approach 3s ease-out both;
   }
