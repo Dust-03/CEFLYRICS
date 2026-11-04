@@ -50,6 +50,8 @@ function externalDisplay(): Display | undefined {
 
 export class OutputWindow {
   private window: BrowserWindow | null = null;
+  // Se recuerda dónde se abrió: isFullScreen() tarda en ser cierto, sobre todo en una PC cargada.
+  private onExternalDisplay = false;
 
   constructor(
     private onChange: (info: OutputInfo) => void,
@@ -62,7 +64,7 @@ export class OutputWindow {
   get info(): OutputInfo {
     return {
       open: !!this.window,
-      fullscreen: !!this.window?.isFullScreen(),
+      fullscreen: !!this.window && this.onExternalDisplay,
       displays: screen.getAllDisplays().length,
     };
   }
@@ -98,6 +100,7 @@ export class OutputWindow {
       webPreferences: { ...baseOptions().webPreferences, backgroundThrottling: false },
     });
     this.window = window;
+    this.onExternalDisplay = !!display;
     this.onCreated(window);
     window.once('ready-to-show', () => {
       window.showInactive();
@@ -113,7 +116,7 @@ export class OutputWindow {
   // Si se desconecta el monitor se cierra la salida; al volver, se abre sola.
   private syncWithDisplays() {
     const display = externalDisplay();
-    if (this.window?.isFullScreen() && !display) this.close();
+    if (this.window && this.onExternalDisplay && !display) this.close();
     else if (!this.window && display) this.open(display);
     this.onChange(this.info);
   }

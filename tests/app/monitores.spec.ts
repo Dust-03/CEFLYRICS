@@ -15,6 +15,16 @@ test('con dos monitores la salida va a pantalla completa en el que no es el prin
 
   await expect.poll(() => app.windows().length).toBe(2);
   await expect(operator.locator('#estado-salida')).toHaveText('Salida en el segundo monitor');
+  // Entrar en pantalla completa lleva un momento, más en una PC cargada.
+  await expect
+    .poll(() =>
+      app.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows()
+          .find((w) => w.webContents.getURL().includes('output'))!
+          .isFullScreen(),
+      ),
+    )
+    .toBe(true);
 
   const placement = await app.evaluate(({ BrowserWindow, screen }) => {
     const windows = BrowserWindow.getAllWindows();
