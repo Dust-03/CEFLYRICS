@@ -99,7 +99,7 @@
 
   const verseItem = (verse: BibleVerse): Item => ({
     kind: 'bible',
-    key: `bible:${verse.vid}`,
+    key: `bible:${version}:${verse.vid}`,
     label: verse.label,
     slide: { body: verse.text, title: `${verse.label} · ${version}` },
   });
@@ -114,7 +114,8 @@
   function shortcutItem(shortcut: Shortcut): Item | null {
     if (shortcut.kind === 'media' && shortcut.media) return mediaItem(shortcut.media);
     if (shortcut.kind !== 'verse') return null;
-    const key = `bible:${shortcut.ref.split(':')[2]}`;
+    const [, code, vid] = shortcut.ref.split(':');
+    const key = `bible:${code}:${vid}`;
     return { kind: 'bible', key, label: shortcut.title, slide: { body: shortcut.text, title: shortcut.title } };
   }
 

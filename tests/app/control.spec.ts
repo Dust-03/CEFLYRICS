@@ -91,6 +91,20 @@ test('el celular se vincula con el PIN y manda un versículo al aire', async () 
   await expect(operator.locator('#transmision')).toContainText('1 conectado');
 });
 
+test('el mismo versículo se puede mandar en otra versión', async () => {
+  const phone = await pairPhone();
+  await phone.locator('#control-buscar').fill('jn 3 16');
+  await phone.getByRole('button', { name: /Juan 3:16/ }).click();
+  await phone.locator('#control-aire-boton').click();
+  await expect(output.locator('.cef-title')).toHaveText('Juan 3:16 · RV1909');
+
+  await phone.getByLabel('Versión').selectOption('KJV');
+  await phone.getByRole('button', { name: /For God so loved/ }).click();
+  await phone.locator('#control-aire-boton').click();
+  await expect(output.locator('.cef-title')).toContainText('KJV');
+  await expect(output.locator('.cef-body')).toContainText('For God so loved');
+});
+
 test('se llega a un versículo por libro y capítulo', async () => {
   const phone = await pairPhone();
   await phone.getByRole('button', { name: 'Sal', exact: true }).click();
