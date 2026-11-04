@@ -41,6 +41,7 @@ extraResources:
   - from: resources/bibles.db
     to: bibles.db
 win:
+  icon: assets/icono.ico
   target: nsis
 nsis:
   oneClick: false

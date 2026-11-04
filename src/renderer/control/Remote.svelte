@@ -41,6 +41,7 @@
   let tab = $state<(typeof TABS)[number]['id']>('biblia');
   let selected = $state<Item | null>(null);
   let airKey = $state<string>();
+  let leaving = $state(false);
 
   let bibles = $state<BibleInfo[]>([]);
   let version = $state('');
@@ -311,7 +312,13 @@
   </main>
 
   <footer>
-    {#if tab === 'canciones' && song}
+    {#if leaving}
+      <p id="control-confirmar" class="confirm">¿Desvincular este celular? Después hay que escribir el PIN de nuevo.</p>
+      <div class="stepper">
+        <button id="control-salir-no" onclick={() => (leaving = false)}>Cancelar</button>
+        <button id="control-salir-si" class="live" onclick={onLeave}>Sí, desvincular</button>
+      </div>
+    {:else if tab === 'canciones' && song}
       <div class="stepper">
         <button id="control-anterior" disabled={slideIndex <= 0} onclick={() => showSongSlide(slideIndex - 1)}>
           ‹ Anterior
@@ -341,7 +348,7 @@
           {item.label}
         </button>
       {/each}
-      <button id="control-salir" class="leave" aria-label="Desvincular este celular" onclick={onLeave}>
+      <button id="control-salir" class="leave" aria-label="Desvincular este celular" onclick={() => (leaving = true)}>
         <svg
           viewBox="0 0 24 24"
           width="20"
@@ -529,6 +536,12 @@
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .confirm {
+    margin: 0;
+    font-size: 14px;
+    text-align: center;
   }
 
   .stepper {

@@ -212,6 +212,21 @@ test('el canal de control exige el token, y una página ajena no puede abrirlo',
   expect(foreign).toBe('rechazado');
 });
 
+test('desvincular pide confirmación', async () => {
+  const phone = await pairPhone();
+  await phone.locator('#control-salir').click();
+  await expect(phone.locator('#control-confirmar')).toBeVisible();
+  await expect(phone.locator('#control-tab-biblia')).toBeVisible();
+
+  await phone.locator('#control-salir-no').click();
+  await expect(phone.locator('#control-confirmar')).toHaveCount(0);
+  await expect(phone.locator('#control-tab-biblia')).toBeVisible();
+
+  await phone.locator('#control-salir').click();
+  await phone.locator('#control-salir-si').click();
+  await expect(phone.locator('#control-pin')).toBeVisible();
+});
+
 test('cambiar el PIN desvincula al celular', async () => {
   const phone = await pairPhone();
   const old = await currentPin();

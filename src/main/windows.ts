@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { BrowserWindow, screen, type BrowserWindowConstructorOptions, type Display } from 'electron';
 import type { OutputInfo } from '@shared/api';
+import icon from '../../assets/icono.png?asset';
 
 type Page = 'operator' | 'output';
 
@@ -9,6 +10,7 @@ const WINDOWED_OUTPUT = { width: 1280, height: 720 };
 function baseOptions(): BrowserWindowConstructorOptions {
   return {
     show: false,
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
       contextIsolation: true,
