@@ -1,5 +1,6 @@
 // Motor de render único: el mismo código dibuja en las ventanas de salida, en los navegadores de
 // la LAN, en OBS y en NDI. No puede depender de Electron ni de Node.
+import logoUrl from '../../../assets/logo-ceflirics.svg?url';
 import type { OnAirState, SlideMedia } from '@shared/state';
 import { DEFAULT_THEME, fontCss, type Theme } from '@shared/theme';
 import { formatRemaining, remainingMs, type TimerLayout, type TimerRun } from '@shared/timers';
@@ -14,7 +15,8 @@ const STYLES = `
 .cef-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .cef-media { background: #000; }
 .cef-media .cef-fill { object-fit: contain; }
-.cef-wallpaper { display: grid; place-content: center; background: #05070d; color: #f2b544; font-family: system-ui, 'Segoe UI', sans-serif; font-size: 6cqw; font-weight: 800; letter-spacing: 0.08em; }
+.cef-wallpaper { display: grid; place-items: center; background: #05070d; }
+.cef-logo { width: 46cqw; aspect-ratio: 2.1; background: #fff; }
 .cef-text { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.5cqw; padding: 5cqh 6cqw; text-align: center; }
 .cef-body { margin: 0; font-size: 5cqw; line-height: 1.25; font-weight: 600; white-space: pre-line; }
 .cef-shadow .cef-body { text-shadow: 0 0.2cqw 0.8cqw rgb(0 0 0 / 0.6); }
@@ -116,7 +118,10 @@ export function createRenderer(stage: HTMLElement, { audio = false, playback = t
   timerTime.className = 'cef-timer-time';
   timer.append(timerLabel, timerTime);
   const wallpaper = layer(stage, 'cef-wallpaper');
-  wallpaper.textContent = 'CEFLIRICS';
+  const logo = document.createElement('div');
+  logo.className = 'cef-logo';
+  logo.style.mask = `url('${logoUrl}') center / contain no-repeat`;
+  wallpaper.append(logo);
   const black = layer(stage, 'cef-black');
 
   // Con F9 sin nada al aire se mantiene el último fondo usado.

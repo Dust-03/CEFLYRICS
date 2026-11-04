@@ -95,6 +95,7 @@ test('F8, F9, F10 y ESC funcionan desde la consola y desde la salida', async () 
 
   await pressKey('operator', 'F8');
   await expect(layerOn('wallpaper')).toHaveCount(1);
+  await expect(output.locator('.cef-logo')).toHaveCSS('mask-image', /logo-ceflirics/);
 
   await pressKey('output', 'Escape');
   await expect(layerOn('wallpaper')).toHaveCount(0);

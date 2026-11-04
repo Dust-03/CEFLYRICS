@@ -101,7 +101,7 @@
 
 <div class="app">
   <nav class="menu" aria-label="Menú principal">
-    <h1 class="logo"><span>CEF</span></h1>
+    <h1 class="logo"><span>Ceflirics</span></h1>
     {#each MENU as item (item.id)}
       <button id={`tab-${item.id}`} class:active={tab === item.id} onclick={() => openTab(item.id)}>
         <Icon name={item.icon} />
@@ -203,7 +203,7 @@
 <style>
   .app {
     display: grid;
-    grid-template-columns: 98px minmax(0, 1fr);
+    grid-template-columns: 122px minmax(0, 1fr);
     height: 100%;
   }
 
@@ -219,11 +219,11 @@
   /* Con máscara, el logo toma el color del tema. */
   .logo {
     justify-self: center;
-    width: 60px;
-    height: 60px;
+    width: 106px;
+    height: 52px;
     margin: 2px 0 8px;
     background: var(--text);
-    mask: url('../../../assets/logo-cef.svg') center / contain no-repeat;
+    mask: url('../../../assets/logo-ceflirics.svg') center / contain no-repeat;
   }
 
   .logo span {

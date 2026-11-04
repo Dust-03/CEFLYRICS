@@ -14,6 +14,15 @@ export const BOOK_GROUPS = [
   { id: 'apocalipsis', name: 'Apocalipsis', from: 66, to: 66 },
 ] as const;
 
+export const TESTAMENTS = [
+  { name: 'Antiguo Testamento', from: 1, to: 39 },
+  { name: 'Nuevo Testamento', from: 40, to: 66 },
+] as const;
+
+export function bookGroup(book: number) {
+  return BOOK_GROUPS.find((group) => book >= group.from && book <= group.to) ?? BOOK_GROUPS[0];
+}
+
 // Etiqueta corta para el botón del libro: "Gén", "1 Sam", "Flm".
 export function bookShortName(book: number) {
   if (book === 57) return 'Flm'; // Filipenses y Filemón empiezan igual

@@ -13,7 +13,8 @@ comentado: español (Argentina). Nombres de variables y APIs en inglés.
 - UI del operador: **Svelte** (Svelte 5 + Vite).
 - Carpeta del proyecto: `D:\Proyectos Claude\CEFLIRICS`.
 - Logo de la iglesia: `assets/logo-cef.svg`, calcado de su imagen, sin color fijo (`currentColor`).
-  Es de la iglesia, no un recurso libre.
+  Es de la iglesia, no un recurso libre. `assets/logo-ceflirics.svg` le suma "lirics" en trazos, con
+  la fuente Yellowtail (Apache-2.0).
 - `prototype/` y `docs/investigacion.md` se crearon en la Etapa 0
   (ver `docs/plan-etapa-0.md`). Las preguntas abiertas están en la sección (e) del informe.
 

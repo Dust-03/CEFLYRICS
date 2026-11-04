@@ -21,21 +21,17 @@ test.afterEach(async () => {
 const verses = () => operator.locator('#biblia-versos .verse');
 const onOutput = () => output.locator('.cef-body');
 
-test('los libros están separados en sus grupos', async () => {
-  const groups = await operator.locator('.books h3').allTextContents();
-  expect(groups).toEqual([
-    'Pentateuco',
-    'Históricos',
-    'Poéticos',
-    'Profetas mayores',
-    'Profetas menores',
-    'Evangelios',
-    'Hechos',
-    'Cartas de Pablo',
-    'Cartas generales',
-    'Apocalipsis',
-  ]);
+test('los libros se separan por testamento, con el color de su grupo', async () => {
+  const titles = await operator.locator('.books h3').allTextContents();
+  expect(titles).toEqual(['Antiguo Testamento', 'Nuevo Testamento']);
   await expect(operator.locator('button.book')).toHaveCount(66);
+  await expect(operator.locator('.books section').nth(0).locator('button.book')).toHaveCount(39);
+  await expect(operator.locator('.books section').nth(1).locator('button.book')).toHaveCount(27);
+  await expect(operator.locator('button[data-book="1"]')).toHaveAttribute('title', 'Génesis · Pentateuco');
+
+  // Todos los libros tienen que entrar sin mover la barra.
+  const scroll = await operator.locator('.books').evaluate((el) => el.scrollHeight - el.clientHeight);
+  expect(scroll).toBeLessThanOrEqual(0);
 
   const color = (book: number) =>
     operator.locator(`button[data-book="${book}"]`).evaluate((el) => getComputedStyle(el).color);

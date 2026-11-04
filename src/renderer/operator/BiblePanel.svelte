@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { BibleBook, BibleInfo, BibleVerse } from '@shared/api';
-  import { BOOK_GROUPS, bookShortName } from '@shared/bible-groups';
+  import { TESTAMENTS, bookGroup, bookShortName } from '@shared/bible-groups';
   import type { PreviewItem } from './preview-item';
 
   type Props = {
@@ -144,15 +144,17 @@
 
   <div class="body">
     <nav class="books" aria-label="Libros">
-      {#each BOOK_GROUPS as group (group.id)}
-        <section style:--group="var(--g-{group.id})">
-          <h3>{group.name}</h3>
+      {#each TESTAMENTS as testament (testament.name)}
+        <section>
+          <h3>{testament.name}</h3>
           <div class="grid">
-            {#each books.filter((item) => item.book >= group.from && item.book <= group.to) as item (item.book)}
+            {#each books.filter((item) => item.book >= testament.from && item.book <= testament.to) as item (item.book)}
+              {@const group = bookGroup(item.book)}
               <button
                 class="book"
                 class:active={item.book === book}
-                title={item.name}
+                style:--group="var(--g-{group.id})"
+                title={`${item.name} · ${group.name}`}
                 data-book={item.book}
                 onclick={() => chooseBook(item.book)}
               >
@@ -217,7 +219,7 @@
 
   .body {
     display: grid;
-    grid-template-columns: 318px minmax(0, 1fr);
+    grid-template-columns: 372px minmax(0, 1fr);
     gap: 12px;
     min-height: 0;
   }
@@ -225,28 +227,28 @@
   .books {
     display: grid;
     align-content: start;
-    gap: 6px;
+    gap: 12px;
     overflow-y: auto;
     padding-right: 4px;
   }
 
   h3 {
-    margin: 0 0 2px;
-    font-size: 11px;
+    margin: 0 0 6px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.04em;
-    color: var(--group);
+    color: var(--muted);
   }
 
   .grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 3px;
+    gap: 4px;
   }
 
   .book {
-    padding: 2px 0;
-    font-size: 12px;
+    padding: 8px 0;
+    font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
     color: var(--group);
