@@ -65,9 +65,12 @@ test('un cambio del operador llega a la salida en menos de 50 ms', async () => {
 });
 
 test('el texto de la consola se proyecta y también se ve en la vista al aire', async () => {
+  await operator.locator('#tab-texto').click();
   await operator.locator('#cuerpo').fill(SLIDE.body);
   await operator.locator('#titulo').fill(SLIDE.title);
   await operator.locator('#btn-mostrar').click();
+  await expect(output.locator('.cef-body')).toHaveText('');
+  await operator.locator('#btn-aire').click();
 
   await expect(output.locator('.cef-body')).toHaveText(SLIDE.body);
   await expect(output.locator('.cef-title')).toHaveText(SLIDE.title);
@@ -79,7 +82,7 @@ test('F8, F9, F10 y ESC funcionan desde la consola y desde la salida', async () 
   await expect(layerOn('text')).toHaveCount(1);
 
   // Con el foco en un campo de texto también tienen que funcionar.
-  await operator.locator('#cuerpo').focus();
+  await operator.locator('#biblia-buscar').focus();
   await pressKey('operator', 'F10');
   await expect(layerOn('black')).toHaveCount(1);
   await pressKey('operator', 'F10');

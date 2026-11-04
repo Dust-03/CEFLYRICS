@@ -57,6 +57,12 @@ Atajos en todos los módulos: F8 wallpaper, F9 solo fondo, F10 negro, ESC salir,
 
 ## (b) Flujos del operador
 
+**Pedidos del usuario para la consola (2026-11-03).** La Biblia tiene un apartado propio y cómodo, con
+búsqueda. Los libros se muestran separados en sus grupos (Pentateuco, históricos, poéticos, profetas,
+evangelios, cartas), cada grupo con su color. La interfaz es simple pero atractiva, con modo claro y
+modo oscuro a elección de quien la use. El diseño es propio: no se tomó de la interfaz de Holyrics,
+que no se abrió.
+
 **Preparar el culto.** Abre el culto de la fecha (ya creado por la recurrencia), arma la playlist
 buscando con Ctrl+K o desde cada pestaña, revisa cada ítem en la vista previa y asigna un tema.
 

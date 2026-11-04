@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { BrowserWindow, Menu, app, ipcMain, type WebContents } from 'electron';
 import { IPC, type AppInfo } from '@shared/api';
 import { parseAction, type Action } from '@shared/state';
+import { BibleService } from './bible/service';
 import { openDatabase } from './db/database';
 import { OnAirStore } from './store';
 import { OutputWindow, createOperatorWindow } from './windows';
@@ -63,6 +64,13 @@ app.whenReady().then(() => {
     const action = parseAction(input);
     if (action) store.dispatch(action);
   });
+  const bible = new BibleService(db);
+  ipcMain.handle(IPC.bibleList, () => bible.list());
+  ipcMain.handle(IPC.bibleBooks, (_event, code: string) => bible.books(String(code)));
+  ipcMain.handle(IPC.bibleChapter, (_event, code: string, book: number, chapter: number) =>
+    bible.chapter(String(code), Number(book), Number(chapter)),
+  );
+  ipcMain.handle(IPC.bibleSearch, (_event, code: string, query: string) => bible.search(String(code), String(query)));
   ipcMain.handle(IPC.getOutputInfo, () => output.info);
   ipcMain.on(IPC.toggleOutput, () => output.toggle());
 

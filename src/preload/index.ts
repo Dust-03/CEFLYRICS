@@ -17,6 +17,12 @@ const api: CefliricsApi = {
   getOutputInfo: () => ipcRenderer.invoke(IPC.getOutputInfo),
   toggleOutput: () => ipcRenderer.send(IPC.toggleOutput),
   onOutputInfo: (listener) => subscribe(IPC.outputInfoChanged, listener),
+  bible: {
+    list: () => ipcRenderer.invoke(IPC.bibleList),
+    books: (code) => ipcRenderer.invoke(IPC.bibleBooks, code),
+    chapter: (code, book, chapter) => ipcRenderer.invoke(IPC.bibleChapter, code, book, chapter),
+    search: (code, query) => ipcRenderer.invoke(IPC.bibleSearch, code, query),
+  },
 };
 
 contextBridge.exposeInMainWorld('ceflirics', api);
