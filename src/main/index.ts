@@ -1,7 +1,7 @@
 import { copyFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { BrowserWindow, Menu, app, dialog, ipcMain, protocol, type WebContents } from 'electron';
-import { IPC, type AppInfo, type SongInput, type ThemeAssignment, type ThemeInput } from '@shared/api';
+import { IPC, type AppInfo, type SongInput, type ThemeAssignment, type ThemeInput, type TimerInput } from '@shared/api';
 import { parseAction, type Action } from '@shared/state';
 import { BibleService } from './bible/service';
 import { openDatabase } from './db/database';
@@ -9,6 +9,7 @@ import { MEDIA_EXTENSIONS, MEDIA_SCHEME, MediaService } from './media';
 import { SongService } from './songs';
 import { OnAirStore } from './store';
 import { ThemeService } from './themes';
+import { TimerService } from './timers';
 import { OutputWindow, createOperatorWindow } from './windows';
 
 // En desarrollo los datos quedan en el proyecto, no en el perfil del usuario.
@@ -105,6 +106,11 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC.themeRemove, (_event, id: string) => themes.remove(String(id)));
   ipcMain.handle(IPC.themeAssignment, () => themes.assignment());
   ipcMain.handle(IPC.themeAssign, (_event, assignment: ThemeAssignment) => themes.assign(assignment));
+
+  const timers = new TimerService(db);
+  ipcMain.handle(IPC.timerList, () => timers.list());
+  ipcMain.handle(IPC.timerSave, (_event, input: TimerInput) => timers.save(input));
+  ipcMain.handle(IPC.timerRemove, (_event, id: number) => timers.remove(Number(id)));
 
   ipcMain.handle(IPC.getOutputInfo, () => output.info);
   ipcMain.on(IPC.toggleOutput, () => output.toggle());

@@ -9,6 +9,7 @@
   import Screen from './Screen.svelte';
   import SongsPanel from './SongsPanel.svelte';
   import StylesPanel from './StylesPanel.svelte';
+  import TimersPanel from './TimersPanel.svelte';
 
   const api = window.ceflirics;
   const THEME_KEY = 'cef-theme';
@@ -16,8 +17,9 @@
     { id: 'biblia', label: 'Biblia', icon: 'bible' },
     { id: 'canciones', label: 'Canciones', icon: 'songs' },
     { id: 'medios', label: 'Medios', icon: 'media' },
-    { id: 'estilos', label: 'Estilos', icon: 'styles' },
+    { id: 'temporizadores', label: 'Temporizadores', icon: 'timer' },
     { id: 'texto', label: 'Texto', icon: 'text' },
+    { id: 'configuracion', label: 'Configuración', icon: 'settings' },
   ] as const;
 
   let info = $state<AppInfo | null>(null);
@@ -122,7 +124,11 @@
       <div class="pane" hidden={tab !== 'medios'}>
         <MediaPanel {onAirKey} onPreview={showPreview} onAir={sendToAir} onChange={loadLibrary} />
       </div>
-      <div class="pane" hidden={tab !== 'estilos'}>
+      <div class="pane" hidden={tab !== 'temporizadores'}>
+        <TimersPanel {onAir} theme={themes.find((entry) => entry.id === assignment.song)?.theme} />
+      </div>
+      <div class="pane settings" hidden={tab !== 'configuracion'}>
+        <h2>Configuración · Estilos y fuentes</h2>
         <StylesPanel {themes} {assignment} {media} onChange={loadLibrary} />
       </div>
       <div class="pane text-pane" hidden={tab !== 'texto'}>
@@ -179,13 +185,13 @@
 <style>
   .app {
     display: grid;
-    grid-template-columns: 84px minmax(0, 1fr);
+    grid-template-columns: 98px minmax(0, 1fr);
     height: 100%;
   }
 
   .menu {
     display: grid;
-    grid-template-rows: auto repeat(5, auto) 1fr;
+    grid-template-rows: auto repeat(6, auto) 1fr;
     gap: 4px;
     padding: 10px 8px;
     background: var(--surface);
@@ -256,6 +262,12 @@
 
   .pane[hidden] {
     display: none;
+  }
+
+  .settings {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px;
   }
 
   .text-pane {

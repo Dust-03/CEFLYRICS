@@ -41,6 +41,11 @@ const api: CefliricsApi = {
     assignment: () => ipcRenderer.invoke(IPC.themeAssignment),
     assign: (assignment) => ipcRenderer.invoke(IPC.themeAssign, assignment),
   },
+  timers: {
+    list: () => ipcRenderer.invoke(IPC.timerList),
+    save: (input) => ipcRenderer.invoke(IPC.timerSave, input),
+    remove: (id) => ipcRenderer.invoke(IPC.timerRemove, id),
+  },
 };
 
 contextBridge.exposeInMainWorld('ceflirics', api);

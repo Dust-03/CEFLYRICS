@@ -52,7 +52,7 @@ test('el menú muestra una sección por vez', async () => {
   for (const [tab, visible] of [
     ['canciones', '#cancion-nueva'],
     ['medios', '#medio-agregar'],
-    ['estilos', '#estilos'],
+    ['configuracion', '#estilos'],
     ['texto', '#cuerpo'],
     ['biblia', '#biblia-buscar'],
   ]) {
@@ -145,7 +145,7 @@ test('un video se reproduce de verdad en la salida', async () => {
 
 test('el estilo elegido cambia la fuente y el fondo de las canciones, no de la Biblia', async () => {
   await addSong();
-  await operator.locator('#tab-estilos').click();
+  await operator.locator('#tab-configuracion').click();
   await operator.locator('[data-usar-canciones="fabrica-bosque"]').click();
 
   await operator.locator('#tab-canciones').click();
@@ -168,7 +168,7 @@ test('se puede crear un estilo con otra fuente y una foto de fondo', async () =>
   const photo = join(dir, 'fondo.png');
   writeFileSync(photo, PNG);
   await addFiles([photo]);
-  await operator.locator('#tab-estilos').click();
+  await operator.locator('#tab-configuracion').click();
   await operator.locator('[aria-label="Editar Noche"]').click();
   await operator.locator('#estilo-fuente').selectOption('oswald');
   await operator.locator('[data-fondo-medio]').first().click();
@@ -190,7 +190,7 @@ test('se puede crear un estilo con otra fuente y una foto de fondo', async () =>
 
 test('la biblioteca sobrevive al cerrar y abrir la app', async () => {
   await addSong();
-  await operator.locator('#tab-estilos').click();
+  await operator.locator('#tab-configuracion').click();
   await operator.locator('[data-usar-biblia="fabrica-mar"]').click();
   await expect(operator.locator('[data-usar-biblia="fabrica-mar"]')).toHaveClass(/primary/);
   await app.close();
@@ -199,6 +199,6 @@ test('la biblioteca sobrevive al cerrar y abrir la app', async () => {
   operator = await app.firstWindow();
   await operator.locator('#tab-canciones').click();
   await expect(operator.locator('.song')).toContainText('Canción de prueba');
-  await operator.locator('#tab-estilos').click();
+  await operator.locator('#tab-configuracion').click();
   await expect(operator.locator('[data-usar-biblia="fabrica-mar"]')).toHaveClass(/primary/);
 });

@@ -2,8 +2,9 @@
 // la LAN, en OBS y en NDI. No puede depender de Electron ni de Node.
 import type { OnAirState, SlideMedia } from '@shared/state';
 import { DEFAULT_THEME, fontCss, type Theme } from '@shared/theme';
+import { formatRemaining, remainingMs, type TimerLayout, type TimerRun } from '@shared/timers';
 
-export type RenderState = Pick<OnAirState, 'slide' | 'mode'>;
+export type RenderState = Pick<OnAirState, 'slide' | 'mode'> & Partial<Pick<OnAirState, 'timers' | 'shownTimer'>>;
 
 // Las medidas van en unidades del contenedor (cqw), para verse igual a cualquier tamaño.
 const STYLES = `
@@ -18,6 +19,14 @@ const STYLES = `
 .cef-body { margin: 0; font-size: 5cqw; line-height: 1.25; font-weight: 600; white-space: pre-line; }
 .cef-shadow .cef-body { text-shadow: 0 0.2cqw 0.8cqw rgb(0 0 0 / 0.6); }
 .cef-title { margin: 0; font-size: 2.6cqw; font-weight: 600; }
+.cef-timer { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 1cqw; opacity: 1; font-variant-numeric: tabular-nums; }
+.cef-timer.cef-on { display: flex; }
+.cef-timer-label { font-size: 3.2cqw; font-weight: 600; }
+.cef-timer-time { font-size: 17cqw; font-weight: 700; line-height: 1; }
+.cef-timer-done .cef-timer-time { font-size: 8cqw; line-height: 1.2; text-align: center; padding: 0 5cqw; }
+.cef-timer-corner { inset: auto 2cqw 2cqw auto; flex-direction: row; gap: 1.2cqw; padding: 0.8cqw 1.6cqw; background: rgb(0 0 0 / 0.65); border-radius: 1cqw; color: #fff; }
+.cef-timer-corner .cef-timer-label { font-size: 1.6cqw; }
+.cef-timer-corner .cef-timer-time, .cef-timer-corner.cef-timer-done .cef-timer-time { font-size: 3.4cqw; padding: 0; }
 .cef-black { background: #000; transition-duration: 0s; }
 `;
 
@@ -95,28 +104,60 @@ export function createRenderer(stage: HTMLElement, { audio = false } = {}) {
   title.className = 'cef-title';
   text.append(body, title);
   const media = layer(stage, 'cef-media');
+  const timer = layer(stage, 'cef-timer');
+  const timerLabel = document.createElement('div');
+  const timerTime = document.createElement('div');
+  timerLabel.className = 'cef-timer-label';
+  timerTime.className = 'cef-timer-time';
+  timer.append(timerLabel, timerTime);
   const wallpaper = layer(stage, 'cef-wallpaper');
   wallpaper.textContent = 'CEFLIRICS';
   const black = layer(stage, 'cef-black');
 
   // Con F9 sin nada al aire se mantiene el último fondo usado.
   let theme = DEFAULT_THEME;
+  let ticker: ReturnType<typeof setInterval> | undefined;
 
-  return function render({ slide, mode }: RenderState) {
+  function showTimer(run: TimerRun | undefined, layout: TimerLayout | undefined, visible: boolean, look: Theme) {
+    clearInterval(ticker);
+    timer.classList.toggle('cef-on', !!run && visible);
+    if (!run || !visible) return;
+    const full = layout === 'full';
+    timer.classList.toggle('cef-timer-corner', !full);
+    timer.style.fontFamily = fontCss(look.font);
+    timer.style.color = full ? look.color : '';
+    timerLabel.style.color = full ? look.titleColor : '';
+    timerLabel.textContent = run.label;
+    const tick = () => {
+      const left = remainingMs(run, Date.now());
+      const done = left === 0 && !!run.message;
+      timer.classList.toggle('cef-timer-done', done);
+      timerTime.textContent = done ? run.message : formatRemaining(left);
+    };
+    tick();
+    ticker = setInterval(tick, 200);
+  }
+
+  return function render({ slide, mode, timers = [], shownTimer = null }: RenderState) {
     theme = slide?.theme ?? (slide ? DEFAULT_THEME : theme);
-    applyTheme(theme, { background, text, body, title });
-    const bg = theme.background;
+    const run = timers.find((item) => item.id === shownTimer?.id);
+    // A pantalla completa el temporizador reemplaza lo proyectado, con su propio estilo.
+    const timerFull = !!run && shownTimer?.layout === 'full';
+    const look = (timerFull && run?.theme) || theme;
+    applyTheme(look, { background, text, body, title });
+    const bg = look.background;
     // El video de fondo no lleva sonido: el audio es de lo que se proyecta.
     showFile(background, bg.kind === 'css' ? null : { kind: bg.kind, url: bg.url, loop: true }, false);
 
     const hasMedia = !!slide?.media;
     body.textContent = slide?.body ?? '';
     title.textContent = slide?.title ?? '';
-    showFile(media, mode === 'live' ? (slide?.media ?? null) : null, audio);
+    showFile(media, mode === 'live' && !timerFull ? (slide?.media ?? null) : null, audio);
+    showTimer(run, shownTimer?.layout, mode === 'live', look);
 
     background.classList.toggle('cef-on', mode === 'live' || mode === 'background');
-    text.classList.toggle('cef-on', mode === 'live' && !!slide && !hasMedia);
-    media.classList.toggle('cef-on', mode === 'live' && hasMedia);
+    text.classList.toggle('cef-on', mode === 'live' && !!slide && !hasMedia && !timerFull);
+    media.classList.toggle('cef-on', mode === 'live' && hasMedia && !timerFull);
     wallpaper.classList.toggle('cef-on', mode === 'wallpaper');
     black.classList.toggle('cef-on', mode === 'black');
   };

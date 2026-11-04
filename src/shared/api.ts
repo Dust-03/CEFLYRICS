@@ -1,6 +1,7 @@
 import type { SongSlide } from './song-text';
 import type { Action, OnAirState } from './state';
 import type { Theme, ThemeEntry } from './theme';
+import type { TimerConfig } from './timers';
 
 // Lo que el preload expone a los renderers en window.ceflirics.
 export type AppInfo = {
@@ -61,6 +62,14 @@ export type ThemeApi = {
   assign: (assignment: ThemeAssignment) => Promise<void>;
 };
 
+export type TimerInput = Omit<TimerConfig, 'id'> & { id?: number };
+
+export type TimerApi = {
+  list: () => Promise<TimerConfig[]>;
+  save: (input: TimerInput) => Promise<number>;
+  remove: (id: number) => Promise<void>;
+};
+
 export type CefliricsApi = {
   getAppInfo: () => Promise<AppInfo>;
   getState: () => Promise<OnAirState>;
@@ -73,6 +82,7 @@ export type CefliricsApi = {
   songs: SongApi;
   media: MediaApi;
   themes: ThemeApi;
+  timers: TimerApi;
 };
 
 export const IPC = {
@@ -99,4 +109,7 @@ export const IPC = {
   themeRemove: 'themes:remove',
   themeAssignment: 'themes:assignment',
   themeAssign: 'themes:assign',
+  timerList: 'timers:list',
+  timerSave: 'timers:save',
+  timerRemove: 'timers:remove',
 } as const;

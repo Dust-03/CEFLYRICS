@@ -65,6 +65,10 @@ Menú lateral con Biblia, Canciones, Medios, Estilos y Texto. Hecho, con estos r
 - **1.9 Multimedia:** fotos y videos por hash, con sonido en la salida y repetición. Falta la
   conversión con FFmpeg: lo que el motor no reproduce no se puede proyectar. Falta medir el arranque.
 
+Después, también a pedido: menú **Temporizadores** (varios a la vez, de duración o hasta una hora, a
+pantalla completa o en la esquina, con mensaje al llegar a cero) y menú **Configuración**, que reúne
+estilos y fuentes. Del paso 1.10 faltan las alertas sobre lo proyectado.
+
 ## Fuera de esta etapa
 
 Remoto y stage view por la LAN, pantallas sincronizadas dentro de la app, importadores (salvo USFM

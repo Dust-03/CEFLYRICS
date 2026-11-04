@@ -62,7 +62,8 @@ búsqueda. Los libros se muestran separados en sus grupos (Pentateuco, históric
 evangelios, cartas), cada grupo con su color. La interfaz es simple pero atractiva, con modo claro y
 modo oscuro a elección de quien la use. Cada cosa tiene su menú: Biblia, Canciones, Medios, Estilos y
 Texto. Se agregan letras escribiéndolas o pegándolas, y se suben fotos y videos. Hay fuentes y fondos
-para las letras. El diseño es propio: no se tomó de la interfaz de Holyrics, que no se abrió.
+para las letras, agrupados en un menú Configuración. Hay temporizadores configurables: de duración y
+cuenta atrás hasta una hora. El diseño es propio: no se tomó de la interfaz de Holyrics, que no se abrió.
 
 **Preparar el culto.** Abre el culto de la fecha (ya creado por la recurrencia), arma la playlist
 buscando con Ctrl+K o desde cada pestaña, revisa cada ítem en la vista previa y asigna un tema.

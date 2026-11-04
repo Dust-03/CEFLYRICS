@@ -120,4 +120,18 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 4,
+    name: 'temporizadores',
+    sql: `
+      CREATE TABLE timers (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        kind TEXT NOT NULL CHECK (kind IN ('duration', 'clock')),
+        seconds INTEGER NOT NULL DEFAULT 0,
+        clock TEXT NOT NULL DEFAULT '',
+        message TEXT NOT NULL DEFAULT ''
+      );
+    `,
+  },
 ];
