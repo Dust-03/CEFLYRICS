@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -53,7 +53,7 @@ function showText(body: string, title = '') {
 }
 
 test.beforeAll(async () => {
-  browser = await chromium.launch({ channel: 'msedge' });
+  browser = await chromium.launch({ channel: 'msedge', args: ['--autoplay-policy=no-user-gesture-required'] });
 });
 
 test.afterAll(async () => {
@@ -129,6 +129,37 @@ test('las fotos llegan a la tele, y los archivos se piden por partes', async () 
   expect(part.status).toBe(206);
   expect(part.headers.get('content-range')).toBe(`bytes 0-3/${PNG.length}`);
   expect((await part.arrayBuffer()).byteLength).toBe(4);
+});
+
+test('la tele va muda salvo que se pida sonido, y el pedido queda guardado', async () => {
+  await launch();
+  const file = join(dir, 'video.mp4');
+  copyFileSync('tests/.media/patron-prueba-8s.mp4', file);
+  await app.evaluate(({ dialog }, path) => {
+    dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [path] })) as typeof dialog.showOpenDialog;
+  }, file);
+  await operator.locator('#tab-medios').click();
+  await operator.locator('#medio-agregar').click();
+  await operator.locator('#medios .item').first().dblclick();
+
+  const tv = await openTv();
+  const muted = () => tv.locator('.cef-media video').evaluate((video: HTMLVideoElement) => video.muted);
+  await expect.poll(muted).toBe(true);
+
+  await operator.locator('#tab-transmision').click();
+  await operator.locator('#lan-sonido').check();
+  await expect.poll(muted).toBe(false);
+
+  // Una tele que entra después, con el video ya al aire, también suena.
+  const other = await openTv();
+  await expect
+    .poll(() => other.locator('.cef-media video').evaluate((video: HTMLVideoElement) => video.muted))
+    .toBe(false);
+
+  await app.close();
+  await launch();
+  await operator.locator('#tab-transmision').click();
+  await expect(operator.locator('#lan-sonido')).toBeChecked();
 });
 
 test('desde la red no se llega a otros archivos', async () => {

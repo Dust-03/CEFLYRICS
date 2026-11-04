@@ -2,7 +2,10 @@ import { _electron as electron, expect, test } from '@playwright/test';
 
 test('la app abre la consola del operador con el puente seguro', async () => {
   const app = await electron.launch({ args: ['.'] });
-  const window = await app.firstWindow();
+  await app.firstWindow();
+  // Con dos monitores la salida se abre sola y a veces carga primero.
+  await expect.poll(() => app.windows().some((w) => w.url().includes('operator'))).toBe(true);
+  const window = app.windows().find((w) => w.url().includes('operator'))!;
 
   await expect(window.locator('h1')).toHaveText('Ceflirics');
   await expect(window.locator('small')).toContainText('Versión');

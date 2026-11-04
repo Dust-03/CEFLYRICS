@@ -12,12 +12,15 @@ export type LanInfo = {
   // La IP con la que se conectó la última pantalla, si ya no es la de esta PC.
   previousIp: string | null;
   screens: LanScreen[];
+  // Si las teles reproducen el audio de los videos.
+  sound: boolean;
 };
 
 export type LanApi = {
   info: () => Promise<LanInfo>;
   setPort: (port: number) => void;
   setEnabled: (enabled: boolean) => void;
+  setSound: (sound: boolean) => void;
   onInfo: (listener: (info: LanInfo) => void) => () => void;
 };
 

@@ -100,7 +100,17 @@ function applyTheme(
   parts.title.style.fontSize = `calc(${2.6 * Math.min(theme.scale, 1.2)} * var(--cef-u))`;
 }
 
-export function createRenderer(stage: HTMLElement, { audio = false, playback = true, now = () => Date.now() } = {}) {
+type RendererOptions = {
+  // Una función si puede cambiar mientras la pantalla está abierta.
+  audio?: boolean | (() => boolean);
+  playback?: boolean;
+  now?: () => number;
+};
+
+export function createRenderer(
+  stage: HTMLElement,
+  { audio = false, playback = true, now = () => Date.now() }: RendererOptions = {},
+) {
   if (!document.getElementById('cef-styles')) {
     const style = document.createElement('style');
     style.id = 'cef-styles';
@@ -210,7 +220,8 @@ export function createRenderer(stage: HTMLElement, { audio = false, playback = t
     const hasMedia = !!slide?.media;
     body.textContent = slide?.body ?? '';
     title.textContent = slide?.title ?? '';
-    showFile(media, mode === 'live' && !timerFull ? (slide?.media ?? null) : null, audio, playback);
+    const sound = typeof audio === 'function' ? audio() : audio;
+    showFile(media, mode === 'live' && !timerFull ? (slide?.media ?? null) : null, sound, playback);
     showTimer(run, shownTimer?.layout, mode === 'live', look);
     fitText();
 

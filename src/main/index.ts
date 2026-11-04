@@ -144,6 +144,7 @@ app.whenReady().then(() => {
     if (port) lan.setPort(port);
   });
   ipcMain.on(IPC.lanSetEnabled, (_event, enabled: unknown) => lan.setEnabled(enabled === true));
+  ipcMain.on(IPC.lanSetSound, (_event, sound: unknown) => lan.setSound(sound === true));
   lan.start();
 
   ipcMain.handle(IPC.getOutputInfo, () => output.info);

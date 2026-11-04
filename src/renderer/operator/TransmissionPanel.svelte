@@ -117,6 +117,19 @@
       {/if}
     </section>
 
+    <section>
+      <label class="sound">
+        <input
+          id="lan-sonido"
+          type="checkbox"
+          checked={info.sound}
+          onchange={(event) => api.setSound(event.currentTarget.checked)}
+        />
+        <b>Sonido en las teles</b>
+      </label>
+      <p class="note">Para una tele en otro ambiente. En la misma sala que los parlantes se escucha con eco.</p>
+    </section>
+
     <div class="columns">
       <section>
         <h3>Puerto reservado</h3>
@@ -275,6 +288,14 @@
 
   ul span {
     color: var(--muted);
+  }
+
+  .sound {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 14px;
   }
 
   .columns {

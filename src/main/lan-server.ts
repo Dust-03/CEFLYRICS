@@ -23,6 +23,7 @@ import { readSetting, writeSetting } from './settings';
 const PORT_KEY = 'lan.port';
 const ENABLED_KEY = 'lan.enabled';
 const LAST_IP_KEY = 'lan.lastIp';
+const SOUND_KEY = 'lan.sound';
 
 const RETRY_MS = 5000;
 const TICK_MS = 5000;
@@ -90,9 +91,11 @@ export class LanServer {
   private nextId = 1;
   // En memoria: al cerrar la app las pantallas se desconectan con la base ya cerrada.
   private lastIp: string | null;
+  private sound: boolean;
 
   constructor(private options: LanOptions) {
     this.lastIp = readSetting<string>(options.db, LAST_IP_KEY) ?? null;
+    this.sound = readSetting(options.db, SOUND_KEY) === true;
     // Una vez elegido, el puerto no cambia solo: si está ocupado se espera a que se libere.
     this.port = parsePort(process.env.CEF_LAN_PORT) ?? parsePort(readSetting(options.db, PORT_KEY)) ?? DEFAULT_LAN_PORT;
   }
@@ -105,6 +108,7 @@ export class LanServer {
       port: this.port,
       addresses: this.addresses,
       previousIp: moved ? lastIp : null,
+      sound: this.sound,
       screens: [...this.clients.values()].map(({ id, ip, device, width, height }) => ({
         id,
         ip,
@@ -144,6 +148,18 @@ export class LanServer {
     await this.close();
     if (enabled) this.listen();
     else this.notify();
+  }
+
+  setSound(sound: boolean) {
+    writeSetting(this.options.db, SOUND_KEY, sound);
+    this.sound = sound;
+    const message = this.soundMessage();
+    for (const socket of this.clients.keys()) socket.send(message);
+    this.notify();
+  }
+
+  private soundMessage() {
+    return JSON.stringify({ t: 'sound', on: this.sound });
   }
 
   broadcast(state: OnAirState) {
@@ -218,6 +234,8 @@ export class LanServer {
       if (this.clients.delete(socket)) this.notify();
     });
     socket.on('error', () => socket.terminate());
+    // Primero el sonido: el video que esté al aire tiene que arrancar ya como corresponde.
+    socket.send(this.soundMessage());
     socket.send(toMessage(this.options.getState()));
     this.notify();
   }

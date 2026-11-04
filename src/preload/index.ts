@@ -21,6 +21,7 @@ const api: CefliricsApi = {
     info: () => ipcRenderer.invoke(IPC.lanInfo),
     setPort: (port) => ipcRenderer.send(IPC.lanSetPort, port),
     setEnabled: (enabled) => ipcRenderer.send(IPC.lanSetEnabled, enabled),
+    setSound: (sound) => ipcRenderer.send(IPC.lanSetSound, sound),
     onInfo: (listener) => subscribe(IPC.lanInfoChanged, listener),
   },
   bible: {

@@ -15,14 +15,22 @@ const notice = document.getElementById('aviso')!;
 let clockOffset = 0;
 let bestRoundTrip = Infinity;
 
-// Sin sonido: en la sala el audio sale de la consola, y la tele lo bloquearía igual.
+// Sin sonido salvo que se pida en Transmisión: en la misma sala se escucharía con eco.
+let sound = false;
+
 const render = createRenderer(document.getElementById('stage')!, {
-  audio: false,
+  audio: () => sound,
   now: () => Date.now() + clockOffset,
 });
 
 let socket: WebSocket | null = null;
 let heardAt = 0;
+
+// El video de fondo sigue mudo: el audio es de lo que se proyecta.
+function applySound() {
+  const video = document.querySelector<HTMLVideoElement>('.cef-media video');
+  if (video) video.muted = !sound;
+}
 
 function send(message: object) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
@@ -49,9 +57,12 @@ function connect() {
   };
   current.onmessage = ({ data }) => {
     heardAt = Date.now();
-    const message = JSON.parse(data) as { t: string; state: OnAirState; c: number; s: number };
+    const message = JSON.parse(data) as { t: string; state: OnAirState; c: number; s: number; on: boolean };
     if (message.t === 'state') render(message.state);
-    else if (message.t === 'pong') onPong(message.c, message.s);
+    else if (message.t === 'sound') {
+      sound = message.on;
+      applySound();
+    } else if (message.t === 'pong') onPong(message.c, message.s);
   };
   current.onclose = () => {
     // Lo proyectado queda en pantalla: que se corte la red no tiene que dejar la tele en negro.
@@ -67,6 +78,8 @@ setInterval(() => {
 }, PING_MS);
 
 function goFullscreen() {
+  // El navegador silencia lo que arranca solo: apretar una tecla le da permiso para sonar.
+  applySound();
   const page = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
   if (document.fullscreenElement) return;
   if (page.requestFullscreen) page.requestFullscreen().catch(() => {});
