@@ -27,5 +27,9 @@ npm run dist       # instalador en release/
 
 GPL-3.0. Ver [LICENSE](LICENSE).
 
+Los logos de la iglesia CEF (`assets/logo-cef.svg`, `assets/logo-ceflirics.svg` y `assets/icono.*`)
+no están bajo esa licencia: pertenecen a la iglesia. Quien use este código en otro lado tiene que
+reemplazarlos.
+
 Las biblias incluidas de fábrica son solo de dominio público (Reina-Valera 1909, KJV, WEB,
 BSB). Otras traducciones se cargan con el importador y son responsabilidad de quien las importa.
