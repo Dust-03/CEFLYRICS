@@ -12,7 +12,7 @@ import {
 } from './helpers';
 
 const WARMUP_MS = 3000;
-// Objetivo de CLAUDE.md: un cuadro de diferencia a 30 fps.
+// Objetivo del proyecto: un cuadro de diferencia a 30 fps.
 const MAX_SPREAD_MS = 34;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

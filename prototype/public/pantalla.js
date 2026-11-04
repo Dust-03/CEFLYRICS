@@ -15,7 +15,7 @@ const outputLatencyMs = num('lat');
 const displayName = params.get('nombre') || `Pantalla ${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 const isWebKit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg|Electron/.test(navigator.userAgent);
 
-// Bandas de corrección (ms). Ver CLAUDE.md, "Sincronización".
+// Bandas de corrección (ms). Ver docs/investigacion.md.
 const BAND_OK_MS = 15;
 const BAND_EXIT_MS = 5;
 const BAND_RATE_MS = 120;

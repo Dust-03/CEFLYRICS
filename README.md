@@ -22,6 +22,46 @@ Versión actual: **1.2.0**.
 Atajos de teclado: F8 logo, F9 fondo, F10 negro, F11 pantalla completa, Esc quitar. Mandar algo al aire saca el logo, el
 fondo o el negro.
 
+## Cómo funciona
+
+Todo gira alrededor de una sola cosa: **lo que está al aire**. Lo guarda el programa de la PC, y
+el proyector, las teles y los celulares miran siempre lo mismo. Si algo cambia desde cualquier lado,
+se actualiza en todos al instante.
+
+| Parte | Qué es | Qué puede hacer |
+| --- | --- | --- |
+| **Consola** | La ventana del operador en la PC | Prepara y manda todo al aire |
+| **Salida** | La pantalla del proyector | Muestra lo que está al aire, a pantalla completa en el segundo monitor |
+| **Teles** | Cualquier navegador de la misma red | Solo mirar: desde ahí no se puede cambiar nada |
+| **Celulares** | CEFLYRICS Control, o el navegador | Manejar lo que está al aire, con un PIN y un nombre |
+
+### En el culto
+
+1. Abrí CEFLYRICS. Si hay un segundo monitor, la salida se abre sola en él.
+2. Elegí un versículo, una canción, una foto o un video: aparece en **Vista previa**, sin salir al
+   proyector.
+3. Tocá **Al aire**, o hacé doble clic, para mandarlo. En el celular son dos toques.
+4. **Logo**, **Fondo** y **Negro** son accesos directos: tapan la pantalla al momento. Lo próximo que
+   mandes al aire los saca solo. **Quitar** deja la pantalla limpia.
+
+Los **atajos** son lo que se guarda con la estrella para tenerlo a mano; en la PC, Ctrl+1 a Ctrl+9
+llevan a los nueve primeros. Tocar de nuevo el menú en el que estás te devuelve a su inicio.
+
+### La red
+
+No hace falta internet. El programa abre un pequeño servidor dentro de la red local, en el puerto
+8787, y de ahí salen la página de las teles y la del control. Las teles reciben los cambios al
+instante y, si se corta la conexión, conservan lo proyectado y vuelven solas.
+
+Cada celular se vincula una sola vez y recibe su propia llave. En **Transmisión** se ve cuáles están
+conectados y se puede desvincular cualquiera. El PIN sirve solo para vincular celulares nuevos.
+
+### Los datos
+
+Todo queda en la PC: canciones, medios, estilos, temporizadores y atajos se guardan en una base local,
+y no se envía nada a internet. **Configuración → Importar y exportar** sirve para sumar canciones y
+biblias, y para pasar todo a otra PC en un solo archivo.
+
 ## Instalación
 
 Hace falta Windows 10 u 11 de 64 bits.
@@ -43,8 +83,9 @@ la IP tampoco cambie, reservala en el router.
 **CEFLYRICS Control** es solo un control remoto: no proyecta sola y necesita el programa abierto en
 una PC de la misma red.
 
-1. En **Transmisión**, escaneá el QR para bajar la app de Android. En iPhone se usa desde Safari,
-   con el otro QR.
+1. Bajá la app de Android desde [descargas/ceflyrics-control.apk](descargas/ceflyrics-control.apk) o
+   con el QR de **Transmisión**. Android va a pedir permiso para instalar una app de fuera de la tienda.
+   En iPhone se usa desde Safari, con el otro QR.
 2. La app encuentra la PC sola. Escribí un nombre y el PIN, una sola vez.
 
 Desde la PC se ve qué celulares están conectados y se puede desvincular cualquiera.

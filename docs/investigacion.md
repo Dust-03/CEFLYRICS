@@ -4,7 +4,7 @@ Versión del 2026-11-03. Este documento es la base desde la que se implementa. D
 hacer el programa, con palabras propias, a partir de los objetivos del proyecto y de fuentes públicas.
 No contiene código, textos de ayuda, traducciones, íconos ni colores de Holyrics.
 
-Las secciones (a) y (c) se citan desde `CLAUDE.md`. Lo que todavía no está resuelto está en la
+Las secciones (a) y (c) son la referencia del proyecto. Lo que todavía no está resuelto está en la
 sección (e): conviene leerla antes de empezar un módulo.
 
 **No es asesoramiento legal.** Las secciones sobre licencias y datos personales resumen fuentes
