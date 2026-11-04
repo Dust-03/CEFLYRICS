@@ -340,7 +340,20 @@
           {item.label}
         </button>
       {/each}
-      <button id="control-salir" class="leave" aria-label="Desvincular este celular" onclick={onLeave}>⏻</button>
+      <button id="control-salir" class="leave" aria-label="Desvincular este celular" onclick={onLeave}>
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M12 3v9M6.8 6.8a7.5 7.5 0 1 0 10.4 0" />
+        </svg>
+      </button>
     </nav>
   </footer>
 </div>
