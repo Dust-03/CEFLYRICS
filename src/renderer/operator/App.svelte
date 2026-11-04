@@ -9,6 +9,7 @@
   import Screen from './Screen.svelte';
   import ShortcutsPanel from './ShortcutsPanel.svelte';
   import SongsPanel from './SongsPanel.svelte';
+  import Splash from './Splash.svelte';
   import StylesPanel from './StylesPanel.svelte';
   import TimersPanel from './TimersPanel.svelte';
   import TransmissionPanel from './TransmissionPanel.svelte';
@@ -158,6 +159,8 @@
 </script>
 
 <svelte:window onkeydown={onGlobalKey} />
+
+<Splash />
 
 <div class="app">
   <nav class="menu" aria-label="Menú principal">
