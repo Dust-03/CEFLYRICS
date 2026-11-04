@@ -1,6 +1,6 @@
 import { copyFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { BrowserWindow, Menu, app, dialog, ipcMain, protocol, type WebContents } from 'electron';
+import { BrowserWindow, Menu, app, dialog, ipcMain, nativeImage, protocol, type WebContents } from 'electron';
 import { IPC, type AppInfo, type SongInput, type ThemeAssignment, type ThemeInput, type TimerInput } from '@shared/api';
 import { parseAction, type Action } from '@shared/state';
 import { BibleService } from './bible/service';
@@ -87,7 +87,15 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC.songSave, (_event, input: SongInput) => songs.save(input));
   ipcMain.handle(IPC.songRemove, (_event, id: number) => songs.remove(Number(id)));
 
-  const media = new MediaService(db, join(app.getPath('userData'), 'media'));
+  const media = new MediaService(db, join(app.getPath('userData'), 'media'), async (file, kind) => {
+    const size = { width: 480, height: 270 };
+    // Windows hace también la de los videos; las fotos se achican directo, sin depender de eso.
+    const image =
+      kind === 'image'
+        ? nativeImage.createFromPath(file).resize({ width: size.width, quality: 'good' })
+        : await nativeImage.createThumbnailFromPath(file, size);
+    return image.isEmpty() ? null : image.toJPEG(82);
+  });
   protocol.handle(MEDIA_SCHEME, (request) => media.serve(request));
   ipcMain.handle(IPC.mediaList, () => media.list());
   ipcMain.handle(IPC.mediaAdd, async () => {

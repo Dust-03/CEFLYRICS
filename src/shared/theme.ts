@@ -1,6 +1,6 @@
 // Estilos de lo proyectado: fuente, colores y fondo. Viajan con cada diapositiva.
 
-export type Background = { kind: 'css'; value: string } | { kind: 'image' | 'video'; url: string };
+export type Background = { kind: 'css'; value: string } | { kind: 'image' | 'video'; url: string; thumb?: string };
 
 export type Theme = {
   font: string;
@@ -70,12 +70,13 @@ const HEX = /^#[0-9a-f]{6}$/i;
 
 function parseBackground(input: unknown): Background | null {
   if (typeof input !== 'object' || input === null) return null;
-  const { kind, value, url } = input as Record<string, unknown>;
+  const { kind, value, url, thumb } = input as Record<string, unknown>;
   if (kind === 'css' && typeof value === 'string' && value.length <= 300 && !/url\s*\(/i.test(value)) {
     return { kind, value };
   }
   if ((kind === 'image' || kind === 'video') && typeof url === 'string' && url.startsWith('cef-media://')) {
-    return { kind, url: url.slice(0, 200) };
+    const hasThumb = typeof thumb === 'string' && thumb.startsWith('cef-media://');
+    return { kind, url: url.slice(0, 200), ...(hasThumb ? { thumb: thumb.slice(0, 200) } : {}) };
   }
   return null;
 }

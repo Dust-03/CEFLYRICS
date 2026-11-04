@@ -12,6 +12,9 @@ function ftsQuery(text: string) {
 }
 
 export class BibleService {
+  // Los libros de una versión no cambian mientras la app corre, y se consultan en cada búsqueda.
+  private bookCache = new Map<string, BibleBook[]>();
+
   constructor(private db: Db) {}
 
   list(): BibleInfo[] {
@@ -19,7 +22,9 @@ export class BibleService {
   }
 
   books(code: string): BibleBook[] {
-    return this.db
+    const cached = this.bookCache.get(code);
+    if (cached) return cached;
+    const books = this.db
       .prepare(
         `SELECT bk.book_no AS book, bk.name,
                 (SELECT MAX((v.vid / 1000) % 1000) FROM verses v
@@ -28,6 +33,8 @@ export class BibleService {
          WHERE b.code = ? ORDER BY bk.book_no`,
       )
       .all(code) as BibleBook[];
+    this.bookCache.set(code, books);
+    return books;
   }
 
   chapter(code: string, book: number, chapter: number) {

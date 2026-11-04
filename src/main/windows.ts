@@ -14,6 +14,7 @@ function baseOptions(): BrowserWindowConstructorOptions {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      spellcheck: false,
       // Los videos arrancan con sonido sin esperar un clic en la ventana de salida.
       autoplayPolicy: 'no-user-gesture-required',
     },
@@ -94,6 +95,7 @@ export class OutputWindow {
       frame: !display,
       fullscreen: !!display,
       autoHideMenuBar: true,
+      webPreferences: { ...baseOptions().webPreferences, backgroundThrottling: false },
     });
     this.window = window;
     this.onCreated(window);

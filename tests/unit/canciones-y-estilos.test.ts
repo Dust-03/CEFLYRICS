@@ -101,11 +101,11 @@ test('un archivo importado dos veces ocupa lugar una sola vez, y se rechaza lo q
 
   const result = await media.add([photo, join(dir, 'copia.png'), join(dir, 'virus.exe')]);
   expect(result).toEqual({ added: 1, rejected: ['virus.exe'] });
-  expect(media.list()).toHaveLength(1);
+  expect(await media.list()).toHaveLength(1);
   expect(readdirSync(folder)).toHaveLength(1);
 
-  await media.remove(media.list()[0].id);
-  expect(media.list()).toEqual([]);
+  await media.remove((await media.list())[0].id);
+  expect(await media.list()).toEqual([]);
   expect(readdirSync(folder)).toEqual([]);
 });
 
@@ -114,7 +114,7 @@ test('el protocolo de medios sirve rangos y no sale de su carpeta', async () => 
   const video = join(dir, 'video.mp4');
   writeFileSync(video, '0123456789');
   await media.add([video]);
-  const { url } = media.list()[0];
+  const [{ url }] = await media.list();
 
   const whole = await media.serve(new Request(url.replace('cef-media:', 'http:')));
   expect(await whole.text()).toBe('0123456789');
@@ -126,6 +126,39 @@ test('el protocolo de medios sirve rangos y no sale de su carpeta', async () => 
 
   const escape = await media.serve(new Request('http://media/..%2F..%2Fprueba.db'));
   expect(escape.status).toBe(404);
+});
+
+test('la miniatura se hace una vez, se sirve y se borra con el archivo', async () => {
+  const folder = join(dir, 'media');
+  let made = 0;
+  const media = new MediaService(db, folder, async () => {
+    made++;
+    return Buffer.from('jpeg');
+  });
+  const photo = join(dir, 'foto.png');
+  writeFileSync(photo, 'contenido');
+  await media.add([photo]);
+
+  const [item] = await media.list();
+  await media.list();
+  expect(made).toBe(1);
+  expect(item.thumb).toMatch(/\.thumb\.jpg$/);
+  const response = await media.serve(new Request(item.thumb!.replace('cef-media:', 'http:')));
+  expect(await response.text()).toBe('jpeg');
+
+  await media.remove(item.id);
+  expect(readdirSync(folder)).toEqual([]);
+});
+
+test('sin miniatura el medio sigue funcionando', async () => {
+  const media = new MediaService(db, join(dir, 'media'), async () => {
+    throw new Error('no se pudo');
+  });
+  const video = join(dir, 'video.mp4');
+  writeFileSync(video, 'contenido');
+  await media.add([video]);
+  const [item] = await media.list();
+  expect(item.thumb).toBeUndefined();
 });
 
 test('los estilos propios se guardan y al borrarlos vuelve el de fábrica', () => {

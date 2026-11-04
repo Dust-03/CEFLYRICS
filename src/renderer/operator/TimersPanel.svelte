@@ -10,8 +10,8 @@
     type TimerRun,
   } from '@shared/timers';
 
-  type Props = { onAir: OnAirState; theme: Theme | undefined };
-  let { onAir, theme }: Props = $props();
+  type Props = { onAir: OnAirState; theme: Theme | undefined; active: boolean };
+  let { onAir, theme, active }: Props = $props();
 
   const api = window.ceflirics;
   const EMPTY = {
@@ -36,7 +36,9 @@
   refresh();
 
   $effect(() => {
-    const ticker = setInterval(() => (now = Date.now()), 250);
+    if (!active || !onAir.timers.length) return;
+    now = Date.now();
+    const ticker = setInterval(() => (now = Date.now()), 500);
     return () => clearInterval(ticker);
   });
 

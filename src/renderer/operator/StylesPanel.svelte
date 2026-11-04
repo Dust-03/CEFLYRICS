@@ -135,7 +135,7 @@
           ></button>
         {/each}
         {#each media as item (item.id)}
-          {@const background = { kind: item.kind, url: item.url } as Background}
+          {@const background = { kind: item.kind, url: item.url, thumb: item.thumb } as Background}
           <button
             class="swatch file"
             class:active={isBackground(background)}
@@ -144,8 +144,8 @@
             data-fondo-medio={item.id}
             onclick={() => (draft!.background = background)}
           >
-            {#if item.kind === 'image'}
-              <img src={item.url} alt="" loading="lazy" />
+            {#if item.thumb || item.kind === 'image'}
+              <img src={item.thumb ?? item.url} alt="" loading="lazy" decoding="async" />
             {:else}
               <video src={`${item.url}#t=1`} preload="metadata" muted></video>
             {/if}

@@ -77,3 +77,16 @@ para las biblias de fábrica), cultos, miembros, NDI y API.
 ## Pendientes de la Etapa 0 que conviene resolver acá
 
 Instalador en una PC limpia, teclado físico, y desconectar el monitor en vivo (1.11 y 1.12).
+
+## Rendimiento (2026-11-03)
+
+La PC de destino es modesta. `npm run medir` compara arranque, memoria, CPU, búsqueda y video.
+
+| Medida | Antes | Después |
+|---|---|---|
+| Videos decodificándose con uno al aire | 3 | 1 |
+| Memoria con un video al aire (conjunto de trabajo) | 790 MB | 640 a 705 MB |
+| Paquete instalado | 429 MB | 358 MB |
+
+La memoria real en reposo es de unos 245 MB, casi todo Electron. Medido en la PC de desarrollo: falta
+medir en la PC de destino.

@@ -131,7 +131,11 @@ test('un video se reproduce de verdad en la salida', async () => {
   const first = await time();
   await expect.poll(time).toBeGreaterThan(first);
   expect(await player.evaluate((el: HTMLVideoElement) => el.muted)).toBe(false);
-  expect(await operator.locator('#vista-aire video').evaluate((el: HTMLVideoElement) => el.muted)).toBe(true);
+  // Las vistas de la consola no decodifican: solo el proyector reproduce.
+  const playing = await operator.evaluate(
+    () => [...document.querySelectorAll('video')].filter((v) => !v.paused).length,
+  );
+  expect(playing).toBe(0);
 
   // Saltar exige que el protocolo de medios sirva rangos.
   await player.evaluate((el: HTMLVideoElement) => {

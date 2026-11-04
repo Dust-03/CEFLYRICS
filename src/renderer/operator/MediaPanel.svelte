@@ -44,7 +44,7 @@
   const toItem = (item: MediaItem): PreviewItem => ({
     kind: 'media',
     key: `media:${item.id}`,
-    slide: { body: '', title: item.name, media: { kind: item.kind, url: item.url, loop } },
+    slide: { body: '', title: item.name, media: { kind: item.kind, url: item.url, thumb: item.thumb, loop } },
   });
 
   function select(item: MediaItem) {
@@ -93,12 +93,12 @@
         onclick={() => select(item)}
         ondblclick={() => onAir(toItem(item))}
       >
-        {#if item.kind === 'image'}
-          <img src={item.url} alt="" loading="lazy" />
+        {#if item.thumb || item.kind === 'image'}
+          <img src={item.thumb ?? item.url} alt="" loading="lazy" decoding="async" />
         {:else}
           <video src={`${item.url}#t=1`} preload="metadata" muted></video>
-          <span class="badge">Video</span>
         {/if}
+        {#if item.kind === 'video'}<span class="badge">Video</span>{/if}
         <span class="name">{item.name}</span>
       </button>
     {:else}

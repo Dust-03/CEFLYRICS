@@ -8,6 +8,10 @@ export function openDatabase(file: string, migrations: Migration[] = MIGRATIONS)
   try {
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
+    // Con WAL, NORMAL no arriesga la base; evita esperar al disco en cada escritura.
+    db.pragma('synchronous = NORMAL');
+    db.pragma('temp_store = MEMORY');
+    db.pragma('mmap_size = 67108864');
     migrate(db, migrations);
     return db;
   } catch (err) {

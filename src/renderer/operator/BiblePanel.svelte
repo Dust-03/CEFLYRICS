@@ -11,6 +11,7 @@
   let { onAirKey, onPreview, onAir }: Props = $props();
 
   const api = window.ceflirics.bible;
+  const SEARCH_DELAY_MS = 90;
 
   let bibles = $state<BibleInfo[]>([]);
   let version = $state('RV1909');
@@ -39,7 +40,15 @@
     refresh(code);
   });
 
+  let typing: ReturnType<typeof setTimeout> | undefined;
+
+  function onType() {
+    clearTimeout(typing);
+    typing = setTimeout(() => refresh(version), SEARCH_DELAY_MS);
+  }
+
   async function refresh(code: string) {
+    clearTimeout(typing);
     const run = ++searchRun;
     const text = query.trim();
     if (text) {
@@ -84,9 +93,11 @@
     list?.querySelectorAll('li')[index]?.scrollIntoView({ block: 'nearest' });
   }
 
-  function onSearchKey(event: KeyboardEvent) {
-    if (event.key !== 'Enter' || !verses.length) return;
+  async function onSearchKey(event: KeyboardEvent) {
+    if (event.key !== 'Enter') return;
     event.preventDefault();
+    await refresh(version);
+    if (!verses.length) return;
     select(0);
     list?.focus();
   }
@@ -121,7 +132,7 @@
       placeholder="Cita o palabra: jn 3 16, amor…"
       bind:this={searchBox}
       bind:value={query}
-      oninput={() => refresh(version)}
+      oninput={onType}
       onkeydown={onSearchKey}
     />
     <select id="biblia-version" aria-label="Versión" bind:value={version}>
@@ -292,6 +303,12 @@
     overflow-y: auto;
     list-style: none;
     border-radius: 8px;
+  }
+
+  /* El navegador no dibuja los resultados que están fuera de la vista. */
+  .verses li {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 64px;
   }
 
   .verse {

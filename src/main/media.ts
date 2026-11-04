@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { copyFile, mkdir, rm, stat } from 'node:fs/promises';
+import { access, copyFile, mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
 import { Readable } from 'node:stream';
 import type { MediaAddResult, MediaItem } from '@shared/api';
@@ -52,24 +52,47 @@ function hashFile(file: string) {
   });
 }
 
-const toItem = ({ id, sha256, kind, ext, original_name, size }: MediaRow): MediaItem => ({
-  id,
-  kind,
-  name: original_name,
-  size,
-  url: `${MEDIA_SCHEME}://media/${sha256}.${ext}`,
-});
+// Hace la miniatura de un archivo. Devuelve un JPEG, o null si no se pudo.
+export type MakeThumbnail = (file: string, kind: 'image' | 'video') => Promise<Buffer | null>;
 
 // Los archivos se guardan por el hash de su contenido: importar dos veces no ocupa más lugar.
 export class MediaService {
   constructor(
     private db: Db,
     private folder: string,
+    private makeThumbnail: MakeThumbnail = async () => null,
   ) {}
 
-  list(): MediaItem[] {
+  async list(): Promise<MediaItem[]> {
     const rows = this.db.prepare('SELECT * FROM media ORDER BY id DESC').all() as MediaRow[];
-    return rows.map(toItem);
+    return Promise.all(rows.map((row) => this.toItem(row)));
+  }
+
+  private async toItem({ id, sha256, kind, ext, original_name, size }: MediaRow): Promise<MediaItem> {
+    const url = `${MEDIA_SCHEME}://media/${sha256}.${ext}`;
+    const hasThumb = await this.ensureThumbnail(sha256, ext, kind);
+    return {
+      id,
+      kind,
+      name: original_name,
+      size,
+      url,
+      ...(hasThumb ? { thumb: `${MEDIA_SCHEME}://media/${sha256}.thumb.jpg` } : {}),
+    };
+  }
+
+  // Las miniaturas se hacen una vez y quedan en disco, también para lo importado antes.
+  private async ensureThumbnail(sha256: string, ext: string, kind: 'image' | 'video') {
+    const thumb = join(this.folder, `${sha256}.thumb.jpg`);
+    try {
+      await access(thumb);
+      return true;
+    } catch {
+      const data = await this.makeThumbnail(join(this.folder, `${sha256}.${ext}`), kind).catch(() => null);
+      if (!data) return false;
+      await writeFile(thumb, data);
+      return true;
+    }
   }
 
   async add(files: string[]): Promise<MediaAddResult> {
@@ -98,12 +121,13 @@ export class MediaService {
     if (!row) return;
     this.db.prepare('DELETE FROM media WHERE id = ?').run(id);
     await rm(join(this.folder, `${row.sha256}.${row.ext}`), { force: true });
+    await rm(join(this.folder, `${row.sha256}.thumb.jpg`), { force: true });
   }
 
   // Respuesta del protocolo cef-media, con Range para que el video pueda saltar.
   async serve(request: Request) {
     const name = new URL(request.url).pathname.slice(1);
-    const match = /^[0-9a-f]{64}\.([a-z0-9]+)$/.exec(name);
+    const match = /^[0-9a-f]{64}(?:\.thumb)?\.([a-z0-9]+)$/.exec(name);
     if (!match) return new Response(null, { status: 404 });
     const file = join(this.folder, name);
     let size: number;

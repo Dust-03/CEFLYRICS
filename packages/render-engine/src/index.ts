@@ -39,7 +39,7 @@ function layer(stage: HTMLElement, className: string) {
 
 // Pone una foto o un video en la capa. Si ya está el mismo archivo no lo toca: reiniciar el
 // video de fondo entre diapositivas se vería como un salto.
-function showFile(host: HTMLElement, file: SlideMedia | null, audio: boolean) {
+function showFile(host: HTMLElement, file: SlideMedia | null, audio: boolean, playback: boolean) {
   const current = host.firstElementChild as HTMLVideoElement | HTMLImageElement | null;
   if (current?.dataset.url === file?.url) {
     if (file?.kind === 'video') (current as HTMLVideoElement).loop = file.loop;
@@ -49,11 +49,15 @@ function showFile(host: HTMLElement, file: SlideMedia | null, audio: boolean) {
   host.replaceChildren();
   if (!file) return;
 
-  if (file.kind === 'image') {
+  // En una vista de la consola alcanza con la miniatura: decodificar el archivo acá le quitaría
+  // recursos al proyector.
+  const still = !playback && file.thumb;
+  if (file.kind === 'image' || still) {
     const image = document.createElement('img');
     image.className = 'cef-fill';
     image.dataset.url = file.url;
-    image.src = file.url;
+    image.decoding = 'async';
+    image.src = still || file.url;
     host.append(image);
     return;
   }
@@ -65,6 +69,7 @@ function showFile(host: HTMLElement, file: SlideMedia | null, audio: boolean) {
   video.muted = !audio;
   video.playsInline = true;
   host.append(video);
+  if (!playback) return;
   video.play().catch(() => {
     // Si el navegador bloquea el audio, se reproduce sin sonido.
     video.muted = true;
@@ -87,7 +92,7 @@ function applyTheme(
   parts.title.style.fontSize = `${2.6 * Math.min(theme.scale, 1.2)}cqw`;
 }
 
-export function createRenderer(stage: HTMLElement, { audio = false } = {}) {
+export function createRenderer(stage: HTMLElement, { audio = false, playback = true } = {}) {
   if (!document.getElementById('cef-styles')) {
     const style = document.createElement('style');
     style.id = 'cef-styles';
@@ -132,10 +137,11 @@ export function createRenderer(stage: HTMLElement, { audio = false } = {}) {
       const left = remainingMs(run, Date.now());
       const done = left === 0 && !!run.message;
       timer.classList.toggle('cef-timer-done', done);
-      timerTime.textContent = done ? run.message : formatRemaining(left);
+      const next = done ? run.message : formatRemaining(left);
+      if (timerTime.textContent !== next) timerTime.textContent = next;
     };
     tick();
-    ticker = setInterval(tick, 200);
+    ticker = setInterval(tick, 250);
   }
 
   return function render({ slide, mode, timers = [], shownTimer = null }: RenderState) {
@@ -147,12 +153,13 @@ export function createRenderer(stage: HTMLElement, { audio = false } = {}) {
     applyTheme(look, { background, text, body, title });
     const bg = look.background;
     // El video de fondo no lleva sonido: el audio es de lo que se proyecta.
-    showFile(background, bg.kind === 'css' ? null : { kind: bg.kind, url: bg.url, loop: true }, false);
+    const backgroundFile = bg.kind === 'css' ? null : { kind: bg.kind, url: bg.url, thumb: bg.thumb, loop: true };
+    showFile(background, backgroundFile, false, playback);
 
     const hasMedia = !!slide?.media;
     body.textContent = slide?.body ?? '';
     title.textContent = slide?.title ?? '';
-    showFile(media, mode === 'live' && !timerFull ? (slide?.media ?? null) : null, audio);
+    showFile(media, mode === 'live' && !timerFull ? (slide?.media ?? null) : null, audio, playback);
     showTimer(run, shownTimer?.layout, mode === 'live', look);
 
     background.classList.toggle('cef-on', mode === 'live' || mode === 'background');

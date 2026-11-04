@@ -8,5 +8,5 @@ mkdirSync('userdata', { recursive: true });
 const db = openDatabase('userdata/ceflirics.db');
 const media = new MediaService(db, 'userdata/media');
 console.log(await media.add(process.argv.slice(2)));
-console.log(`Medios en total: ${media.list().length}`);
+console.log(`Medios en total: ${(await media.list()).length}`);
 db.close();

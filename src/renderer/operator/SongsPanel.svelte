@@ -24,10 +24,18 @@
   let error = $state('');
   let slideList = $state<HTMLElement>();
 
+  let typing: ReturnType<typeof setTimeout> | undefined;
+
   async function refresh() {
+    clearTimeout(typing);
     songs = await api.list(query);
   }
   refresh();
+
+  function onType() {
+    clearTimeout(typing);
+    typing = setTimeout(refresh, 90);
+  }
 
   async function open(id: number) {
     song = await api.get(id);
@@ -104,7 +112,7 @@
       type="search"
       placeholder="Buscar por título o letra"
       bind:value={query}
-      oninput={refresh}
+      oninput={onType}
     />
     <ul>
       {#each songs as item (item.id)}

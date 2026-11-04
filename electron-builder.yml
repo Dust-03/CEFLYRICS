@@ -6,6 +6,17 @@ directories:
 files:
   - out/**
   - package.json
+  # Solo el binario de Windows: el resto ocupa lugar sin usarse.
+  - '!node_modules/better-sqlite3/{deps,src,binding.gyp}'
+  - '!node_modules/better-sqlite3/prebuilds/{darwin,linux,linuxmusl}-*'
+  - '!node_modules/better-sqlite3/prebuilds/win32-arm64.node'
+  - '!node_modules/better-sqlite3/lib/{darwin,linux,linuxmusl}-*'
+  - '!node_modules/node-addon-api/**'
+# Sin los otros idiomas de Chromium.
+electronLanguages:
+  - es
+  - es-419
+  - en-US
 # better-sqlite3 trae binarios Node-API: no hay nada que recompilar.
 npmRebuild: false
 # La GPL pide entregar la licencia junto con el programa.

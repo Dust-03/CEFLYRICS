@@ -42,7 +42,14 @@ export type SongApi = {
   remove: (id: number) => Promise<void>;
 };
 
-export type MediaItem = { id: number; kind: 'image' | 'video'; name: string; size: number; url: string };
+export type MediaItem = {
+  id: number;
+  kind: 'image' | 'video';
+  name: string;
+  size: number;
+  url: string;
+  thumb?: string;
+};
 export type MediaAddResult = { added: number; rejected: string[] };
 
 export type MediaApi = {

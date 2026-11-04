@@ -3,7 +3,7 @@
 import { parseTheme, type Theme } from './theme';
 import { parseTimerRun, type ShownTimer, type TimerLayout, type TimerRun } from './timers';
 
-export type SlideMedia = { kind: 'image' | 'video'; url: string; loop: boolean };
+export type SlideMedia = { kind: 'image' | 'video'; url: string; loop: boolean; thumb?: string };
 export type Slide = { body: string; title: string; theme?: Theme; media?: SlideMedia };
 
 // F8 wallpaper, F9 solo fondo, F10 negro.
@@ -66,9 +66,11 @@ const MAX_TEXT = 20_000;
 
 function parseMedia(input: unknown): SlideMedia | null {
   if (typeof input !== 'object' || input === null) return null;
-  const { kind, url, loop } = input as Record<string, unknown>;
+  const { kind, url, loop, thumb } = input as Record<string, unknown>;
   if ((kind !== 'image' && kind !== 'video') || typeof url !== 'string' || !url.startsWith('cef-media://')) return null;
-  return { kind, url: url.slice(0, 200), loop: !!loop };
+  const media: SlideMedia = { kind, url: url.slice(0, 200), loop: !!loop };
+  if (typeof thumb === 'string' && thumb.startsWith('cef-media://')) media.thumb = thumb.slice(0, 200);
+  return media;
 }
 
 function parseSlide(input: unknown): Slide | null {

@@ -26,6 +26,7 @@
   let output = $state<OutputInfo | null>(null);
   let onAir = $state<OnAirState>(initialState);
   let tab = $state<(typeof MENU)[number]['id']>('biblia');
+  let opened = $state<Record<string, boolean>>({ biblia: true });
   let preview = $state<PreviewItem | null>(null);
   let onAirKey = $state<string>();
   let body = $state('');
@@ -81,6 +82,11 @@
 
   const showPreview = (item: PreviewItem) => (preview = item);
 
+  function openTab(id: typeof tab) {
+    tab = id;
+    opened[id] = true;
+  }
+
   const MODES: { mode: OverrideMode; label: string }[] = [
     { mode: 'wallpaper', label: 'Wallpaper F8' },
     { mode: 'background', label: 'Fondo F9' },
@@ -97,7 +103,7 @@
   <nav class="menu" aria-label="Menú principal">
     <h1 class="logo"><span>CEF</span></h1>
     {#each MENU as item (item.id)}
-      <button id={`tab-${item.id}`} class:active={tab === item.id} onclick={() => (tab = item.id)}>
+      <button id={`tab-${item.id}`} class:active={tab === item.id} onclick={() => openTab(item.id)}>
         <Icon name={item.icon} />
         <span>{item.label}</span>
       </button>
@@ -119,17 +125,29 @@
         <BiblePanel {onAirKey} onPreview={showPreview} onAir={sendToAir} />
       </div>
       <div class="pane" hidden={tab !== 'canciones'}>
-        <SongsPanel {onAirKey} onPreview={showPreview} onAir={sendToAir} />
+        {#if opened.canciones}
+          <SongsPanel {onAirKey} onPreview={showPreview} onAir={sendToAir} />
+        {/if}
       </div>
       <div class="pane" hidden={tab !== 'medios'}>
-        <MediaPanel {onAirKey} onPreview={showPreview} onAir={sendToAir} onChange={loadLibrary} />
+        {#if opened.medios}
+          <MediaPanel {onAirKey} onPreview={showPreview} onAir={sendToAir} onChange={loadLibrary} />
+        {/if}
       </div>
       <div class="pane" hidden={tab !== 'temporizadores'}>
-        <TimersPanel {onAir} theme={themes.find((entry) => entry.id === assignment.song)?.theme} />
+        {#if opened.temporizadores}
+          <TimersPanel
+            {onAir}
+            active={tab === 'temporizadores'}
+            theme={themes.find((entry) => entry.id === assignment.song)?.theme}
+          />
+        {/if}
       </div>
       <div class="pane settings" hidden={tab !== 'configuracion'}>
         <h2>Configuración · Estilos y fuentes</h2>
-        <StylesPanel {themes} {assignment} {media} onChange={loadLibrary} />
+        {#if opened.configuracion}
+          <StylesPanel {themes} {assignment} {media} onChange={loadLibrary} />
+        {/if}
       </div>
       <div class="pane text-pane" hidden={tab !== 'texto'}>
         <textarea id="cuerpo" rows="8" placeholder="Texto a proyectar" bind:value={body}></textarea>

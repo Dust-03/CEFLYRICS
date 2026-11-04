@@ -9,7 +9,7 @@
   // Las vistas de la consola usan el mismo motor que las salidas.
   $effect(() => {
     if (!stage) return;
-    const render = createRenderer(stage);
+    const render = createRenderer(stage, { playback: false });
     $effect(() => render(renderState));
   });
 </script>
