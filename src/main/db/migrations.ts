@@ -74,4 +74,50 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 3,
+    name: 'canciones, medios y estilos',
+    sql: `
+      CREATE TABLE songs (
+        id INTEGER PRIMARY KEY,
+        title TEXT NOT NULL,
+        author TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE song_slides (
+        id INTEGER PRIMARY KEY,
+        song_id INTEGER NOT NULL REFERENCES songs (id) ON DELETE CASCADE,
+        position INTEGER NOT NULL,
+        label TEXT NOT NULL,
+        text TEXT NOT NULL,
+        return_notes TEXT NOT NULL DEFAULT ''
+      );
+      CREATE INDEX song_slides_song ON song_slides (song_id, position);
+
+      -- rowid es el id de la canción. Se mantiene desde SongService al guardar.
+      CREATE VIRTUAL TABLE songs_fts USING fts5(
+        title,
+        lyrics,
+        tokenize = "unicode61 remove_diacritics 2"
+      );
+
+      CREATE TABLE media (
+        id INTEGER PRIMARY KEY,
+        sha256 TEXT NOT NULL UNIQUE,
+        kind TEXT NOT NULL CHECK (kind IN ('image', 'video')),
+        ext TEXT NOT NULL,
+        original_name TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE themes (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        definition_json TEXT NOT NULL
+      );
+    `,
+  },
 ];

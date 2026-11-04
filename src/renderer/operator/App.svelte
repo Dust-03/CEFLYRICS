@@ -1,31 +1,51 @@
 <script lang="ts">
-  import type { AppInfo, OutputInfo } from '@shared/api';
+  import type { AppInfo, MediaItem, OutputInfo, ThemeAssignment } from '@shared/api';
   import { initialState, type OnAirState, type OverrideMode } from '@shared/state';
+  import { FACTORY_THEMES, type ThemeEntry } from '@shared/theme';
   import BiblePanel from './BiblePanel.svelte';
+  import Icon from './Icon.svelte';
+  import MediaPanel from './MediaPanel.svelte';
   import type { PreviewItem } from './preview-item';
   import Screen from './Screen.svelte';
+  import SongsPanel from './SongsPanel.svelte';
+  import StylesPanel from './StylesPanel.svelte';
 
   const api = window.ceflirics;
   const THEME_KEY = 'cef-theme';
+  const MENU = [
+    { id: 'biblia', label: 'Biblia', icon: 'bible' },
+    { id: 'canciones', label: 'Canciones', icon: 'songs' },
+    { id: 'medios', label: 'Medios', icon: 'media' },
+    { id: 'estilos', label: 'Estilos', icon: 'styles' },
+    { id: 'texto', label: 'Texto', icon: 'text' },
+  ] as const;
 
   let info = $state<AppInfo | null>(null);
   let output = $state<OutputInfo | null>(null);
   let onAir = $state<OnAirState>(initialState);
-  let tab = $state<'biblia' | 'texto'>('biblia');
+  let tab = $state<(typeof MENU)[number]['id']>('biblia');
   let preview = $state<PreviewItem | null>(null);
-  let onAirVid = $state<number>();
+  let onAirKey = $state<string>();
   let body = $state('');
   let title = $state('');
   let theme = $state<'dark' | 'light'>(readTheme());
+  let themes = $state<ThemeEntry[]>(FACTORY_THEMES);
+  let assignment = $state<ThemeAssignment>({ song: FACTORY_THEMES[0].id, bible: FACTORY_THEMES[0].id });
+  let media = $state<MediaItem[]>([]);
 
   api.getAppInfo().then((value) => (info = value));
   api.getOutputInfo().then((value) => (output = value));
   api.getState().then((value) => (onAir = value));
   api.onState((value) => {
     onAir = value;
-    if (!value.slide) onAirVid = undefined;
+    if (!value.slide) onAirKey = undefined;
   });
   api.onOutputInfo((value) => (output = value));
+
+  async function loadLibrary() {
+    [themes, assignment, media] = await Promise.all([api.themes.list(), api.themes.assignment(), api.media.list()]);
+  }
+  loadLibrary();
 
   function readTheme() {
     try {
@@ -44,11 +64,20 @@
     }
   });
 
+  // Cada diapositiva sale con el estilo de su tipo. Las fotos y videos no llevan estilo.
+  function withTheme(item: PreviewItem) {
+    if (item.kind === 'media') return item.slide;
+    const id = item.kind === 'bible' ? assignment.bible : assignment.song;
+    return { ...item.slide, theme: themes.find((entry) => entry.id === id)?.theme };
+  }
+
   function sendToAir(item: PreviewItem) {
     preview = item;
-    onAirVid = item.vid;
-    api.dispatch({ type: 'show-slide', slide: $state.snapshot(item.slide) });
+    onAirKey = item.key;
+    api.dispatch({ type: 'show-slide', slide: $state.snapshot(withTheme(item)) });
   }
+
+  const showPreview = (item: PreviewItem) => (preview = item);
 
   const MODES: { mode: OverrideMode; label: string }[] = [
     { mode: 'wallpaper', label: 'Wallpaper F8' },
@@ -63,34 +92,38 @@
 </script>
 
 <div class="app">
-  <header>
-    <h1>CEFLIRICS</h1>
-    <div class="tabs" role="tablist">
-      <button id="tab-biblia" role="tab" aria-selected={tab === 'biblia'} onclick={() => (tab = 'biblia')}
-        >Biblia</button
-      >
-      <button id="tab-texto" role="tab" aria-selected={tab === 'texto'} onclick={() => (tab = 'texto')}>Texto</button>
-    </div>
-    <div class="status">
-      <span id="estado-salida">{outputLabel}</span>
-      <button id="btn-salida" onclick={() => api.toggleOutput()}
-        >{output?.open ? 'Cerrar salida' : 'Abrir salida'}</button
-      >
-      <button
-        id="btn-tema"
-        aria-label={theme === 'dark' ? 'Pasar a modo claro' : 'Pasar a modo oscuro'}
-        title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-        onclick={() => (theme = theme === 'dark' ? 'light' : 'dark')}
-      >
-        {theme === 'dark' ? '☀' : '☾'}
+  <nav class="menu" aria-label="Menú principal">
+    <h1>CEF</h1>
+    {#each MENU as item (item.id)}
+      <button id={`tab-${item.id}`} class:active={tab === item.id} onclick={() => (tab = item.id)}>
+        <Icon name={item.icon} />
+        <span>{item.label}</span>
       </button>
-    </div>
-  </header>
+    {/each}
+    <button
+      id="btn-tema"
+      class="theme"
+      aria-label={theme === 'dark' ? 'Pasar a modo claro' : 'Pasar a modo oscuro'}
+      title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+      onclick={() => (theme = theme === 'dark' ? 'light' : 'dark')}
+    >
+      {theme === 'dark' ? '☀' : '☾'}
+    </button>
+  </nav>
 
   <main>
     <section class="card work">
       <div class="pane" hidden={tab !== 'biblia'}>
-        <BiblePanel {onAirVid} onPreview={(item) => (preview = item)} onAir={sendToAir} />
+        <BiblePanel {onAirKey} onPreview={showPreview} onAir={sendToAir} />
+      </div>
+      <div class="pane" hidden={tab !== 'canciones'}>
+        <SongsPanel {onAirKey} onPreview={showPreview} onAir={sendToAir} />
+      </div>
+      <div class="pane" hidden={tab !== 'medios'}>
+        <MediaPanel {onAirKey} onPreview={showPreview} onAir={sendToAir} onChange={loadLibrary} />
+      </div>
+      <div class="pane" hidden={tab !== 'estilos'}>
+        <StylesPanel {themes} {assignment} {media} onChange={loadLibrary} />
       </div>
       <div class="pane text-pane" hidden={tab !== 'texto'}>
         <textarea id="cuerpo" rows="8" placeholder="Texto a proyectar" bind:value={body}></textarea>
@@ -100,7 +133,7 @@
             id="btn-mostrar"
             class="primary"
             disabled={!body.trim()}
-            onclick={() => (preview = { slide: { body, title } })}
+            onclick={() => showPreview({ kind: 'text', slide: { body, title } })}
           >
             A vista previa
           </button>
@@ -111,7 +144,7 @@
     <aside>
       <section class="card">
         <h2>Vista previa</h2>
-        <Screen id="vista-previa" state={{ slide: preview?.slide ?? null, mode: 'live' }} />
+        <Screen id="vista-previa" state={{ slide: preview ? withTheme(preview) : null, mode: 'live' }} />
         <button id="btn-aire" class="live" disabled={!preview} onclick={() => preview && sendToAir(preview)}>
           Al aire
         </button>
@@ -130,8 +163,14 @@
         </div>
       </section>
 
+      <div class="status">
+        <span id="estado-salida">{outputLabel}</span>
+        <button id="btn-salida" onclick={() => api.toggleOutput()}>
+          {output?.open ? 'Cerrar salida' : 'Abrir salida'}
+        </button>
+      </div>
       {#if info}
-        <small>Versión {info.version} · Electron {info.electron}</small>
+        <small>Versión {info.version}</small>
       {/if}
     </aside>
   </main>
@@ -140,55 +179,59 @@
 <style>
   .app {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: 12px;
+    grid-template-columns: 84px minmax(0, 1fr);
     height: 100%;
-    padding: 12px;
   }
 
-  header {
+  .menu {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 16px;
+    grid-template-rows: auto repeat(5, auto) 1fr;
+    gap: 4px;
+    padding: 10px 8px;
+    background: var(--surface);
+    border-right: 1px solid var(--line);
   }
 
   h1 {
-    margin: 0;
-    font-size: 17px;
-    letter-spacing: 0.08em;
+    margin: 0 0 8px;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    text-align: center;
   }
 
-  .tabs {
-    display: flex;
-    gap: 4px;
-  }
-
-  .tabs button {
+  .menu button {
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    padding: 9px 2px;
+    font-size: 12px;
+    color: var(--muted);
     background: transparent;
     border-color: transparent;
-    color: var(--muted);
   }
 
-  .tabs button[aria-selected='true'] {
-    font-weight: 600;
+  .menu button:hover {
     color: var(--text);
-    background: var(--surface-2);
   }
 
-  .status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
-    font-size: 13px;
+  .menu button.active {
+    font-weight: 600;
+    color: var(--on-accent);
+    background: var(--accent);
+  }
+
+  .menu .theme {
+    align-self: end;
+    font-size: 17px;
   }
 
   main {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-columns: minmax(0, 1fr) 330px;
     gap: 12px;
     min-height: 0;
+    padding: 12px;
   }
 
   .card {
@@ -228,7 +271,7 @@
   aside {
     display: grid;
     align-content: start;
-    gap: 12px;
+    gap: 10px;
     min-height: 0;
     overflow-y: auto;
   }
@@ -240,7 +283,21 @@
   }
 
   .modes button {
-    padding: 6px 8px;
+    padding: 5px 8px;
+    font-size: 13px;
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .status button {
+    padding: 4px 10px;
     font-size: 13px;
   }
 

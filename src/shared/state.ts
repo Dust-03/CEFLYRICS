@@ -1,7 +1,9 @@
 // Estado "al aire": la única fuente de verdad de lo que se ve en todas las salidas.
 // Vive en el proceso main; los renderers lo reciben y lo cambian solo con acciones.
+import { parseTheme, type Theme } from './theme';
 
-export type Slide = { body: string; title: string };
+export type SlideMedia = { kind: 'image' | 'video'; url: string; loop: boolean };
+export type Slide = { body: string; title: string; theme?: Theme; media?: SlideMedia };
 
 // F8 wallpaper, F9 solo fondo, F10 negro.
 export type OverrideMode = 'wallpaper' | 'background' | 'black';
@@ -34,6 +36,31 @@ export function reduce(state: OnAirState, action: Action): OnAirState {
 const OVERRIDE_MODES: readonly string[] = ['wallpaper', 'background', 'black'];
 const MAX_TEXT = 20_000;
 
+function parseMedia(input: unknown): SlideMedia | null {
+  if (typeof input !== 'object' || input === null) return null;
+  const { kind, url, loop } = input as Record<string, unknown>;
+  if ((kind !== 'image' && kind !== 'video') || typeof url !== 'string' || !url.startsWith('cef-media://')) return null;
+  return { kind, url: url.slice(0, 200), loop: !!loop };
+}
+
+function parseSlide(input: unknown): Slide | null {
+  if (typeof input !== 'object' || input === null) return null;
+  const { body, title, theme, media } = input as Record<string, unknown>;
+  if (typeof body !== 'string' || typeof title !== 'string') return null;
+  const slide: Slide = { body: body.slice(0, MAX_TEXT), title: title.slice(0, 500) };
+  if (theme !== undefined) {
+    const parsed = parseTheme(theme);
+    if (!parsed) return null;
+    slide.theme = parsed;
+  }
+  if (media !== undefined) {
+    const parsed = parseMedia(media);
+    if (!parsed) return null;
+    slide.media = parsed;
+  }
+  return slide;
+}
+
 // Lo que llega por IPC no se da por bueno: viene de un proceso con menos privilegios.
 export function parseAction(input: unknown): Action | null {
   if (typeof input !== 'object' || input === null) return null;
@@ -42,10 +69,9 @@ export function parseAction(input: unknown): Action | null {
   if (action.type === 'toggle-mode' && OVERRIDE_MODES.includes(action.mode as string)) {
     return { type: 'toggle-mode', mode: action.mode as OverrideMode };
   }
-  if (action.type === 'show-slide' && typeof action.slide === 'object' && action.slide !== null) {
-    const { body, title } = action.slide as Record<string, unknown>;
-    if (typeof body !== 'string' || typeof title !== 'string') return null;
-    return { type: 'show-slide', slide: { body: body.slice(0, MAX_TEXT), title: title.slice(0, 500) } };
+  if (action.type === 'show-slide') {
+    const slide = parseSlide(action.slide);
+    return slide ? { type: 'show-slide', slide } : null;
   }
   return null;
 }

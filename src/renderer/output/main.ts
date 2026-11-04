@@ -1,7 +1,8 @@
+import '../fonts';
 import { createRenderer } from '@render-engine/index';
 import type { OnAirState } from '@shared/state';
 
-const render = createRenderer(document.getElementById('stage')!);
+const render = createRenderer(document.getElementById('stage')!, { audio: true });
 let rev = -1;
 
 function apply(state: OnAirState) {

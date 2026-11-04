@@ -4,11 +4,11 @@
   import type { PreviewItem } from './preview-item';
 
   type Props = {
-    onAirVid: number | undefined;
+    onAirKey: string | undefined;
     onPreview: (item: PreviewItem) => void;
     onAir: (item: PreviewItem) => void;
   };
-  let { onAirVid, onPreview, onAir }: Props = $props();
+  let { onAirKey, onPreview, onAir }: Props = $props();
 
   const api = window.ceflirics.bible;
 
@@ -73,7 +73,8 @@
   }
 
   const toItem = (verse: BibleVerse): PreviewItem => ({
-    vid: verse.vid,
+    kind: 'bible',
+    key: `bible:${verse.vid}`,
     slide: { body: verse.text, title: `${verse.label} · ${version}` },
   });
 
@@ -97,7 +98,7 @@
       const step = event.key === 'ArrowDown' ? 1 : -1;
       const next = Math.min(verses.length - 1, Math.max(0, selected + step));
       // Si lo elegido está al aire, las flechas siguen al aire: así se recorre un pasaje.
-      const followsAir = selected >= 0 && verses[selected].vid === onAirVid;
+      const followsAir = selected >= 0 && toItem(verses[selected]).key === onAirKey;
       select(next);
       if (followsAir) onAir(toItem(verses[next]));
     } else if (event.key === 'Enter' && selected >= 0) {
@@ -169,7 +170,7 @@
       <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
       <ol id="biblia-versos" class="verses" tabindex="0" bind:this={list} onkeydown={onListKey}>
         {#each verses as verse, index (verse.vid)}
-          <li class:selected={index === selected} class:on-air={verse.vid === onAirVid}>
+          <li class:selected={index === selected} class:on-air={`bible:${verse.vid}` === onAirKey}>
             <button class="verse" onclick={() => select(index)} ondblclick={() => onAir(toItem(verse))}>
               <span class="label">{verse.label}</span>
               <span>{verse.text}</span>

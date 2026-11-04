@@ -37,9 +37,7 @@ después reutilizan las letras.
 
 ## Decisiones que hacen falta
 
-- **Tipografía (antes de 1.4):** hoy se usa la del sistema, y cambia entre Windows, TV y celular.
-  Para que todas las pantallas se vean iguales hay que incluir una fuente libre (licencia OFL). Es
-  la elección del aspecto del programa.
+- **Tipografía:** resuelta. Van seis fuentes libres (OFL) dentro del programa, con sus licencias.
 - **FFmpeg (antes de 1.9):** las compilaciones comunes son GPL, y las hay LGPL con menos códecs.
   Corre como programa aparte, así que no se mezcla con el código. Hay que elegir cuál y comprobar
   su licencia.
@@ -55,6 +53,17 @@ después reutilizan las letras.
 - **Video en la salida:** los códecs dependen de lo que trae Electron. Lo que no se reproduzca pasa
   por FFmpeg, y eso puede tardar minutos en un video largo.
 - **Tamaño del instalador:** las 4 biblias y FFmpeg lo acercan a 250 MB.
+
+## Adelantado a pedido del usuario (2026-11-03)
+
+Menú lateral con Biblia, Canciones, Medios, Estilos y Texto. Hecho, con estos recortes:
+
+- **1.6 Letras:** alta, edición, borrado, búsqueda y líneas `//`. Faltan los arreglos: el orden de
+  una canción es el de sus diapositivas.
+- **1.7 Temas:** estilos de fábrica y propios, con fuente, tamaño, colores y fondo (color, foto o
+  video), uno para canciones y otro para Biblia. Falta el estilo por ítem y exportar a JSON.
+- **1.9 Multimedia:** fotos y videos por hash, con sonido en la salida y repetición. Falta la
+  conversión con FFmpeg: lo que el motor no reproduce no se puede proyectar. Falta medir el arranque.
 
 ## Fuera de esta etapa
 

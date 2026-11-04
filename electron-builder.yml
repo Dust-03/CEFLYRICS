@@ -11,6 +11,19 @@ npmRebuild: false
 # La GPL pide entregar la licencia junto con el programa.
 extraFiles:
   - LICENSE
+  # La licencia OFL pide entregar su texto junto con las fuentes.
+  - from: node_modules/@fontsource/inter/LICENSE
+    to: licencias/fuente-inter.txt
+  - from: node_modules/@fontsource/montserrat/LICENSE
+    to: licencias/fuente-montserrat.txt
+  - from: node_modules/@fontsource/oswald/LICENSE
+    to: licencias/fuente-oswald.txt
+  - from: node_modules/@fontsource/lora/LICENSE
+    to: licencias/fuente-lora.txt
+  - from: node_modules/@fontsource/playfair-display/LICENSE
+    to: licencias/fuente-playfair-display.txt
+  - from: node_modules/@fontsource/merriweather/LICENSE
+    to: licencias/fuente-merriweather.txt
 extraResources:
   - from: resources/bibles.db
     to: bibles.db
