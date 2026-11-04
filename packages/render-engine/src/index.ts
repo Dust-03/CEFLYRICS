@@ -1,6 +1,6 @@
 // Motor de render único: el mismo código dibuja en las ventanas de salida, en los navegadores de
 // la LAN, en OBS y en NDI. No puede depender de Electron ni de Node.
-import logoUrl from '../../../assets/logo-ceflirics.svg?url';
+import logoSvg from '../../../assets/logo-ceflirics.svg?raw';
 import type { OnAirState, SlideMedia } from '@shared/state';
 import { DEFAULT_THEME, fontCss, type Theme } from '@shared/theme';
 import { formatRemaining, remainingMs, type TimerLayout, type TimerRun } from '@shared/timers';
@@ -18,7 +18,8 @@ const STYLES = `
 .cef-media { background: #000; }
 .cef-media .cef-fill { object-fit: contain; }
 .cef-wallpaper { display: flex; align-items: center; justify-content: center; background: #05070d; }
-.cef-logo { width: 46u; height: 21.9u; background: #fff; }
+.cef-logo { width: 46u; height: 21.9u; color: #fff; }
+.cef-logo svg { display: block; width: 100%; height: 100%; }
 .cef-text { display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: 2.8u 6%; text-align: center; }
 .cef-body { margin: 0; max-width: 100%; line-height: 1.25; font-weight: 600; white-space: pre-line; overflow-wrap: break-word; word-wrap: break-word; }
 .cef-shadow .cef-body { text-shadow: 0 0.2u 0.8u rgba(0, 0, 0, 0.6); }
@@ -136,9 +137,9 @@ export function createRenderer(
   const wallpaper = layer(stage, 'cef-wallpaper');
   const logo = document.createElement('div');
   logo.className = 'cef-logo';
-  const logoMask = `url('${logoUrl}') center / contain no-repeat`;
-  logo.style.setProperty('-webkit-mask', logoMask);
-  logo.style.setProperty('mask', logoMask);
+  // El dibujo va adentro de la página: con una máscara, las teles que no la entienden muestran un
+  // rectángulo blanco.
+  logo.innerHTML = logoSvg;
   wallpaper.append(logo);
   const black = layer(stage, 'cef-black');
 

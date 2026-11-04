@@ -99,6 +99,11 @@ test('la tele muestra lo que está al aire y aparece en el menú con su resoluci
 
   await showText('Nada me faltará');
   await expect(tv.locator('.cef-body')).toHaveText('Nada me faltará');
+  await operator.evaluate(() => window.ceflirics.dispatch({ type: 'toggle-mode', mode: 'wallpaper' }));
+  await expect(tv.locator('.cef-wallpaper')).toHaveClass(/cef-on/);
+  await expect(tv.locator('.cef-logo svg')).toBeVisible();
+  await expect(tv.locator('.cef-logo')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await operator.evaluate(() => window.ceflirics.dispatch({ type: 'toggle-mode', mode: 'wallpaper' }));
   await operator.keyboard.press('Escape');
   await operator.evaluate(() => window.ceflirics.dispatch({ type: 'toggle-mode', mode: 'black' }));
   await expect(tv.locator('.cef-black')).toHaveClass(/cef-on/);
@@ -335,6 +340,8 @@ test('la página de las teles se puede leer con un navegador de 2017', () => {
   const code = readFileSync('out/lan/pantalla.js', 'utf8');
   expect(() => parse(code, { ecmaVersion: 2017 })).not.toThrow();
   expect(code).not.toContain('replaceChildren');
+  // Una tele vieja sin máscaras mostraba un rectángulo blanco en vez del logo.
+  expect(code).not.toMatch(/-webkit-mask|[^-]mask:/);
   expect(code).not.toMatch(/\d(cqw|cqh)\b/);
   // Sin pasar por launch: este archivo sale del build, no de la app.
   app = { close: async () => {} } as unknown as ElectronApplication;
