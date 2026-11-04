@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import { BackupService } from '../../src/main/backup';
+import { BibleImporter } from '../../src/main/bible/import';
+import { BibleService } from '../../src/main/bible/service';
 import { openDatabase, type Db } from '../../src/main/db/database';
 import { MediaService } from '../../src/main/media';
 import { SongService } from '../../src/main/songs';
@@ -58,7 +60,7 @@ test('pasa todo a otra PC, y las canciones se pueden buscar', async () => {
   await fillOrigin();
   const file = join(dir, 'copia.ceflyrics');
   const exported = await origin.backup.export(file);
-  expect(exported).toEqual({ songs: 1, media: 1, themes: 1, timers: 1, shortcuts: 1 });
+  expect(exported).toEqual({ songs: 1, media: 1, themes: 1, timers: 1, shortcuts: 1, bibles: 0 });
 
   target.songs.save({ title: 'Se reemplaza', author: '', text: 'Vieja' });
   const imported = await target.backup.import(file);
@@ -73,6 +75,31 @@ test('pasa todo a otra PC, y las canciones se pueden buscar', async () => {
   const { sha256, ext } = target.db.prepare('SELECT sha256, ext FROM media').get() as { sha256: string; ext: string };
   expect(readFileSync(join(target.folder, `${sha256}.${ext}`), 'utf8')).toBe('imagen de prueba');
   expect(existsSync(join(target.folder, `${sha256}.thumb.jpg`))).toBe(true);
+});
+
+test('las biblias importadas viajan, y las de fábrica no se tocan', async () => {
+  const factory = `INSERT INTO bibles (code, name, language, versification, license_kind) VALUES ('RV1909', 'RV', 'es', 'kjv', 'public_domain')`;
+  target.db.prepare(factory).run();
+  const usfm = join(dir, 'juan.usfm');
+  writeFileSync(
+    usfm,
+    '\\\\id JHN\\n\\\\h Juan\\n\\\\c 3\\n\\\\v 16 Texto importado\\n'.replaceAll('\\\\', '\\').replaceAll('\\n', '\n'),
+  );
+  await new BibleImporter(origin.db).import([usfm], { code: 'MIA', name: 'Mía' });
+
+  const file = join(dir, 'copia.ceflyrics');
+  expect((await origin.backup.export(file)).bibles).toBe(1);
+  await target.backup.import(file);
+
+  const bible = new BibleService(target.db);
+  expect(
+    bible
+      .list()
+      .map(({ code }) => code)
+      .sort(),
+  ).toEqual(['MIA', 'RV1909']);
+  expect(bible.verse('MIA', 43003016)?.text).toBe('Texto importado');
+  expect(bible.search('MIA', 'importado').verses).toHaveLength(1);
 });
 
 test('el PIN y los celulares de una PC no viajan', async () => {

@@ -9,10 +9,10 @@ import { hashFile, MEDIA_EXTENSIONS } from './media';
 
 const FORMAT = 'ceflyrics-datos';
 const VERSION = 1;
-const MAX_HEADER = 64 * 1024 * 1024;
+const MAX_HEADER = 512 * 1024 * 1024;
 
-// Lo que pasa de una PC a otra. Las biblias no van, porque vienen con el programa, y el PIN y los
-// celulares tampoco: cada PC vincula los suyos.
+// Lo que pasa de una PC a otra. De las biblias van solo las importadas: las otras vienen con el
+// programa. El PIN y los celulares no viajan: cada PC vincula los suyos.
 const TABLES: Record<string, string[]> = {
   songs: ['id', 'title', 'author', 'created_at', 'updated_at'],
   song_slides: ['id', 'song_id', 'position', 'label', 'text', 'return_notes'],
@@ -27,23 +27,33 @@ const FILE_NAME = /^([0-9a-f]{64})(\.thumb)?\.([a-z0-9]+)$/;
 
 type Row = Record<string, unknown>;
 type DataFile = { name: string; size: number };
+type SavedBible = {
+  code: string;
+  name: string;
+  language: string;
+  versification: string;
+  books: { book_no: number; name: string }[];
+  verses: [number, string][];
+};
 type Header = {
   format: string;
   version: number;
   tables: Record<string, Row[]>;
   settings: { key: string; value_json: string }[];
   files: DataFile[];
+  bibles?: SavedBible[];
 };
 
 const invalid = () => new Error('El archivo no es una copia de datos de CEFLYRICS');
 
-function counts(tables: Record<string, Row[]>): DataCounts {
+function counts(tables: Record<string, Row[]>, bibles: number): DataCounts {
   return {
     songs: tables.songs.length,
     media: tables.media.length,
     themes: tables.themes.length,
     timers: tables.timers.length,
     shortcuts: tables.shortcuts.length,
+    bibles,
   };
 }
 
@@ -66,6 +76,15 @@ function checkHeader(input: unknown): Header {
   }
   for (const { definition_json: json } of header.tables.themes as { definition_json?: unknown }[]) {
     if (typeof json !== 'string' || !parseTheme(JSON.parse(json))) throw invalid();
+  }
+  for (const bible of header.bibles ?? []) {
+    const valid =
+      /^[A-Za-z0-9-]{1,12}$/.test(bible?.code) &&
+      typeof bible.name === 'string' &&
+      Array.isArray(bible.books) &&
+      Array.isArray(bible.verses) &&
+      bible.verses.every((verse) => Number.isInteger(verse?.[0]) && typeof verse[1] === 'string');
+    if (!valid) throw invalid();
   }
   return header;
 }
@@ -119,15 +138,16 @@ export class BackupService {
       }
     }
 
+    const bibles = this.importedBibles();
     const output = createWriteStream(target);
     const done = new Promise<void>((resolve, reject) => output.on('finish', resolve).on('error', reject));
-    output.write(`${JSON.stringify({ format: FORMAT, version: VERSION, tables, settings, files })}\n`);
+    output.write(`${JSON.stringify({ format: FORMAT, version: VERSION, tables, settings, files, bibles })}\n`);
     for (const { name } of files) {
       await pipeline(createReadStream(join(this.mediaFolder, name)), output, { end: false });
     }
     output.end();
     await done;
-    return counts(tables);
+    return counts(tables, bibles.length);
   }
 
   // Reemplaza lo de esta PC. Primero se copian los archivos: si algo falla, los datos quedan igual.
@@ -154,11 +174,43 @@ export class BackupService {
 
     this.replaceData(header);
     await this.removeUnusedFiles(header);
-    return counts(header.tables);
+    return counts(header.tables, header.bibles?.length ?? 0);
   }
 
-  private replaceData({ tables, settings }: Header) {
+  private importedBibles(): SavedBible[] {
+    const rows = this.db
+      .prepare('SELECT id, code, name, language, versification FROM bibles WHERE imported_by_user = 1')
+      .all() as (Omit<SavedBible, 'books' | 'verses'> & { id: number })[];
+    return rows.map(({ id, ...bible }) => ({
+      ...bible,
+      books: this.db.prepare('SELECT book_no, name FROM bible_books WHERE bible_id = ?').all(id) as SavedBible['books'],
+      verses: (
+        this.db.prepare('SELECT vid, text FROM verses WHERE bible_id = ?').all(id) as { vid: number; text: string }[]
+      ).map(({ vid, text }) => [vid, text]),
+    }));
+  }
+
+  private replaceBibles(bibles: SavedBible[]) {
+    this.db.prepare('DELETE FROM bibles WHERE imported_by_user = 1').run();
+    const addBook = this.db.prepare('INSERT INTO bible_books (bible_id, book_no, name) VALUES (?, ?, ?)');
+    const addVerse = this.db.prepare('INSERT INTO verses (bible_id, vid, text) VALUES (?, ?, ?)');
+    for (const { code, name, language, versification, books, verses } of bibles) {
+      // Una con la misma sigla que una de fábrica no pisa a la de fábrica.
+      if (this.db.prepare('SELECT 1 FROM bibles WHERE code = ?').get(code)) continue;
+      const { lastInsertRowid: id } = this.db
+        .prepare(
+          `INSERT INTO bibles (code, name, language, versification, license_kind, imported_by_user)
+           VALUES (?, ?, ?, ?, 'user_imported', 1)`,
+        )
+        .run(code, name, language, versification);
+      for (const book of books) addBook.run(id, book.book_no, book.name);
+      for (const [vid, text] of verses) addVerse.run(id, vid, text);
+    }
+  }
+
+  private replaceData({ tables, settings, bibles }: Header) {
     this.db.transaction(() => {
+      this.replaceBibles(bibles ?? []);
       this.db.prepare('DELETE FROM songs_fts').run();
       for (const table of Object.keys(TABLES).reverse()) this.db.prepare(`DELETE FROM ${table}`).run();
       for (const [table, columns] of Object.entries(TABLES)) {

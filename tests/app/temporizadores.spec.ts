@@ -167,7 +167,7 @@ test('los temporizadores se guardan al cerrar la app', async () => {
 
 test('Configuración reúne los estilos y fuentes', async () => {
   await operator.locator('#tab-configuracion').click();
-  await expect(operator.getByRole('heading', { name: 'Configuración · Estilos y fuentes' })).toBeVisible();
+  await expect(operator.getByRole('heading', { name: 'Configuración' })).toBeVisible();
   await expect(operator.locator('#estilos')).toBeVisible();
   await expect(operator.locator('#tab-estilos')).toHaveCount(0);
 });

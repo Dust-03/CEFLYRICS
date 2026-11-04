@@ -20,6 +20,10 @@ const api: CeflyricsApi = {
   data: {
     export: () => ipcRenderer.invoke(IPC.dataExport),
     import: () => ipcRenderer.invoke(IPC.dataImport),
+    importSongs: () => ipcRenderer.invoke(IPC.dataImportSongs),
+    exportSongs: () => ipcRenderer.invoke(IPC.dataExportSongs),
+    importBible: (input) => ipcRenderer.invoke(IPC.dataImportBible, input),
+    removeBible: (code) => ipcRenderer.invoke(IPC.dataRemoveBible, code),
   },
   lan: {
     info: () => ipcRenderer.invoke(IPC.lanInfo),

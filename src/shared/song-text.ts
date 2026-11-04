@@ -3,12 +3,12 @@
 
 export type SongSlide = { label: string; text: string; returnNotes: string };
 
-const LABEL = /^\[?\s*(coro|estribillo|verso|estrofa|puente|pre-?\s?coro|intro|final)\s*(\d*)\s*\]?\s*:?\s*$/i;
+const LABEL = /^\[?\s*(coro|estribillo|verso|estrofa|puente|pre-?\s?coro|intro|final|v|c|p|b)\s*(\d*)\s*\]?\s*:?\s*$/i;
 
 function shortLabel(word: string, number: string) {
   const lower = word.toLowerCase();
-  if (lower.startsWith('coro') || lower === 'estribillo') return `C${number}`;
-  if (lower === 'puente') return `P${number}`;
+  if (lower.startsWith('coro') || lower === 'estribillo' || lower === 'c') return `C${number}`;
+  if (lower === 'puente' || lower === 'p' || lower === 'b') return `P${number}`;
   if (lower.startsWith('pre')) return `PC${number}`;
   if (lower === 'intro') return `I${number}`;
   if (lower === 'final') return `F${number}`;

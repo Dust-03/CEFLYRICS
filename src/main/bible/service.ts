@@ -18,7 +18,10 @@ export class BibleService {
   constructor(private db: Db) {}
 
   list(): BibleInfo[] {
-    return this.db.prepare('SELECT code, name, language FROM bibles ORDER BY language DESC, id').all() as BibleInfo[];
+    const rows = this.db
+      .prepare('SELECT code, name, language, imported_by_user FROM bibles ORDER BY language DESC, id')
+      .all() as (BibleInfo & { imported_by_user: number })[];
+    return rows.map(({ imported_by_user: imported, ...bible }) => ({ ...bible, imported: !!imported }));
   }
 
   books(code: string): BibleBook[] {

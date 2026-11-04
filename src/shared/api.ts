@@ -20,7 +20,7 @@ export type OutputInfo = {
   height: number;
 };
 
-export type BibleInfo = { code: string; name: string; language: string };
+export type BibleInfo = { code: string; name: string; language: string; imported?: boolean };
 export type BibleBook = { book: number; name: string; chapters: number };
 export type BibleVerse = { vid: number; text: string; label: string };
 
@@ -100,12 +100,27 @@ export type ShortcutApi = {
   onChange: (listener: () => void) => () => void;
 };
 
-export type DataCounts = { songs: number; media: number; themes: number; timers: number; shortcuts: number };
+export type DataCounts = {
+  songs: number;
+  media: number;
+  themes: number;
+  timers: number;
+  shortcuts: number;
+  bibles: number;
+};
 export type DataResult = { canceled: true } | { counts: DataCounts } | { error: string };
+
+export type ImportResult = { added: number; rejected: { name: string; reason: string }[] };
+export type BibleImportInput = { code: string; name: string };
+type Dialog<T> = T | { canceled: true } | { error: string };
 
 export type DataApi = {
   export: () => Promise<DataResult>;
   import: () => Promise<DataResult>;
+  importSongs: () => Promise<Dialog<ImportResult>>;
+  exportSongs: () => Promise<Dialog<{ count: number }>>;
+  importBible: (input: BibleImportInput) => Promise<Dialog<ImportResult>>;
+  removeBible: (code: string) => Promise<void>;
 };
 
 export type CeflyricsApi = {
@@ -161,6 +176,10 @@ export const IPC = {
   shortcutsChanged: 'shortcuts:changed',
   dataExport: 'data:export',
   dataImport: 'data:import',
+  dataImportSongs: 'data:import-songs',
+  dataExportSongs: 'data:export-songs',
+  dataImportBible: 'data:import-bible',
+  dataRemoveBible: 'data:remove-bible',
   lanInfo: 'lan:info',
   lanSetPort: 'lan:set-port',
   lanSetEnabled: 'lan:set-enabled',

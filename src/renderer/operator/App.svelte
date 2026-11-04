@@ -3,7 +3,6 @@
   import { initialState, type OnAirState, type OverrideMode } from '@shared/state';
   import { FACTORY_THEMES, type ThemeEntry } from '@shared/theme';
   import BiblePanel from './BiblePanel.svelte';
-  import DataTools from './DataTools.svelte';
   import Icon from './Icon.svelte';
   import MediaPanel from './MediaPanel.svelte';
   import type { PreviewItem } from './preview-item';
@@ -13,6 +12,7 @@
   import Splash from './Splash.svelte';
   import StylesPanel from './StylesPanel.svelte';
   import TimersPanel from './TimersPanel.svelte';
+  import TransferPanel from './TransferPanel.svelte';
   import TransmissionPanel from './TransmissionPanel.svelte';
 
   const api = window.ceflyrics;
@@ -35,6 +35,9 @@
   let opened = $state<Record<string, boolean>>({ biblia: true });
   // Cuántas veces se volvió a tocar cada menú estando en él: lo devuelve a su inicio.
   let homes = $state<Record<string, number>>({});
+  let settingsTab = $state<'estilos' | 'datos'>('estilos');
+  // Sube al importar: Biblia y Canciones se vuelven a armar con lo nuevo.
+  let libraryRev = $state(0);
   let preview = $state<PreviewItem | null>(null);
   let onAirKey = $state<string>();
   let body = $state('');
@@ -143,7 +146,10 @@
   const showPreview = (item: PreviewItem) => (preview = item);
 
   function openTab(id: typeof tab) {
-    if (tab === id) homes[id] = (homes[id] ?? 0) + 1;
+    if (tab === id) {
+      homes[id] = (homes[id] ?? 0) + 1;
+      if (id === 'configuracion') settingsTab = 'estilos';
+    }
     tab = id;
     opened[id] = true;
   }
@@ -190,27 +196,31 @@
   <main>
     <section class="card work">
       <div class="pane" hidden={tab !== 'biblia'}>
-        <BiblePanel
-          home={homes.biblia ?? 0}
-          {onAirKey}
-          onPreview={showPreview}
-          onAir={sendToAir}
-          saved={savedRefs}
-          onToggleShortcut={toggleShortcut}
-        />
-      </div>
-      <div class="pane" hidden={tab !== 'canciones'}>
-        {#if opened.canciones}
-          <SongsPanel
-            home={homes.canciones ?? 0}
+        {#key libraryRev}
+          <BiblePanel
+            home={homes.biblia ?? 0}
             {onAirKey}
-            {openSongId}
             onPreview={showPreview}
             onAir={sendToAir}
             saved={savedRefs}
             onToggleShortcut={toggleShortcut}
-            onChange={loadShortcuts}
           />
+        {/key}
+      </div>
+      <div class="pane" hidden={tab !== 'canciones'}>
+        {#if opened.canciones}
+          {#key libraryRev}
+            <SongsPanel
+              home={homes.canciones ?? 0}
+              {onAirKey}
+              {openSongId}
+              onPreview={showPreview}
+              onAir={sendToAir}
+              saved={savedRefs}
+              onToggleShortcut={toggleShortcut}
+              onChange={loadShortcuts}
+            />
+          {/key}
         {/if}
       </div>
       <div class="pane" hidden={tab !== 'medios'}>
@@ -258,11 +268,31 @@
       </div>
       <div class="pane settings" hidden={tab !== 'configuracion'}>
         <div class="settings-head">
-          <h2>Configuración · Estilos y fuentes</h2>
-          <DataTools />
+          <h2>Configuración</h2>
+          <div class="settings-tabs">
+            <button
+              id="config-estilos"
+              class:primary={settingsTab === 'estilos'}
+              onclick={() => (settingsTab = 'estilos')}
+            >
+              Estilos y fuentes
+            </button>
+            <button id="config-datos" class:primary={settingsTab === 'datos'} onclick={() => (settingsTab = 'datos')}>
+              Importar y exportar
+            </button>
+          </div>
         </div>
         {#if opened.configuracion}
-          <StylesPanel home={homes.configuracion ?? 0} {themes} {assignment} {media} onChange={loadLibrary} />
+          {#if settingsTab === 'estilos'}
+            <StylesPanel home={homes.configuracion ?? 0} {themes} {assignment} {media} onChange={loadLibrary} />
+          {:else}
+            <TransferPanel
+              onChange={() => {
+                libraryRev++;
+                loadShortcuts();
+              }}
+            />
+          {/if}
         {/if}
       </div>
       <div class="pane" hidden={tab !== 'transmision'}>
@@ -432,6 +462,16 @@
     gap: 8px;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .settings-tabs {
+    display: flex;
+    gap: 6px;
+  }
+
+  .settings-tabs button {
+    padding: 4px 12px;
+    font-size: 13px;
   }
 
   .text-pane {

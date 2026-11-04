@@ -4,7 +4,7 @@ import { BrowserWindow, Menu, app, dialog, ipcMain, nativeImage, protocol, type 
 import {
   IPC,
   type AppInfo,
-  type DataResult,
+  type BibleImportInput,
   type SongInput,
   type ThemeAssignment,
   type ThemeInput,
@@ -14,12 +14,14 @@ import { parsePort } from '@shared/lan';
 import { parseAction, type Action } from '@shared/state';
 import { createTimerRun, remainingMs } from '@shared/timers';
 import { BackupService } from './backup';
+import { BIBLE_EXTENSIONS, BibleImporter } from './bible/import';
 import { BibleService } from './bible/service';
 import { openDatabase } from './db/database';
 import { LanControl } from './lan-control';
 import { LanServer } from './lan-server';
 import { MEDIA_EXTENSIONS, MEDIA_SCHEME, MediaService } from './media';
 import { ShortcutService } from './shortcuts';
+import { SONG_EXTENSIONS, SongImporter } from './song-import';
 import { SongService } from './songs';
 import { OnAirStore } from './store';
 import { ThemeService } from './themes';
@@ -202,7 +204,7 @@ app.whenReady().then(() => {
 
   const backup = new BackupService(db, join(app.getPath('userData'), 'media'));
   const DATA_FILTER = { name: 'Datos de CEFLYRICS', extensions: ['ceflyrics'] };
-  const guarded = async (action: () => Promise<DataResult>): Promise<DataResult> => {
+  const guarded = async <T>(action: () => Promise<T>): Promise<T | { error: string }> => {
     try {
       return await action();
     } catch (error) {
@@ -217,7 +219,7 @@ app.whenReady().then(() => {
         defaultPath: `CEFLYRICS-datos-${date}.ceflyrics`,
         filters: [DATA_FILTER],
       });
-      return canceled || !filePath ? { canceled: true } : { counts: await backup.export(filePath) };
+      return canceled || !filePath ? { canceled: true as const } : { counts: await backup.export(filePath) };
     }),
   );
   ipcMain.handle(IPC.dataImport, () =>
@@ -227,13 +229,47 @@ app.whenReady().then(() => {
         properties: ['openFile'],
         filters: [DATA_FILTER],
       });
-      if (canceled || !filePaths[0]) return { canceled: true };
+      if (canceled || !filePaths[0]) return { canceled: true as const };
       const counts = await backup.import(filePaths[0]);
       shortcutsChanged();
       timersChanged();
       return { counts };
     }),
   );
+
+  const songImporter = new SongImporter(songs);
+  const bibleImporter = new BibleImporter(db);
+  const pickFiles = async (title: string, name: string, extensions: string[]) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title,
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name, extensions }],
+    });
+    return canceled ? [] : filePaths;
+  };
+  ipcMain.handle(IPC.dataImportSongs, () =>
+    guarded(async () => {
+      const files = await pickFiles('Importar canciones', 'Canciones (TXT y OpenLyrics)', SONG_EXTENSIONS);
+      return files.length ? songImporter.import(files) : { canceled: true as const };
+    }),
+  );
+  ipcMain.handle(IPC.dataExportSongs, () =>
+    guarded(async () => {
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: 'Elegí la carpeta para las canciones',
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      if (canceled || !filePaths[0]) return { canceled: true as const };
+      return { count: await songImporter.export(filePaths[0]) };
+    }),
+  );
+  ipcMain.handle(IPC.dataImportBible, (_event, input: BibleImportInput) =>
+    guarded(async () => {
+      const files = await pickFiles('Importar Biblia', 'Biblia en USFM', BIBLE_EXTENSIONS);
+      return files.length ? bibleImporter.import(files, input) : { canceled: true as const };
+    }),
+  );
+  ipcMain.handle(IPC.dataRemoveBible, (_event, code: string) => bibleImporter.remove(String(code)));
 
   const control = new LanControl({
     db,

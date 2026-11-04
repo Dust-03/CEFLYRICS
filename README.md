@@ -16,7 +16,8 @@ Versión actual: **1.1.1**.
 - **Salida:** se abre sola en el segundo monitor y se adapta a cualquier resolución.
 - **Transmisión:** cualquier tele con navegador muestra lo que está al aire, en una dirección fija.
 - **Control desde el celular:** app de Android o navegador, con PIN y un nombre por cada celular.
-- **Datos:** exportar e importar todo en un archivo, para pasarlo a otra PC.
+- **Importar y exportar:** canciones en TXT y OpenLyrics, biblias en USFM, y todo junto en un archivo
+  para pasarlo a otra PC.
 
 Atajos de teclado: F8 logo, F9 fondo, F10 negro, Esc quitar. Mandar algo al aire saca el logo, el
 fondo o el negro.
@@ -51,7 +52,7 @@ Desde la PC se ve qué celulares están conectados y se puede desvincular cualqu
 ## Limitaciones
 
 - El video en las teles no va sincronizado cuadro a cuadro con el proyector.
-- Todavía no se importan canciones ni otras biblias.
+- Todavía no se importan las canciones de Holyrics.
 - La conexión por la red local va sin cifrar: conviene que el Wi-Fi tenga clave.
 
 ## Desarrollo
@@ -85,4 +86,5 @@ no están bajo esa licencia: pertenecen a la iglesia. Quien use este código en 
 reemplazarlos.
 
 Las biblias incluidas de fábrica son solo de dominio público (Reina-Valera 1909, KJV, WEB y BSB).
-Las demás traducciones no se incluyen.
+Las demás traducciones no se incluyen: se cargan con el importador y son responsabilidad de quien
+las importa.
