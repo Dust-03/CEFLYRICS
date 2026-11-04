@@ -255,16 +255,15 @@
   }
 
   .text {
-    display: -webkit-box;
+    display: block;
     padding: 34px 8px 6px;
     overflow: hidden;
     font-size: 13px;
     line-height: 1.3;
     white-space: pre-line;
     background: var(--bg);
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
+    /* Un texto largo se desvanece en vez de cortarse a media línea. */
+    mask-image: linear-gradient(#000 72%, transparent 96%);
   }
 
   .foot {
