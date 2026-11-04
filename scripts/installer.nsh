@@ -15,3 +15,9 @@
   nsExec::Exec 'netsh advfirewall firewall delete rule name="CEFLYRICS"'
   Pop $0
 !macroend
+
+!macro customWelcomePage
+  !define MUI_WELCOMEPAGE_TITLE "Bienvenido a CEFLYRICS"
+  !define MUI_WELCOMEPAGE_TEXT "Versículos, letras, fotos, videos y temporizadores en el proyector, en las teles y en tu celular, sin necesidad de internet.$\r$\n$\r$\nEl programa ya trae todo lo que necesita: no hay que instalar nada más.$\r$\n$\r$\nTocá Siguiente para empezar."
+  !insertmacro MUI_PAGE_WELCOME
+!macroend

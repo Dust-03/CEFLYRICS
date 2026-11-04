@@ -3,7 +3,7 @@
 Programa de escritorio para proyectar versículos, letras, fotos, videos y temporizadores en el
 culto. Funciona sin internet: las teles y los celulares se conectan por la red local.
 
-Versión actual: **1.2.0**.
+Versión actual: **1.2.5**.
 
 ## Qué hace
 
@@ -66,9 +66,10 @@ biblias, y para pasar todo a otra PC en un solo archivo.
 
 Hace falta Windows 10 u 11 de 64 bits.
 
-1. Abrí `CEFLYRICS-Instalador-1.2.0.exe`. Como no tiene firma digital, Windows puede avisar: tocá
+1. Abrí `CEFLYRICS-Instalador-1.2.5.exe`. Como no tiene firma digital, Windows puede avisar: tocá
    **Más información** y **Ejecutar de todas formas**.
-2. Aceptá el permiso de administrador. Se instala solo, crea la regla del firewall y abre el programa.
+2. Seguí los pasos y aceptá el permiso de administrador. El instalador crea la regla del firewall, y
+   no hace falta instalar nada más.
 
 Para generar el instalador, ver [Desarrollo](#desarrollo).
 

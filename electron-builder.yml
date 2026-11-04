@@ -43,12 +43,21 @@ extraResources:
 win:
   icon: assets/icono.ico
   target: nsis
-# De un clic y para toda la PC: instalar para todos es lo que permite crear la regla del firewall.
+# Para toda la PC: es lo que permite crear la regla del firewall.
 nsis:
-  oneClick: true
+  oneClick: false
   perMachine: true
+  allowToChangeInstallationDirectory: true
   runAfterFinish: true
   createDesktopShortcut: always
   shortcutName: CEFLYRICS
+  installerIcon: assets/icono.ico
+  uninstallerIcon: assets/icono.ico
+  installerSidebar: assets/instalador-lateral.bmp
+  uninstallerSidebar: assets/instalador-lateral.bmp
+  installerHeader: assets/instalador-encabezado.bmp
+  installerLanguages:
+    - es_ES
+  language: '3082'
   artifactName: CEFLYRICS-Instalador-${version}.${ext}
   include: scripts/installer.nsh
