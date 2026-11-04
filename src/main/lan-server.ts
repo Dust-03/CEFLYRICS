@@ -1,7 +1,8 @@
-import { readFile } from 'node:fs/promises';
+import { createReadStream, existsSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { networkInterfaces } from 'node:os';
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as WebStream } from 'node:stream/web';
@@ -18,6 +19,7 @@ import {
 } from '@shared/lan';
 import type { OnAirState } from '@shared/state';
 import type { Db } from './db/database';
+import type { LanControl } from './lan-control';
 import { readSetting, writeSetting } from './settings';
 
 const PORT_KEY = 'lan.port';
@@ -29,6 +31,7 @@ const RETRY_MS = 5000;
 const TICK_MS = 5000;
 const SILENT_MS = 20_000;
 const MAX_SCREENS = 32;
+const MAX_BODY = 200;
 
 // Sin módulos ni nada moderno: tiene que abrir en el navegador de un televisor viejo.
 const PAGE = `<!doctype html>
@@ -58,12 +61,25 @@ const FILES: Record<string, string> = {
   '/pantalla.css': 'text/css; charset=utf-8',
 };
 
+// Lo que compila la pantalla del control.
+const ASSET_TYPES: Record<string, string> = {
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+};
+
 type Client = LanScreen & { seenAt: number };
 
 type LanOptions = {
   db: Db;
+  control: LanControl;
   // Carpeta con lo que arma la compilación de src/renderer/lan.
   folder: string;
+  // Carpeta de la consola, donde también queda la pantalla del control.
+  rendererFolder: string;
+  apk: string;
   getState: () => OnAirState;
   serveMedia: (request: Request) => Promise<Response>;
   onChange: (info: LanInfo) => void;
@@ -109,6 +125,9 @@ export class LanServer {
       addresses: this.addresses,
       previousIp: moved ? lastIp : null,
       sound: this.sound,
+      pin: this.options.control.pin,
+      controls: this.options.control.connected,
+      apk: existsSync(this.options.apk),
       screens: [...this.clients.values()].map(({ id, ip, device, width, height }) => ({
         id,
         ip,
@@ -158,6 +177,11 @@ export class LanServer {
     this.notify();
   }
 
+  renewPin() {
+    this.options.control.renewPin();
+    this.notify();
+  }
+
   private soundMessage() {
     return JSON.stringify({ t: 'sound', on: this.sound });
   }
@@ -165,6 +189,7 @@ export class LanServer {
   broadcast(state: OnAirState) {
     const message = toMessage(state);
     for (const socket of this.clients.keys()) socket.send(message);
+    this.options.control.broadcast(state);
   }
 
   private notify() {
@@ -175,8 +200,16 @@ export class LanServer {
     const server = createServer((request, response) => {
       this.handle(request, response).catch(() => response.destroy());
     });
-    const sockets = new WebSocketServer({ server, path: '/ws', maxPayload: 1024 });
-    sockets.on('connection', (socket, request) => this.accept(socket, request));
+    const sockets = new WebSocketServer({
+      server,
+      maxPayload: 65_536,
+      verifyClient: ({ req }: { req: IncomingMessage }) =>
+        req.url === '/ws' || (req.url === '/control-ws' && this.options.control.isSameOrigin(req)),
+    });
+    sockets.on('connection', (socket, request) => {
+      if (request.url === '/ws') this.accept(socket, request);
+      else this.options.control.accept(socket);
+    });
     // ws repite acá los errores del servidor: puerto ocupado, o reservado por Windows.
     sockets.on('error', () => {
       this.server = null;
@@ -201,6 +234,7 @@ export class LanServer {
     this.status = 'off';
     for (const socket of this.clients.keys()) socket.terminate();
     this.clients.clear();
+    this.options.control.closeAll();
     sockets?.close();
     if (!server?.listening) return;
     await new Promise((resolve) => {
@@ -272,11 +306,15 @@ export class LanServer {
   }
 
   private async handle(request: IncomingMessage, response: ServerResponse) {
+    const path = (request.url ?? '/').split('?')[0];
+    if (request.method === 'POST' && path === '/api/vincular') {
+      await this.pair(request, response);
+      return;
+    }
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       response.writeHead(405).end();
       return;
     }
-    const path = (request.url ?? '/').split('?')[0];
     if (path === '/') {
       response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' }).end(PAGE);
     } else if (FILES[path]) {
@@ -284,9 +322,56 @@ export class LanServer {
       response.writeHead(200, { 'Content-Type': FILES[path], 'Cache-Control': 'no-cache' }).end(data);
     } else if (path.startsWith('/media/')) {
       await this.sendMedia(path.slice('/media/'.length), request, response);
+    } else if (path === '/api/ceflirics') {
+      // Con esto la app del celular reconoce a la PC en la red.
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"app":"ceflirics"}');
+    } else if (path === '/control') {
+      response.writeHead(302, { Location: '/control/' }).end();
+    } else if (path === '/control/') {
+      await this.sendRendererFile('control/index.html', 'text/html; charset=utf-8', response);
+    } else if (/^\/assets\/[\w.-]+$/.test(path) && ASSET_TYPES[extname(path)]) {
+      await this.sendRendererFile(path.slice(1), ASSET_TYPES[extname(path)], response);
+    } else if (path === '/app.apk' && existsSync(this.options.apk)) {
+      await this.sendApk(response);
     } else {
       response.writeHead(404).end();
     }
+  }
+
+  private async pair(request: IncomingMessage, response: ServerResponse) {
+    let body = '';
+    for await (const chunk of request) {
+      body += String(chunk);
+      if (body.length > MAX_BODY) {
+        response.writeHead(413).end();
+        return;
+      }
+    }
+    let pin: unknown;
+    try {
+      pin = (JSON.parse(body) as { pin?: unknown } | null)?.pin;
+    } catch {
+      pin = null;
+    }
+    const result = this.options.control.pair(addressOf(request), pin);
+    const status = 'token' in result ? 200 : result.error === 'locked' ? 429 : 403;
+    response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+  }
+
+  private async sendRendererFile(name: string, type: string, response: ServerResponse) {
+    const data = await readFile(join(this.options.rendererFolder, name)).catch(() => null);
+    if (data) response.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' }).end(data);
+    else response.writeHead(404).end();
+  }
+
+  private async sendApk(response: ServerResponse) {
+    const { size } = await stat(this.options.apk);
+    response.writeHead(200, {
+      'Content-Type': 'application/vnd.android.package-archive',
+      'Content-Length': size,
+      'Content-Disposition': 'attachment; filename="ceflirics-control.apk"',
+    });
+    await pipeline(createReadStream(this.options.apk), response).catch(() => {});
   }
 
   private async sendMedia(name: string, request: IncomingMessage, response: ServerResponse) {

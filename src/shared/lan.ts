@@ -14,6 +14,11 @@ export type LanInfo = {
   screens: LanScreen[];
   // Si las teles reproducen el audio de los videos.
   sound: boolean;
+  // Para vincular un celular como control.
+  pin: string;
+  controls: number;
+  // Si la PC tiene el instalador de la app para ofrecerlo.
+  apk: boolean;
 };
 
 export type LanApi = {
@@ -21,6 +26,7 @@ export type LanApi = {
   setPort: (port: number) => void;
   setEnabled: (enabled: boolean) => void;
   setSound: (sound: boolean) => void;
+  renewPin: () => void;
   onInfo: (listener: (info: LanInfo) => void) => () => void;
 };
 

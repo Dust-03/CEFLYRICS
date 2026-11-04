@@ -36,6 +36,8 @@ extraFiles:
   - from: node_modules/@fontsource/merriweather/LICENSE
     to: licencias/fuente-merriweather.txt
 extraResources:
+  - from: resources/ceflirics-control.apk
+    to: ceflirics-control.apk
   - from: resources/bibles.db
     to: bibles.db
 win:

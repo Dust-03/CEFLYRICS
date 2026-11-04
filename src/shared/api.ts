@@ -150,5 +150,6 @@ export const IPC = {
   lanSetPort: 'lan:set-port',
   lanSetEnabled: 'lan:set-enabled',
   lanSetSound: 'lan:set-sound',
+  lanRenewPin: 'lan:renew-pin',
   lanInfoChanged: 'lan:info-changed',
 } as const;

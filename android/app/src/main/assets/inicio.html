@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CEFLIRICS</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font: 16px sans-serif;
+        color: #e9edf5;
+        background: #0f1420;
+      }
+
+      main {
+        display: grid;
+        gap: 14px;
+        max-width: 340px;
+        padding: 56px 20px;
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      p {
+        margin: 0;
+        color: #94a0b5;
+      }
+
+      input,
+      button {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 13px;
+        font-size: 18px;
+        color: inherit;
+        text-align: center;
+        background: #171e2d;
+        border: 1px solid #2b3548;
+        border-radius: 10px;
+      }
+
+      button {
+        font-weight: 600;
+        color: #231803;
+        background: #f2b544;
+        border-color: #f2b544;
+      }
+
+      #again {
+        color: inherit;
+        background: transparent;
+        border-color: #2b3548;
+      }
+
+      [hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Control de CEFLIRICS</h1>
+      <p id="status">Buscando la PC en la red…</p>
+      <div id="manual" hidden>
+        <p>
+          Abrí CEFLIRICS en la PC y conectá el celular al mismo Wi-Fi. También podés escribir la dirección de
+          Transmisión:
+        </p>
+        <br />
+        <input id="address" inputmode="decimal" placeholder="192.168.1.39:8787" autocomplete="off" />
+        <br /><br />
+        <button id="connect">Conectar</button>
+        <br /><br />
+        <button id="again">Buscar de nuevo</button>
+      </div>
+    </main>
+    <script>
+      const status = document.getElementById('status');
+      const manual = document.getElementById('manual');
+      const address = document.getElementById('address');
+
+      function search() {
+        status.textContent = 'Buscando la PC en la red…';
+        manual.hidden = true;
+        CefApp.search();
+      }
+
+      function searchFinished(found) {
+        if (found) {
+          CefApp.connect(found);
+          return;
+        }
+        status.textContent = 'No encontré la PC.';
+        manual.hidden = false;
+      }
+
+      document.getElementById('again').onclick = search;
+      document.getElementById('connect').onclick = () => {
+        const text = address.value.trim();
+        if (!text) return;
+        CefApp.connect(text.includes(':') ? text : `${text}:8787`);
+      };
+
+      search();
+    </script>
+  </body>
+</html>

@@ -35,6 +35,7 @@ export default defineConfig({
         input: {
           operator: resolve('src/renderer/operator/index.html'),
           output: resolve('src/renderer/output/index.html'),
+          control: resolve('src/renderer/control/index.html'),
         },
       },
     },

@@ -6,6 +6,7 @@ import { parsePort } from '@shared/lan';
 import { parseAction, type Action } from '@shared/state';
 import { BibleService } from './bible/service';
 import { openDatabase } from './db/database';
+import { LanControl } from './lan-control';
 import { LanServer } from './lan-server';
 import { MEDIA_EXTENSIONS, MEDIA_SCHEME, MediaService } from './media';
 import { ShortcutService } from './shortcuts';
@@ -129,9 +130,35 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC.shortcutRemove, (_event, id: number) => shortcuts.remove(Number(id)));
   ipcMain.handle(IPC.shortcutReorder, (_event, ids: number[]) => shortcuts.reorder(ids.map(Number)));
 
+  const control = new LanControl({
+    db,
+    getState: () => store.current,
+    dispatch: (input) => {
+      const action = parseAction(input);
+      if (action) store.dispatch(action);
+    },
+    methods: {
+      'bible.list': () => bible.list(),
+      'bible.books': (code) => bible.books(String(code)),
+      'bible.chapter': (code, book, chapter) => bible.chapter(String(code), Number(book), Number(chapter)),
+      'bible.search': (code, query) => bible.search(String(code), String(query)),
+      'songs.list': (query) => songs.list(String(query ?? '')),
+      'songs.get': (id) => songs.get(Number(id)),
+      'media.list': () => media.list(),
+      'shortcuts.list': () => shortcuts.list(),
+      'themes.list': () => themes.list(),
+      'themes.assignment': () => themes.assignment(),
+    },
+    onChange: () => broadcast(IPC.lanInfoChanged, lan.info),
+  });
   const lan = new LanServer({
     db,
+    control,
     folder: join(__dirname, '../lan'),
+    rendererFolder: join(__dirname, '../renderer'),
+    apk: app.isPackaged
+      ? join(process.resourcesPath, 'ceflirics-control.apk')
+      : join(app.getAppPath(), 'resources/ceflirics-control.apk'),
     getState: () => store.current,
     serveMedia: (request) => media.serve(request),
     onChange: (info) => broadcast(IPC.lanInfoChanged, info),
@@ -145,6 +172,7 @@ app.whenReady().then(() => {
   });
   ipcMain.on(IPC.lanSetEnabled, (_event, enabled: unknown) => lan.setEnabled(enabled === true));
   ipcMain.on(IPC.lanSetSound, (_event, sound: unknown) => lan.setSound(sound === true));
+  ipcMain.on(IPC.lanRenewPin, () => lan.renewPin());
   lan.start();
 
   ipcMain.handle(IPC.getOutputInfo, () => output.info);

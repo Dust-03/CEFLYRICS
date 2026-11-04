@@ -7,6 +7,8 @@
   let info = $state<LanInfo | null>(null);
   let portText = $state('');
   let qr = $state('');
+  let appQr = $state('');
+  let controlQr = $state('');
   let copied = $state(false);
 
   function update(value: LanInfo) {
@@ -27,6 +29,14 @@
     const url = `http://${address}`;
     if (!address) qr = '';
     else QRCode.toDataURL(url, { margin: 1, width: 280 }).then((value) => (qr = value));
+  });
+
+  const qrImage = (text: string) => QRCode.toDataURL(text, { margin: 1, width: 280 });
+
+  $effect(() => {
+    if (!address) return;
+    qrImage(`http://${address}/control/?pin=${info?.pin}`).then((value) => (controlQr = value));
+    if (info?.apk) qrImage(`http://${address}/app.apk`).then((value) => (appQr = value));
   });
 
   async function copy() {
@@ -116,6 +126,36 @@
         <p class="note">Todavía no hay ninguna. Aparecen acá apenas abren la dirección.</p>
       {/if}
     </section>
+
+    {#if main && info.status === 'on'}
+      <section>
+        <h3>
+          Control desde el celular{info.controls ? ` (${info.controls} conectado${info.controls > 1 ? 's' : ''})` : ''}
+        </h3>
+        <div class="pairing">
+          {#if info.apk && appQr}
+            <figure>
+              <img id="lan-qr-app" src={appQr} alt="Código QR para bajar la app" />
+              <figcaption>Bajar la app de Android</figcaption>
+            </figure>
+          {/if}
+          {#if controlQr}
+            <figure>
+              <img id="lan-qr-control" src={controlQr} alt="Código QR para abrir el control" />
+              <figcaption>Abrir sin instalar</figcaption>
+            </figure>
+          {/if}
+          <div class="pin">
+            <span class="label">PIN</span>
+            <strong id="lan-pin">{info.pin}</strong>
+            <button id="lan-pin-cambiar" onclick={() => api.renewPin()}>Cambiar PIN</button>
+            <p class="note">
+              La app encuentra esta PC sola y pide el PIN una vez. Cambiarlo desvincula todos los celulares.
+            </p>
+          </div>
+        </div>
+      </section>
+    {/if}
 
     <section>
       <label class="sound">
@@ -288,6 +328,32 @@
 
   ul span {
     color: var(--muted);
+  }
+
+  .pairing {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .pin {
+    display: grid;
+    flex: 1;
+    gap: 4px;
+    justify-items: start;
+    min-width: 200px;
+  }
+
+  #lan-pin {
+    font-size: 30px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.12em;
+  }
+
+  .pin button {
+    padding: 4px 12px;
+    font-size: 13px;
   }
 
   .sound {

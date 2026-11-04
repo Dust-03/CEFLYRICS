@@ -16,7 +16,8 @@
     "format": "prettier --write .",
     "dist": "npm run bibles && electron-vite build && electron-builder --win",
     "bibles": "tsx scripts/build-bibles.mts",
-    "medir": "electron-vite build && node scripts/medir-rendimiento.mjs"
+    "medir": "electron-vite build && node scripts/medir-rendimiento.mjs",
+    "apk": "node scripts/build-apk.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
