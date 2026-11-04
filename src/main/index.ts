@@ -265,7 +265,7 @@ app.whenReady().then(() => {
   );
   ipcMain.handle(IPC.dataImportBible, (_event, input: BibleImportInput) =>
     guarded(async () => {
-      const files = await pickFiles('Importar Biblia', 'Biblia en USFM', BIBLE_EXTENSIONS);
+      const files = await pickFiles('Importar Biblia', 'Biblia (XML y USFM)', BIBLE_EXTENSIONS);
       return files.length ? bibleImporter.import(files, input) : { canceled: true as const };
     }),
   );

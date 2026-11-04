@@ -112,7 +112,10 @@
 
   <section>
     <h3>Biblias</h3>
-    <p>Importá una versión en formato USFM, con un archivo por libro. Podés elegir todos los archivos juntos.</p>
+    <p>
+      Importá una versión en XML (.xml o .xmm), que trae la Biblia entera en un archivo, o en USFM, con un archivo por
+      libro.
+    </p>
     <div class="fields">
       <input id="biblia-nombre" maxlength="60" placeholder="Nombre: Reina-Valera 1960" bind:value={bibleName} />
       <input id="biblia-sigla" maxlength="12" placeholder="Sigla: RVR1960" bind:value={bibleCode} />

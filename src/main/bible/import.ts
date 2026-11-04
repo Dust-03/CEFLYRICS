@@ -1,12 +1,14 @@
 import { readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { basename, extname } from 'node:path';
 import type { BibleImportInput, ImportResult } from '@shared/api';
 import type { Db } from '../db/database';
 import { decodeText } from '../song-import';
 import { BOOK_CODES } from './books';
 import { parseUsfm } from './usfm';
+import { parseBibleXml } from './xml';
 
-export const BIBLE_EXTENSIONS = ['usfm', 'sfm', 'txt'];
+export const BIBLE_EXTENSIONS = ['usfm', 'sfm', 'txt', 'xml', 'xmm'];
+const XML_EXTENSIONS = ['.xml', '.xmm'];
 
 const CODE = /^[A-Za-z0-9-]{2,12}$/;
 const MAX_NAME = 60;
@@ -17,8 +19,8 @@ type ParsedBook = { number: number; name: string; verses: { vid: number; text: s
 export class BibleImporter {
   constructor(private db: Db) {}
 
-  private async read(file: string): Promise<ParsedBook> {
-    const book = parseUsfm(decodeText(await readFile(file)));
+  private readUsfm(source: string): ParsedBook {
+    const book = parseUsfm(source);
     const index = BOOK_CODES.indexOf(book.code.toUpperCase() as (typeof BOOK_CODES)[number]);
     if (index < 0) throw new Error(`el libro ${book.code || 'sin código'} no es de los 66 que maneja el programa`);
     if (!book.verses.length) throw new Error('no tiene versículos');
@@ -27,6 +29,31 @@ export class BibleImporter {
       .filter(({ text }) => text)
       .map(({ chapter, verse, text }) => ({ vid: number * 1_000_000 + chapter * 1_000 + verse, text }));
     return { number, name: book.name.trim() || book.code, verses };
+  }
+
+  // Si el archivo no trae los nombres, se usan los de la Biblia en español de fábrica.
+  private bookName(number: number) {
+    const row = this.db
+      .prepare(
+        `SELECT bk.name FROM bible_books bk JOIN bibles b ON b.id = bk.bible_id
+         WHERE b.code = 'RV1909' AND bk.book_no = ?`,
+      )
+      .get(number) as { name: string } | undefined;
+    return row?.name ?? BOOK_CODES[number - 1];
+  }
+
+  private async read(file: string, rejected: ImportResult['rejected']): Promise<ParsedBook[]> {
+    const source = decodeText(await readFile(file));
+    if (!XML_EXTENSIONS.includes(extname(file).toLowerCase())) return [this.readUsfm(source)];
+    const { books, skipped } = parseBibleXml(source, (number) => this.bookName(number));
+    if (skipped.length) {
+      rejected.push({ name: basename(file), reason: `no entraron: ${skipped.join(', ')}` });
+    }
+    return books.map(({ number, name, verses }) => ({
+      number,
+      name,
+      verses: verses.map(({ chapter, verse, text }) => ({ vid: number * 1_000_000 + chapter * 1_000 + verse, text })),
+    }));
   }
 
   async import(files: string[], { code, name }: BibleImportInput): Promise<ImportResult> {
@@ -42,9 +69,10 @@ export class BibleImporter {
     const result: ImportResult = { added: 0, rejected: [] };
     for (const file of files) {
       try {
-        const book = await this.read(file);
-        if (books.has(book.number)) throw new Error(`${book.name} está repetido`);
-        books.set(book.number, book);
+        for (const book of await this.read(file, result.rejected)) {
+          if (books.has(book.number)) throw new Error(`${book.name} está repetido`);
+          books.set(book.number, book);
+        }
       } catch (error) {
         result.rejected.push({ name: basename(file), reason: (error as Error).message });
       }

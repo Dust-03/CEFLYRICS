@@ -16,7 +16,7 @@ Versión actual: **1.1.1**.
 - **Salida:** se abre sola en el segundo monitor y se adapta a cualquier resolución.
 - **Transmisión:** cualquier tele con navegador muestra lo que está al aire, en una dirección fija.
 - **Control desde el celular:** app de Android o navegador, con PIN y un nombre por cada celular.
-- **Importar y exportar:** canciones en TXT y OpenLyrics, biblias en USFM, y todo junto en un archivo
+- **Importar y exportar:** canciones en TXT y OpenLyrics, biblias en XML y USFM, y todo junto en un archivo
   para pasarlo a otra PC.
 
 Atajos de teclado: F8 logo, F9 fondo, F10 negro, Esc quitar. Mandar algo al aire saca el logo, el

@@ -143,3 +143,25 @@ test('una Biblia en USFM se importa con aviso, se usa y se borra', async () => {
   await operator.locator('#tab-biblia').click();
   await expect(operator.locator('#biblia-version option')).toHaveCount(4);
 });
+
+test('una Biblia entera en un archivo .xmm se importa y se usa', async () => {
+  await launch(join(dir, 'pc'));
+  const file = join(dir, 'biblia.xmm');
+  writeFileSync(
+    file,
+    '<XMLBIBLE><BIBLEBOOK bnumber="43" bname="Juan"><CHAPTER cnumber="3"><VERS vnumber="16">Texto desde XML</VERS></CHAPTER></BIBLEBOOK></XMLBIBLE>',
+  );
+  await pick([file]);
+  await operator.locator('#tab-configuracion').click();
+  await operator.locator('#config-datos').click();
+  await operator.locator('#biblia-nombre').fill('Desde XML');
+  await operator.locator('#biblia-sigla').fill('XMLP');
+  await operator.locator('#biblia-acepto').check();
+  await operator.locator('#biblia-importar').click();
+  await expect(operator.locator('#datos-mensaje')).toContainText('Entraron 1 libros');
+
+  await operator.locator('#tab-biblia').click();
+  await operator.locator('#biblia-version').selectOption('XMLP');
+  await operator.locator('#biblia-buscar').fill('jn 3 16');
+  await expect(operator.locator('[data-atajo="Juan 3:16"]').locator('xpath=..')).toContainText('Texto desde XML');
+});

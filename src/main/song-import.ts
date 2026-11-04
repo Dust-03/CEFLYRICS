@@ -10,6 +10,7 @@ const MAX_FILE = 2 * 1024 * 1024;
 
 // Los TXT hechos en Windows suelen venir en la codificación vieja: los acentos saldrían rotos.
 export function decodeText(data: Buffer) {
+  if (data[0] === 0xff && data[1] === 0xfe) return new TextDecoder('utf-16le').decode(data);
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(data);
   } catch {
@@ -19,7 +20,7 @@ export function decodeText(data: Buffer) {
 
 const ENTITIES: Record<string, string> = { lt: '<', gt: '>', quot: '"', apos: "'", amp: '&' };
 
-function decodeXml(text: string) {
+export function decodeXml(text: string) {
   return text.replace(/&(?:#(\d+)|#x([0-9a-f]+)|(lt|gt|quot|apos|amp));/gi, (_all, decimal, hex, name) => {
     if (decimal) return String.fromCodePoint(Number(decimal));
     if (hex) return String.fromCodePoint(parseInt(hex, 16));
