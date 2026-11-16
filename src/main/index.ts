@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { BrowserWindow, Menu, app, dialog, ipcMain, nativeImage, protocol, type WebContents } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import {
   IPC,
   type AppInfo,
@@ -49,6 +50,89 @@ const SHORTCUTS: Record<string, Action> = {
 function toggleFullscreen(contents: WebContents) {
   const window = BrowserWindow.fromWebContents(contents);
   window?.setFullScreen(!window.isFullScreen());
+}
+
+function configureAutoUpdates(operator: BrowserWindow) {
+  if (!app.isPackaged) return;
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  autoUpdater.allowPrerelease = false;
+  let promptOpen = false;
+
+  autoUpdater.on('update-available', async (info) => {
+    if (promptOpen) return;
+    promptOpen = true;
+    let choice: Awaited<ReturnType<typeof dialog.showMessageBox>>;
+    try {
+      choice = await dialog.showMessageBox(operator, {
+        type: 'info',
+        title: 'Actualización disponible',
+        message: `Hay una nueva versión de CEFLYRICS (${info.version}).`,
+        detail: '¿Querés descargarla ahora? La versión actual seguirá funcionando mientras se descarga.',
+        buttons: ['Descargar', 'Más tarde'],
+        defaultId: 0,
+        cancelId: 1,
+      });
+    } catch {
+      return;
+    } finally {
+      promptOpen = false;
+    }
+    if (choice.response !== 0) return;
+    try {
+      await autoUpdater.downloadUpdate();
+    } catch {
+      if (!promptOpen) {
+        promptOpen = true;
+        try {
+          await dialog.showMessageBox(operator, {
+            type: 'warning',
+            title: 'No se pudo descargar',
+            message: 'No se pudo descargar la actualización. Podés intentarlo de nuevo más tarde.',
+            buttons: ['Aceptar'],
+          });
+        } finally {
+          promptOpen = false;
+        }
+      }
+    }
+  });
+
+  autoUpdater.on('error', () => undefined);
+
+  autoUpdater.on('update-downloaded', async (info) => {
+    if (promptOpen) return;
+    promptOpen = true;
+    try {
+      const { response } = await dialog.showMessageBox(operator, {
+        type: 'info',
+        title: 'Actualización descargada',
+        message: `CEFLYRICS ${info.version} está lista para instalar.`,
+        detail: 'Podés reiniciar ahora o instalarla al cerrar el programa.',
+        buttons: ['Reiniciar e instalar', 'Instalar al cerrar'],
+        defaultId: 0,
+        cancelId: 1,
+      });
+      if (response === 0) autoUpdater.quitAndInstall(false, true);
+      else autoUpdater.autoInstallOnAppQuit = true;
+    } finally {
+      promptOpen = false;
+    }
+  });
+
+  let checking = false;
+  const check = () => {
+    if (checking) return;
+    checking = true;
+    void autoUpdater
+      .checkForUpdates()
+      .catch(() => undefined)
+      .finally(() => (checking = false));
+  };
+  const initialCheck = setTimeout(check, 8_000);
+  initialCheck.unref();
+  const periodicCheck = setInterval(check, 6 * 60 * 60 * 1_000);
+  periodicCheck.unref();
 }
 
 function handleShortcuts(contents: WebContents, canChangeSize: () => boolean = () => true) {
@@ -107,6 +191,10 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC.bibleChapter, (_event, code: string, book: number, chapter: number) =>
     bible.chapter(String(code), Number(book), Number(chapter)),
   );
+  ipcMain.handle(IPC.bibleChapterVerseIds, (_event, code: string, book: number, chapter: number) =>
+    bible.chapterVerseIds(String(code), Number(book), Number(chapter)),
+  );
+  ipcMain.handle(IPC.bibleVerse, (_event, code: string, vid: number) => bible.verse(String(code), Number(vid)));
   ipcMain.handle(IPC.bibleSearch, (_event, code: string, query: string) => bible.search(String(code), String(query)));
 
   const songs = new SongService(db);
@@ -294,6 +382,9 @@ app.whenReady().then(() => {
       'bible.list': () => bible.list(),
       'bible.books': (code) => bible.books(String(code)),
       'bible.chapter': (code, book, chapter) => bible.chapter(String(code), Number(book), Number(chapter)),
+      'bible.chapter-verse-ids': (code, book, chapter) =>
+        bible.chapterVerseIds(String(code), Number(book), Number(chapter)),
+      'bible.verse': (code, vid) => bible.verse(String(code), Number(vid)),
       'bible.search': (code, query) => bible.search(String(code), String(query)),
       'songs.list': (query) => songs.list(String(query ?? '')),
       'songs.get': (id) => songs.get(Number(id)),
@@ -342,6 +433,7 @@ app.whenReady().then(() => {
   ipcMain.on(IPC.toggleFullscreen, (event) => toggleFullscreen(event.sender));
 
   const operator = createOperatorWindow();
+  configureAutoUpdates(operator);
   handleShortcuts(operator.webContents);
   // La salida sola no sirve: al cerrar el operador se cierra todo.
   operator.on('closed', () => output.close());

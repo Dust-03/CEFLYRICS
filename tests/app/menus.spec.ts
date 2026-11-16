@@ -73,6 +73,19 @@ test('una canción se escribe, se proyecta y las líneas // no llegan al públic
   await expect(output.locator('.cef-body')).toHaveText('Primera estrofa');
 });
 
+test('las flechas anterior y siguiente recorren las diapositivas de la canción', async () => {
+  await addSong();
+  await operator.locator('#cancion-diapositivas .slide').first().click();
+  await operator.locator('#btn-aire').click();
+  await expect(output.locator('.cef-body')).toHaveText('Primera estrofa');
+
+  await operator.locator('#cancion-siguiente').click();
+  await expect(output.locator('.cef-body')).toHaveText('El coro');
+  await operator.locator('#cancion-anterior').click();
+  await expect(output.locator('.cef-body')).toHaveText('Primera estrofa');
+  await expect(operator.locator('#cancion-anterior')).toBeDisabled();
+});
+
 test('una canción se edita y se borra, con confirmación', async () => {
   await addSong();
   await operator.locator('#cancion-editar').click();

@@ -1,6 +1,11 @@
 appId: ar.ceflyrics.app
 productName: CEFLYRICS
 copyright: GPL-3.0
+publish:
+  - provider: github
+    owner: Dust-03
+    repo: CEFLYRICS
+    releaseType: release
 directories:
   output: release
 files:

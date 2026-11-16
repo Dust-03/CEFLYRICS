@@ -48,7 +48,19 @@ describe.skipIf(!present)('búsqueda en la base real', () => {
 
   test('un capítulo entero y una cita que no existe', () => {
     expect(bible!.chapter('RV1909', 19, 23)).toHaveLength(6);
+    expect(bible!.chapterVerseIds('RV1909', 19, 23)).toEqual([
+      19023001, 19023002, 19023003, 19023004, 19023005, 19023006,
+    ]);
     expect(bible!.search('RV1909', 'juan 99:1').verses).toEqual([]);
+  });
+
+  test('busca un solo versículo sin cargar el capítulo', () => {
+    expect(bible!.verse('RV1909', 19023002)).toEqual({
+      vid: 19023002,
+      text: 'En lugares de delicados pastos me hará yacer: junto á aguas de reposo me pastoreará.',
+      label: 'Salmos 23:2',
+    });
+    expect(bible!.verse('RV1909', 19023999)).toBeUndefined();
   });
 
   test('una palabra busca en el texto, con prefijo y sin acentos', () => {

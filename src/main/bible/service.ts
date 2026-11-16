@@ -12,8 +12,8 @@ function ftsQuery(text: string) {
 }
 
 export class BibleService {
-  // Los libros de una versión no cambian mientras la app corre, y se consultan en cada búsqueda.
-  private bookCache = new Map<string, BibleBook[]>();
+  // Solo se conserva la versión consultada más recientemente; las biblias importadas pueden ser muchas.
+  private bookCache: { code: string; books: BibleBook[] } | undefined;
 
   constructor(private db: Db) {}
 
@@ -25,8 +25,7 @@ export class BibleService {
   }
 
   books(code: string): BibleBook[] {
-    const cached = this.bookCache.get(code);
-    if (cached) return cached;
+    if (this.bookCache?.code === code) return this.bookCache.books;
     const books = this.db
       .prepare(
         `SELECT bk.book_no AS book, bk.name,
@@ -36,13 +35,25 @@ export class BibleService {
          WHERE b.code = ? ORDER BY bk.book_no`,
       )
       .all(code) as BibleBook[];
-    this.bookCache.set(code, books);
+    this.bookCache = { code, books };
     return books;
   }
 
   chapter(code: string, book: number, chapter: number) {
     const from = book * 1_000_000 + chapter * 1_000;
     return this.range(code, from, from + 999);
+  }
+
+  chapterVerseIds(code: string, book: number, chapter: number) {
+    const from = book * 1_000_000 + chapter * 1_000;
+    return (
+      this.db
+        .prepare(
+          `SELECT v.vid FROM verses v JOIN bibles b ON b.id = v.bible_id
+           WHERE b.code = ? AND v.vid BETWEEN ? AND ? ORDER BY v.vid`,
+        )
+        .all(code, from, from + 999) as { vid: number }[]
+    ).map(({ vid }) => vid);
   }
 
   verse(code: string, vid: number): BibleVerse | undefined {

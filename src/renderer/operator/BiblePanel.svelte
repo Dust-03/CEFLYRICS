@@ -24,6 +24,8 @@
   let query = $state('');
   let book = $state<number>();
   let chapter = $state<number>();
+  let chapterVerseIds = $state<number[]>([]);
+  let currentVerseId = $state<number>();
   let verses = $state<BibleVerse[]>([]);
   let selected = $state(-1);
   let list = $state<HTMLElement>();
@@ -31,6 +33,10 @@
 
   const currentBook = $derived(books.find((item) => item.book === book));
   const chapterNumbers = $derived(Array.from({ length: currentBook?.chapters ?? 0 }, (_, i) => i + 1));
+  const navigationIds = $derived(chapterVerseIds.length ? chapterVerseIds : verses.map((verse) => verse.vid));
+  const navigationIndex = $derived(currentVerseId === undefined ? -1 : navigationIds.indexOf(currentVerseId));
+  const canGoPrevious = $derived(navigationIndex > 0);
+  const canGoNext = $derived(navigationIds.length > 0 && navigationIndex < navigationIds.length - 1);
   const emptyMessage = $derived(
     query.trim() ? `No se encontró «${query.trim()}» en ${version}` : 'Elegí un libro o escribí una cita o una palabra',
   );
@@ -61,12 +67,24 @@
       if (run !== searchRun) return;
       book = result.book;
       chapter = result.kind === 'reference' ? result.chapter : undefined;
+      chapterVerseIds =
+        result.kind === 'reference' && result.book !== undefined
+          ? await api.chapterVerseIds(code, result.book, result.chapter)
+          : [];
+      if (run !== searchRun) return;
       verses = result.verses;
+      currentVerseId = result.kind === 'reference' ? result.verses[0]?.vid : undefined;
     } else if (book && chapter) {
       const value = await api.chapter(code, book, chapter);
-      if (run === searchRun) verses = value;
+      if (run === searchRun) {
+        chapterVerseIds = value.map((verse) => verse.vid);
+        verses = value;
+        currentVerseId = undefined;
+      }
     } else {
+      chapterVerseIds = [];
       verses = [];
+      currentVerseId = undefined;
     }
     selected = -1;
   }
@@ -80,6 +98,8 @@
     query = '';
     book = undefined;
     chapter = undefined;
+    chapterVerseIds = [];
+    currentVerseId = undefined;
     verses = [];
     selected = -1;
     searchBox?.focus();
@@ -89,6 +109,8 @@
     query = '';
     book = value;
     chapter = undefined;
+    chapterVerseIds = [];
+    currentVerseId = undefined;
     verses = [];
     selected = -1;
   }
@@ -100,6 +122,44 @@
     list?.focus();
   }
 
+  async function chooseVerse(vid: number) {
+    clearTimeout(typing);
+    const run = ++searchRun;
+    const code = version;
+    const verse = await api.verse(code, vid);
+    if (run !== searchRun || code !== version) return;
+    if (!verse) return;
+    verses = [verse];
+    selected = 0;
+    currentVerseId = vid;
+    onPreview(toItem(verse));
+    list?.focus();
+  }
+
+  async function navigateVerse(step: -1 | 1) {
+    if (!navigationIds.length) return;
+    clearTimeout(typing);
+    const fromId = currentVerseId ?? (selected >= 0 ? verses[selected]?.vid : undefined);
+    const fromIndex = fromId === undefined ? -1 : navigationIds.indexOf(fromId);
+    const nextIndex = Math.max(0, Math.min(navigationIds.length - 1, fromIndex + step));
+    const vid = navigationIds[nextIndex];
+    if (vid === undefined || vid === fromId) return;
+    const followsAir = fromId !== undefined && onAirKey === `bible:${fromId}`;
+    const run = ++searchRun;
+    const visibleIndex = verses.findIndex((verse) => verse.vid === vid);
+    const verse = visibleIndex >= 0 ? verses[visibleIndex] : await api.verse(version, vid);
+    if (run !== searchRun || !verse) return;
+    if (visibleIndex >= 0) select(visibleIndex);
+    else {
+      verses = [verse];
+      selected = 0;
+      currentVerseId = vid;
+      onPreview(toItem(verse));
+      list?.focus();
+    }
+    if (followsAir) onAir(toItem(verse));
+  }
+
   const toItem = (verse: BibleVerse): PreviewItem => ({
     kind: 'bible',
     key: `bible:${verse.vid}`,
@@ -108,6 +168,7 @@
 
   function select(index: number) {
     selected = index;
+    currentVerseId = verses[index].vid;
     onPreview(toItem(verses[index]));
     list?.querySelectorAll('li')[index]?.scrollIntoView({ block: 'nearest' });
   }
@@ -123,14 +184,15 @@
 
   function onListKey(event: KeyboardEvent) {
     if (!verses.length) return;
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (
+      event.key === 'ArrowDown' ||
+      event.key === 'ArrowRight' ||
+      event.key === 'ArrowUp' ||
+      event.key === 'ArrowLeft'
+    ) {
       event.preventDefault();
-      const step = event.key === 'ArrowDown' ? 1 : -1;
-      const next = Math.min(verses.length - 1, Math.max(0, selected + step));
-      // Si lo elegido está al aire, las flechas siguen al aire: así se recorre un pasaje.
-      const followsAir = selected >= 0 && toItem(verses[selected]).key === onAirKey;
-      select(next);
-      if (followsAir) onAir(toItem(verses[next]));
+      const step = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1;
+      void navigateVerse(step);
     } else if (event.key === 'Enter' && selected >= 0) {
       event.preventDefault();
       onAir(toItem(verses[selected]));
@@ -196,6 +258,48 @@
               </button>
             {/each}
           </div>
+          {#if chapter && chapterVerseIds.length > 0}
+            <div class="verse-numbers" aria-label="Versículos">
+              <span>Versículos</span>
+              <div class="verse-list">
+                {#each chapterVerseIds as vid (vid)}
+                  {@const number = vid % 1000}
+                  <button
+                    class:active={verses.length === 1 && verses[0].vid === vid}
+                    aria-label={`Versículo ${number}`}
+                    aria-pressed={verses.length === 1 && verses[0].vid === vid}
+                    data-verse-number={number}
+                    onclick={() => chooseVerse(vid)}
+                  >
+                    {number}
+                  </button>
+                {/each}
+              </div>
+            </div>
+          {/if}
+        </div>
+      {/if}
+
+      {#if navigationIds.length > 0}
+        <div class="verse-navigation" aria-label="Navegar versículos">
+          <button
+            id="biblia-anterior"
+            aria-label="Versículo anterior"
+            title="Anterior (←)"
+            disabled={!canGoPrevious}
+            onclick={() => navigateVerse(-1)}
+          >
+            ←
+          </button>
+          <button
+            id="biblia-siguiente"
+            aria-label="Versículo siguiente"
+            title="Siguiente (→)"
+            disabled={!canGoNext}
+            onclick={() => navigateVerse(1)}
+          >
+            →
+          </button>
         </div>
       {/if}
 
@@ -298,9 +402,21 @@
 
   .reader {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     gap: 8px;
     min-height: 0;
+  }
+
+  .verse-navigation {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .verse-navigation button {
+    min-width: 34px;
+    padding: 3px 8px;
+    font-size: 16px;
   }
 
   .chapters {
@@ -324,6 +440,35 @@
 
   .chapter-list button.active {
     font-weight: 700;
+    color: var(--on-accent);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .verse-numbers {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .verse-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 68px;
+    overflow-y: auto;
+  }
+
+  .verse-list button {
+    min-width: 30px;
+    padding: 3px 5px;
+    font-size: 12px;
+  }
+
+  .verse-list button.active {
     color: var(--on-accent);
     background: var(--accent);
     border-color: var(--accent);

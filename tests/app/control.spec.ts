@@ -212,6 +212,17 @@ test('se llega a un versículo por libro y capítulo', async () => {
   await expect(output.locator('.cef-title')).toContainText('Salmos 23:1');
 });
 
+test('el control mueve el versículo siguiente y anterior desde una cita directa', async () => {
+  const phone = await pairPhone();
+  await phone.locator('#control-buscar').fill('sal 23 2');
+  await expect(phone.getByRole('button', { name: /Salmos 23:2/ })).toBeVisible();
+  await expect(phone.locator('#control-versiculo-anterior')).toBeEnabled();
+  await phone.locator('#control-versiculo-siguiente').click();
+  await expect(output.locator('.cef-title')).toContainText('Salmos 23:3');
+  await phone.locator('#control-versiculo-anterior').click();
+  await expect(output.locator('.cef-title')).toContainText('Salmos 23:2');
+});
+
 test('las canciones se pasan con Siguiente y Anterior', async () => {
   await operator.evaluate(() =>
     window.ceflyrics.songs.save({ title: 'Prueba', author: '', text: 'Uno\n\nDos\n\nTres' }),

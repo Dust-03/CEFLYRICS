@@ -69,6 +69,17 @@ if (cdp) {
 }
 await op.locator('#biblia-buscar').fill('');
 
+// El selector guarda las referencias del capítulo, pero debe soltar sus textos al abrir un solo versículo.
+await op.locator('#biblia-buscar').fill('sal 119');
+await op.locator('#biblia-versos .verse').first().waitFor();
+results.salmo119Capitulo = await sample(3);
+await op.locator('[data-verse-number="176"]').click();
+await op.waitForFunction(() => document.querySelectorAll('#biblia-versos .verse').length === 1);
+results.salmo119Versiculo = await sample(3);
+results.diferenciaMemoriaCapituloAVersiculoMB =
+  results.salmo119Versiculo.memoriaMB - results.salmo119Capitulo.memoriaMB;
+await op.locator('#biblia-buscar').fill('');
+
 if (existsSync(VIDEO)) {
   await app.evaluate(({ dialog }, file) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] });

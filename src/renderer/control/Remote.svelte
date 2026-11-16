@@ -2,6 +2,7 @@
   import type {
     BibleBook,
     BibleInfo,
+    BibleSearchResult,
     BibleVerse,
     MediaItem,
     Shortcut,
@@ -52,12 +53,17 @@
   let query = $state('');
   let book = $state<BibleBook | null>(null);
   let chapter = $state<number | null>(null);
+  let chapterVerseIds = $state<number[]>([]);
+  let currentVerseId = $state<number>();
   let verses = $state<BibleVerse[]>([]);
 
   let songQuery = $state('');
   let songs = $state<SongSummary[]>([]);
   let song = $state<Song | null>(null);
   let slideIndex = $state(-1);
+
+  const verseNavigationIds = $derived(chapterVerseIds.length ? chapterVerseIds : verses.map((verse) => verse.vid));
+  const verseNavigationIndex = $derived(currentVerseId === undefined ? -1 : verseNavigationIds.indexOf(currentVerseId));
 
   let media = $state<MediaItem[]>([]);
   let shortcuts = $state<Shortcut[]>([]);
@@ -162,12 +168,16 @@
     const twice = lastTap.key === item.key && moment - lastTap.at < DOUBLE_TAP_MS;
     lastTap = { key: item.key, at: twice ? 0 : moment };
     if (twice) sendToAir(item);
-    else selected = item;
+    else {
+      selected = item;
+      if (item.kind === 'bible') currentVerseId = Number(item.key.split(':').at(-1));
+    }
   }
 
   function sendToAir(item: Item) {
     selected = item;
     airKey = item.key;
+    if (item.kind === 'bible') currentVerseId = Number(item.key.split(':').at(-1));
     connection.dispatch({ type: 'show-slide', slide: $state.snapshot(withTheme(item)) });
   }
 
@@ -199,15 +209,42 @@
     chapter = null;
     if (!text) {
       verses = [];
+      chapterVerseIds = [];
+      currentVerseId = undefined;
       return;
     }
-    const result = await connection.call<{ verses: BibleVerse[] }>('bible.search', version, text);
-    if (query.trim() === text) verses = result.verses;
+    const result = await connection.call<BibleSearchResult>('bible.search', version, text);
+    if (query.trim() !== text) return;
+    const ids =
+      result.kind === 'reference' && result.book !== undefined
+        ? await connection.call<number[]>('bible.chapter-verse-ids', version, result.book, result.chapter)
+        : [];
+    if (query.trim() !== text) return;
+    verses = result.verses;
+    chapterVerseIds = ids;
+    currentVerseId = result.kind === 'reference' ? result.verses[0]?.vid : undefined;
   }
 
   async function openChapter(number: number) {
     chapter = number;
     verses = await connection.call<BibleVerse[]>('bible.chapter', version, book!.book, number);
+    chapterVerseIds = verses.map((verse) => verse.vid);
+    currentVerseId = undefined;
+  }
+
+  async function moveBibleVerse(step: -1 | 1) {
+    if (!verseNavigationIds.length) return;
+    const fromId = currentVerseId ?? (selected?.kind === 'bible' ? Number(selected.key.split(':').at(-1)) : undefined);
+    const fromIndex = fromId === undefined ? -1 : verseNavigationIds.indexOf(fromId);
+    const nextIndex = Math.max(0, Math.min(verseNavigationIds.length - 1, fromIndex + step));
+    const vid = verseNavigationIds[nextIndex];
+    if (vid === undefined || vid === fromId) return;
+    const verse =
+      verses.find((item) => item.vid === vid) ??
+      (await connection.call<BibleVerse | undefined>('bible.verse', version, vid));
+    if (!verse) return;
+    if (!verses.some((item) => item.vid === vid)) verses = [verse];
+    sendToAir(verseItem(verse));
   }
 
   async function changeVersion() {
@@ -221,6 +258,8 @@
     book = null;
     chapter = null;
     verses = [];
+    chapterVerseIds = [];
+    currentVerseId = undefined;
   }
 
   // Volver a tocar la pestaña en la que se está lleva al inicio de ese menú.
@@ -620,6 +659,20 @@
           class="live"
           disabled={slideIndex >= song.slides.length - 1}
           onclick={() => showSongSlide(slideIndex + 1)}
+        >
+          Siguiente ›
+        </button>
+      </div>
+    {:else if tab === 'biblia' && verseNavigationIds.length}
+      <div class="stepper">
+        <button id="control-versiculo-anterior" disabled={verseNavigationIndex <= 0} onclick={() => moveBibleVerse(-1)}>
+          ‹ Anterior
+        </button>
+        <button
+          id="control-versiculo-siguiente"
+          class="live"
+          disabled={verseNavigationIndex >= verseNavigationIds.length - 1}
+          onclick={() => moveBibleVerse(1)}
         >
           Siguiente ›
         </button>

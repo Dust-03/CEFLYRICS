@@ -68,6 +68,31 @@ test('elegir libro y capítulo muestra los versículos, y las flechas siguen al 
   await expect(output.locator('.cef-title')).toHaveText('Salmos 23:2 · RV1909');
 });
 
+test('el selector de versículo carga solo el elegido y lo deja en vista previa', async () => {
+  await operator.locator('button[data-book="19"]').click();
+  await operator.locator('button[data-chapter="23"]').click();
+  await expect(operator.locator('[data-verse-number]')).toHaveCount(6);
+  await operator.locator('[data-verse-number="2"]').click();
+  await expect(verses()).toHaveCount(1);
+  await expect(verses().first()).toContainText('En lugares de delicados pastos');
+  await expect(operator.locator('#vista-previa .cef-title')).toHaveText('Salmos 23:2 · RV1909');
+  await expect(onOutput()).toHaveText('');
+  await expect(operator.locator('[data-verse-number="2"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('las flechas anterior y siguiente recorren también una cita de un solo versículo', async () => {
+  await operator.locator('#biblia-buscar').fill('jn 3 16');
+  await expect(verses()).toHaveCount(1);
+  await expect(operator.locator('#biblia-anterior')).toBeEnabled();
+  await operator.locator('#biblia-anterior').click();
+  await expect(verses().first()).toContainText('Juan 3:15');
+  await expect(onOutput()).toHaveText('');
+  await operator.locator('#biblia-versos').press('ArrowRight');
+  await expect(verses().first()).toContainText('Juan 3:16');
+  await operator.locator('#biblia-siguiente').click();
+  await expect(verses().first()).toContainText('Juan 3:17');
+});
+
 test('las flechas no tocan el aire si lo elegido no está al aire', async () => {
   await operator.locator('#biblia-buscar').fill('sal 23');
   await expect(verses()).toHaveCount(6);

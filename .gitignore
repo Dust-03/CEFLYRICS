@@ -25,6 +25,7 @@ prototype/media/*
 !prototype/media/.gitkeep
 
 # Entorno y editores
+.codex-attachments/
 .env
 .env.*
 .vscode/*

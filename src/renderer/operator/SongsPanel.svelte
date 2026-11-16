@@ -115,15 +115,25 @@
     slideList?.children[index]?.scrollIntoView({ block: 'nearest' });
   }
 
+  function moveSlide(step: -1 | 1) {
+    if (!song) return;
+    const next = Math.min(song.slides.length - 1, Math.max(0, selected + step));
+    if (next === selected) return;
+    const followsAir = selected >= 0 && toItem(selected).key === onAirKey;
+    select(next);
+    if (followsAir) onAir(toItem(next));
+  }
+
   function onKey(event: KeyboardEvent) {
     if (!song) return;
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (
+      event.key === 'ArrowDown' ||
+      event.key === 'ArrowRight' ||
+      event.key === 'ArrowUp' ||
+      event.key === 'ArrowLeft'
+    ) {
       event.preventDefault();
-      const step = event.key === 'ArrowDown' ? 1 : -1;
-      const next = Math.min(song.slides.length - 1, Math.max(0, selected + step));
-      const followsAir = selected >= 0 && toItem(selected).key === onAirKey;
-      select(next);
-      if (followsAir) onAir(toItem(next));
+      moveSlide(event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1);
     } else if (event.key === 'Enter' && selected >= 0) {
       event.preventDefault();
       onAir(toItem(selected));
@@ -178,21 +188,43 @@
           <h3>{song.title}</h3>
           {#if song.author}<small>{song.author}</small>{/if}
         </div>
-        <div class="actions">
-          <button
-            id="cancion-atajo"
-            class:primary={saved.has(`song:${song.id}`)}
-            onclick={() => onToggleShortcut(`song:${song!.id}`)}
-          >
-            {saved.has(`song:${song.id}`) ? '★ En atajos' : '☆ Atajo'}
-          </button>
-          <button id="cancion-editar" onclick={startEdit}>Editar</button>
-          {#if confirmDelete}
-            <button id="cancion-borrar-si" class="live" onclick={remove}>Sí, borrar</button>
-            <button onclick={() => (confirmDelete = false)}>No</button>
-          {:else}
-            <button id="cancion-borrar" onclick={() => (confirmDelete = true)}>Borrar</button>
-          {/if}
+        <div class="head-tools">
+          <div class="slide-navigation" aria-label="Navegar diapositivas">
+            <button
+              id="cancion-anterior"
+              aria-label="Diapositiva anterior"
+              title="Anterior (←)"
+              disabled={selected <= 0}
+              onclick={() => moveSlide(-1)}
+            >
+              ←
+            </button>
+            <button
+              id="cancion-siguiente"
+              aria-label="Diapositiva siguiente"
+              title="Siguiente (→)"
+              disabled={selected >= song.slides.length - 1}
+              onclick={() => moveSlide(1)}
+            >
+              →
+            </button>
+          </div>
+          <div class="actions">
+            <button
+              id="cancion-atajo"
+              class:primary={saved.has(`song:${song.id}`)}
+              onclick={() => onToggleShortcut(`song:${song!.id}`)}
+            >
+              {saved.has(`song:${song.id}`) ? '★ En atajos' : '☆ Atajo'}
+            </button>
+            <button id="cancion-editar" onclick={startEdit}>Editar</button>
+            {#if confirmDelete}
+              <button id="cancion-borrar-si" class="live" onclick={remove}>Sí, borrar</button>
+              <button onclick={() => (confirmDelete = false)}>No</button>
+            {:else}
+              <button id="cancion-borrar" onclick={() => (confirmDelete = true)}>Borrar</button>
+            {/if}
+          </div>
         </div>
       </div>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
@@ -285,6 +317,18 @@
   .actions {
     display: flex;
     gap: 6px;
+  }
+
+  .head-tools,
+  .slide-navigation {
+    display: flex;
+    gap: 6px;
+  }
+
+  .slide-navigation button {
+    min-width: 34px;
+    padding: 5px;
+    font-size: 16px;
   }
 
   .form {

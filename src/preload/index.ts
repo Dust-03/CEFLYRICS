@@ -39,6 +39,8 @@ const api: CeflyricsApi = {
     list: () => ipcRenderer.invoke(IPC.bibleList),
     books: (code) => ipcRenderer.invoke(IPC.bibleBooks, code),
     chapter: (code, book, chapter) => ipcRenderer.invoke(IPC.bibleChapter, code, book, chapter),
+    chapterVerseIds: (code, book, chapter) => ipcRenderer.invoke(IPC.bibleChapterVerseIds, code, book, chapter),
+    verse: (code, vid) => ipcRenderer.invoke(IPC.bibleVerse, code, vid),
     search: (code, query) => ipcRenderer.invoke(IPC.bibleSearch, code, query),
   },
   songs: {

@@ -4,6 +4,7 @@ node_modules/
 test-results/
 playwright-report/
 userdata/
+.codex-attachments/
 tests/.media/
 prototype/media/
 package-lock.json

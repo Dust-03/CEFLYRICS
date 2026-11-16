@@ -3,11 +3,13 @@
 Programa de escritorio para proyectar versículos, letras, fotos, videos y temporizadores en el
 culto. Funciona sin internet: las teles y los celulares se conectan por la red local.
 
-Versión actual: **1.2.5**.
+Versión actual: **1.3.0**.
 
 ## Qué hace
 
-- **Biblia:** Reina-Valera 1909, KJV, WEB y BSB incluidas, con búsqueda por cita o por palabra.
+- **Biblia:** Reina-Valera 1909, KJV, WEB y BSB incluidas, con búsqueda por cita o palabra y selección por capítulo o versículo.
+- **Actualizaciones:** comprueba versiones nuevas publicadas en GitHub y permite instalarlas desde la app.
+- **Actualizaciones:** comprueba versiones nuevas publicadas en GitHub y permite instalarlas desde la app.
 - **Canciones:** letras con diapositivas por verso y coro.
 - **Medios:** fotos y videos, con sonido en la salida.
 - **Atajos:** versículos, canciones y medios guardados con una estrella.
@@ -109,6 +111,7 @@ npm test           # pruebas unitarias
 npm run test:app   # pruebas de la app
 npm run test:sync  # pruebas de sincronía del prototipo
 npm run check      # tipos, ESLint y formato
+npm run capturas   # capturas de la interfaz bíblica, en release/capturas-1.3.0/
 npm run apk        # app de Android, en resources/
 npm run dist       # instalador, en release/
 ```
@@ -118,6 +121,10 @@ sola la primera vez, fuera del repositorio.
 
 La especificación está en [docs/investigacion.md](docs/investigacion.md), y los planes en
 [docs/](docs/).
+
+Los pasos para preparar y publicar una versión están en [docs/publicar-1.3.0.md](docs/publicar-1.3.0.md).
+
+Los pasos para preparar y publicar una versión están en [docs/publicar-1.3.0.md](docs/publicar-1.3.0.md).
 
 ## Licencia
 

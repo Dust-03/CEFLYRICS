@@ -32,6 +32,8 @@ export type BibleApi = {
   list: () => Promise<BibleInfo[]>;
   books: (code: string) => Promise<BibleBook[]>;
   chapter: (code: string, book: number, chapter: number) => Promise<BibleVerse[]>;
+  chapterVerseIds: (code: string, book: number, chapter: number) => Promise<number[]>;
+  verse: (code: string, vid: number) => Promise<BibleVerse | undefined>;
   search: (code: string, query: string) => Promise<BibleSearchResult>;
 };
 
@@ -154,6 +156,8 @@ export const IPC = {
   bibleList: 'bible:list',
   bibleBooks: 'bible:books',
   bibleChapter: 'bible:chapter',
+  bibleChapterVerseIds: 'bible:chapter-verse-ids',
+  bibleVerse: 'bible:verse',
   bibleSearch: 'bible:search',
   songList: 'songs:list',
   songGet: 'songs:get',
