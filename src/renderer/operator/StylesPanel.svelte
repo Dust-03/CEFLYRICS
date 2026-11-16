@@ -20,6 +20,7 @@
   let draft = $state<Theme | null>(null);
   let name = $state('');
   let error = $state('');
+  let targetKind = $state<'song' | 'bible'>('bible');
 
   $effect(() => {
     if (home) untrack(goHome);
@@ -46,11 +47,14 @@
   async function save() {
     if (!draft) return;
     try {
+      const otherKind = targetKind === 'bible' ? 'song' : 'bible';
+      const makeIndependent = current?.factory || (current && assignment[otherKind] === current.id);
       const id = await api.save({
-        id: current?.factory ? undefined : current?.id,
+        id: makeIndependent ? undefined : current?.id,
         name,
         theme: $state.snapshot(draft),
       });
+      await api.assign({ ...assignment, [targetKind]: id });
       onChange();
       current = { id, name, factory: false, theme: $state.snapshot(draft) };
       error = '';
@@ -74,6 +78,10 @@
       ? value.value === (background as { value: string }).value
       : value.url === (background as { url: string }).url;
   };
+
+  function toggleOutline(enabled: boolean) {
+    if (draft) draft.outlineColor = enabled ? '#000000' : null;
+  }
 </script>
 
 <div class="panel">
@@ -107,6 +115,14 @@
   </div>
 
   <div class="editor">
+    <label>
+      Editar estilo para
+      <select id="estilo-destino" bind:value={targetKind}>
+        <option value="bible">Biblia</option>
+        <option value="song">Canciones</option>
+      </select>
+    </label>
+    <p class="hint">Al guardar, el estilo se aplica sólo a {targetKind === 'bible' ? 'la Biblia' : 'las canciones'}.</p>
     {#if draft}
       <h2>Personalizar</h2>
       <Screen
@@ -123,14 +139,34 @@
         </select>
       </label>
       <label>
-        Tamaño
-        <input id="estilo-tamano" type="range" min="0.6" max="1.5" step="0.05" bind:value={draft.scale} />
+        Tamaño · {Math.round(draft.scale * 100)} %
+        <input id="estilo-tamano" type="range" min="0.5" max="2" step="0.05" bind:value={draft.scale} />
       </label>
+      <p class="hint">El tamaño se ajusta para mantener libre el margen del 5 % de la pantalla.</p>
       <div class="row">
-        <label class="color">Texto <input id="estilo-color" type="color" bind:value={draft.color} /></label>
+        <label class="color">Color de letra <input id="estilo-color" type="color" bind:value={draft.color} /></label>
         <label class="color">Título <input type="color" bind:value={draft.titleColor} /></label>
         <label class="check"><input type="checkbox" bind:checked={draft.uppercase} /> Mayúsculas</label>
         <label class="check"><input type="checkbox" bind:checked={draft.shadow} /> Sombra</label>
+        <label class="check">
+          <input
+            id="estilo-contorno"
+            type="checkbox"
+            checked={!!draft.outlineColor}
+            onchange={(event) => toggleOutline(event.currentTarget.checked)}
+          />
+          Contorno
+        </label>
+        <label class="color">
+          Color del contorno
+          <input
+            id="estilo-color-contorno"
+            type="color"
+            value={draft.outlineColor ?? '#000000'}
+            disabled={!draft.outlineColor}
+            onchange={(event) => (draft!.outlineColor = event.currentTarget.value)}
+          />
+        </label>
       </div>
 
       <span class="legend">Fondo</span>

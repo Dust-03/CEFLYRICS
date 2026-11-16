@@ -5,6 +5,7 @@ export type Background = { kind: 'css'; value: string } | { kind: 'image' | 'vid
 export type Theme = {
   font: string;
   color: string;
+  outlineColor: string | null;
   titleColor: string;
   scale: number;
   uppercase: boolean;
@@ -42,6 +43,7 @@ export const BACKGROUNDS = [
 export const DEFAULT_THEME: Theme = {
   font: 'system',
   color: '#ffffff',
+  outlineColor: null,
   titleColor: '#f2b544',
   scale: 1,
   uppercase: false,
@@ -84,18 +86,29 @@ function parseBackground(input: unknown): Background | null {
 // Lo que llega por IPC no se da por bueno.
 export function parseTheme(input: unknown): Theme | null {
   if (typeof input !== 'object' || input === null) return null;
-  const { font, color, titleColor, scale, uppercase, shadow, background } = input as Record<string, unknown>;
+  const { font, color, outlineColor, titleColor, scale, uppercase, shadow, background } = input as Record<
+    string,
+    unknown
+  >;
   const parsedBackground = parseBackground(background);
   if (!parsedBackground || typeof font !== 'string' || !FONTS.some((item) => item.id === font)) return null;
   if (typeof color !== 'string' || !HEX.test(color) || typeof titleColor !== 'string' || !HEX.test(titleColor)) {
+    return null;
+  }
+  if (
+    outlineColor !== undefined &&
+    outlineColor !== null &&
+    (typeof outlineColor !== 'string' || !HEX.test(outlineColor))
+  ) {
     return null;
   }
   if (typeof scale !== 'number' || !Number.isFinite(scale)) return null;
   return {
     font,
     color,
+    outlineColor: typeof outlineColor === 'string' ? outlineColor : null,
     titleColor,
-    scale: Math.min(1.6, Math.max(0.5, scale)),
+    scale: Math.min(2, Math.max(0.5, scale)),
     uppercase: !!uppercase,
     shadow: !!shadow,
     background: parsedBackground,

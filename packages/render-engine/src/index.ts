@@ -21,7 +21,7 @@ const STYLES = `
 .cef-logo { width: 46u; height: 20.7u; color: #fff; }
 .cef-logo svg { display: block; width: 100%; height: 100%; }
 .cef-text { display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: var(--cef-margin-y, 5vh) var(--cef-margin-x, 5vw); text-align: center; }
-.cef-body { margin: 0; max-width: 100%; line-height: 1.25; font-weight: 600; white-space: pre-line; overflow-wrap: break-word; word-wrap: break-word; }
+.cef-body { margin: 0; max-width: 100%; line-height: 1.25; font-weight: 600; white-space: pre-line; overflow-wrap: break-word; word-wrap: break-word; paint-order: stroke fill; }
 .cef-shadow .cef-body { text-shadow: 0 0.2u 0.8u rgba(0, 0, 0, 0.6); }
 .cef-title { margin: 2.5u 0 0; font-weight: 600; }
 .cef-title:empty { margin: 0; }
@@ -37,7 +37,7 @@ const STYLES = `
 `.replace(/(\d[\d.]*)u\b/g, 'calc($1 * var(--cef-u))');
 
 // El texto se achica hasta entrar, pero no más que esto: de ahí abajo no se lee.
-const MIN_FIT = 0.3;
+const MIN_FIT = 0.05;
 
 function layer(stage: HTMLElement, className: string) {
   const element = document.createElement('div');
@@ -95,10 +95,11 @@ function applyTheme(
   parts.text.style.fontFamily = fontCss(theme.font);
   parts.text.classList.toggle('cef-shadow', theme.shadow);
   parts.body.style.color = theme.color;
+  parts.body.style.setProperty('-webkit-text-stroke', theme.outlineColor ? `0.045em ${theme.outlineColor}` : '0');
   parts.body.style.fontSize = `calc(${5.8 * theme.scale} * var(--cef-u) * var(--cef-fit, 1))`;
   parts.body.style.textTransform = theme.uppercase ? 'uppercase' : 'none';
   parts.title.style.color = theme.titleColor;
-  parts.title.style.fontSize = `calc(${2.6 * Math.min(theme.scale, 1.2)} * var(--cef-u))`;
+  parts.title.style.fontSize = `calc(${2.6 * Math.min(theme.scale, 1.2)} * var(--cef-u) * var(--cef-fit, 1))`;
 }
 
 type RendererOptions = {

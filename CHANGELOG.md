@@ -1,5 +1,11 @@
 # Cambios
 
+## 1.3.3
+
+- Permite ajustar por separado fuente, color y tamaño de Biblia y canciones.
+- Agrega un contorno opcional para las letras, con color configurable.
+- Conserva el margen libre del 5 % al ajustar el tamaño del texto.
+
 ## 1.3.2
 
 - Divide los versículos largos en dos diapositivas y permite recorrer ambas partes con las flechas.
