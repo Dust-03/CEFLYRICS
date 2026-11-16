@@ -28,6 +28,11 @@ export class SongService {
       .all(match, MAX_RESULTS) as SongSummary[];
   }
 
+  // Sin el tope de la lista: para importar sin duplicar y para exportar, hacen falta todas.
+  all(): SongSummary[] {
+    return this.db.prepare('SELECT id, title, author FROM songs ORDER BY title COLLATE NOCASE').all() as SongSummary[];
+  }
+
   get(id: number): Song | null {
     const song = this.db.prepare('SELECT id, title, author FROM songs WHERE id = ?').get(id) as SongSummary | undefined;
     if (!song) return null;

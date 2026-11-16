@@ -153,7 +153,7 @@ export class SongImporter {
   }
 
   async import(files: string[]): Promise<ImportResult> {
-    const known = new Set(this.songs.list('').map(({ title }) => title.toLowerCase()));
+    const known = new Set(this.songs.all().map(({ title }) => title.toLowerCase()));
     const result: ImportResult = { added: 0, rejected: [] };
     for (const file of files) {
       let entries: SongEntry[];
@@ -169,9 +169,14 @@ export class SongImporter {
         } else if (known.has(song.title.toLowerCase())) {
           result.rejected.push({ name, reason: 'ya existe una canción con ese título' });
         } else {
-          this.songs.save(song);
-          known.add(song.title.toLowerCase());
-          result.added++;
+          // Una canción vacía o rota no puede frenar a las demás del mismo archivo.
+          try {
+            this.songs.save(song);
+            known.add(song.title.toLowerCase());
+            result.added++;
+          } catch (saveError) {
+            result.rejected.push({ name, reason: (saveError as Error).message });
+          }
         }
       }
     }
@@ -182,7 +187,7 @@ export class SongImporter {
   async export(folder: string) {
     await mkdir(folder, { recursive: true });
     const used = new Set<string>();
-    const summaries = this.songs.list('');
+    const summaries = this.songs.all();
     for (const { id, title } of summaries) {
       const song = this.songs.get(id);
       if (song) await writeFile(join(folder, fileNameFor(title, used)), toSongText(song.slides));

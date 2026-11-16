@@ -160,7 +160,10 @@ test('los temporizadores se guardan al cerrar la app', async () => {
   await addDuration('Queda guardado', 60);
   await app.close();
   app = await electron.launch({ args: ['.'], env: { ...process.env, CEF_OUTPUT: 'window', CEF_USER_DATA: dir } });
-  operator = await app.firstWindow();
+  await app.firstWindow();
+  // Con dos monitores la salida a veces carga primero.
+  await expect.poll(() => app.windows().some((w) => w.url().includes('operator'))).toBe(true);
+  operator = app.windows().find((w) => w.url().includes('operator'))!;
   await operator.locator('#tab-temporizadores').click();
   await expect(operator.locator('.timer', { hasText: 'Queda guardado' })).toBeVisible();
 });

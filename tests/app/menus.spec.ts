@@ -200,7 +200,9 @@ test('la biblioteca sobrevive al cerrar y abrir la app', async () => {
   await app.close();
 
   app = await electron.launch({ args: ['.'], env: { ...process.env, CEF_OUTPUT: 'window', CEF_USER_DATA: dir } });
-  operator = await app.firstWindow();
+  await app.firstWindow();
+  await expect.poll(() => app.windows().some((w) => w.url().includes('operator'))).toBe(true);
+  operator = app.windows().find((w) => w.url().includes('operator'))!;
   await operator.locator('#tab-canciones').click();
   await expect(operator.locator('.song')).toContainText('Canción de prueba');
   await operator.locator('#tab-configuracion').click();
