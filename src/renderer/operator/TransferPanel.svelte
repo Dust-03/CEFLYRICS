@@ -100,14 +100,13 @@
   <section>
     <h3>Canciones</h3>
     <p>
-      Importá archivos TXT, con una línea en blanco entre diapositivas, u OpenLyrics (.xml). El nombre del TXT es el
-      título.
+      Importá archivos TXT, con una línea en blanco entre diapositivas, OpenLyrics (.xml) o el JSON que exporta
+      Holyrics, con todas las canciones juntas. El nombre del TXT es el título.
     </p>
     <div class="actions">
       <button id="canciones-importar" class="primary" disabled={busy} onclick={importSongs}>Importar canciones</button>
       <button id="canciones-exportar" disabled={busy} onclick={exportSongs}>Exportar canciones</button>
     </div>
-    <p class="note">Las canciones de Holyrics se suman cuando tengamos un archivo exportado de ejemplo.</p>
   </section>
 
   <section>
@@ -199,10 +198,6 @@
   .legal {
     font-size: 13px;
     color: var(--muted);
-  }
-
-  .note {
-    font-size: 12px;
   }
 
   .warning {

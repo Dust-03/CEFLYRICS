@@ -261,7 +261,7 @@ app.whenReady().then(() => {
   };
   ipcMain.handle(IPC.dataImportSongs, () =>
     guarded(async () => {
-      const files = await pickFiles('Importar canciones', 'Canciones (TXT y OpenLyrics)', SONG_EXTENSIONS);
+      const files = await pickFiles('Importar canciones', 'Canciones (TXT, OpenLyrics y Holyrics)', SONG_EXTENSIONS);
       return files.length ? songImporter.import(files) : { canceled: true as const };
     }),
   );
