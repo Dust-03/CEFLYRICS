@@ -1,5 +1,9 @@
 # Cambios
 
+## 1.3.1
+
+- Aumenta un poco el tamaño base de las letras proyectadas y conserva el ajuste automático para textos largos.
+
 ## 1.3.0
 
 - Agrega un selector de versículos al panel de Biblia y permite abrir cada versículo en la vista previa.

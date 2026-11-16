@@ -95,7 +95,7 @@ function applyTheme(
   parts.text.style.fontFamily = fontCss(theme.font);
   parts.text.classList.toggle('cef-shadow', theme.shadow);
   parts.body.style.color = theme.color;
-  parts.body.style.fontSize = `calc(${5 * theme.scale} * var(--cef-u) * var(--cef-fit, 1))`;
+  parts.body.style.fontSize = `calc(${5.8 * theme.scale} * var(--cef-u) * var(--cef-fit, 1))`;
   parts.body.style.textTransform = theme.uppercase ? 'uppercase' : 'none';
   parts.title.style.color = theme.titleColor;
   parts.title.style.fontSize = `calc(${2.6 * Math.min(theme.scale, 1.2)} * var(--cef-u))`;
