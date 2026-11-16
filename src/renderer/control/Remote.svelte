@@ -11,6 +11,7 @@
     ThemeAssignment,
   } from '@shared/api';
   import { bookGroup, bookShortName } from '@shared/bible-groups';
+  import { verseParts } from '@shared/verse-parts';
   import { initialState, type OnAirState, type OverrideMode, type Slide } from '@shared/state';
   import type { ThemeEntry } from '@shared/theme';
   import { formatRemaining, remainingMs, type TimerConfig, type TimerLayout } from '@shared/timers';
@@ -25,7 +26,7 @@
   };
   let { token, onConnection, onRejected, onLeave }: Props = $props();
 
-  type Item = { kind: 'bible' | 'song' | 'media'; key: string; label: string; slide: Slide };
+  type Item = { kind: 'bible' | 'song' | 'media'; key: string; label: string; slide: Slide; part?: number };
   const TABS = [
     { id: 'biblia', label: 'Biblia' },
     { id: 'canciones', label: 'Canciones' },
@@ -55,6 +56,7 @@
   let chapter = $state<number | null>(null);
   let chapterVerseIds = $state<number[]>([]);
   let currentVerseId = $state<number>();
+  let currentVersePart = $state(0);
   let verses = $state<BibleVerse[]>([]);
 
   let songQuery = $state('');
@@ -64,6 +66,13 @@
 
   const verseNavigationIds = $derived(chapterVerseIds.length ? chapterVerseIds : verses.map((verse) => verse.vid));
   const verseNavigationIndex = $derived(currentVerseId === undefined ? -1 : verseNavigationIds.indexOf(currentVerseId));
+  const activeVerse = $derived(verses.find((verse) => verse.vid === currentVerseId));
+  const activeVerseParts = $derived(activeVerse ? verseParts(activeVerse.text) : []);
+  const canGoToPreviousVerse = $derived(currentVersePart > 0 || verseNavigationIndex > 0);
+  const canGoToNextVerse = $derived(
+    currentVersePart < activeVerseParts.length - 1 ||
+      (verseNavigationIds.length > 0 && verseNavigationIndex < verseNavigationIds.length - 1),
+  );
 
   let media = $state<MediaItem[]>([]);
   let shortcuts = $state<Shortcut[]>([]);
@@ -170,22 +179,29 @@
     if (twice) sendToAir(item);
     else {
       selected = item;
-      if (item.kind === 'bible') currentVerseId = Number(item.key.split(':').at(-1));
+      if (item.kind === 'bible') {
+        currentVerseId = Number(item.key.split(':').at(-1));
+        currentVersePart = item.part ?? 0;
+      }
     }
   }
 
   function sendToAir(item: Item) {
     selected = item;
     airKey = item.key;
-    if (item.kind === 'bible') currentVerseId = Number(item.key.split(':').at(-1));
+    if (item.kind === 'bible') {
+      currentVerseId = Number(item.key.split(':').at(-1));
+      currentVersePart = item.part ?? 0;
+    }
     connection.dispatch({ type: 'show-slide', slide: $state.snapshot(withTheme(item)) });
   }
 
-  const verseItem = (verse: BibleVerse): Item => ({
+  const verseItem = (verse: BibleVerse, part = 0): Item => ({
     kind: 'bible',
     key: `bible:${version}:${verse.vid}`,
     label: verse.label,
-    slide: { body: verse.text, title: `${verse.label} · ${version}` },
+    slide: { body: verseParts(verse.text)[part] ?? verse.text, title: `${verse.label} · ${version}` },
+    part,
   });
 
   const mediaItem = ({ id, kind, name, url, thumb }: MediaItem): Item => ({
@@ -211,6 +227,7 @@
       verses = [];
       chapterVerseIds = [];
       currentVerseId = undefined;
+      currentVersePart = 0;
       return;
     }
     const result = await connection.call<BibleSearchResult>('bible.search', version, text);
@@ -223,6 +240,7 @@
     verses = result.verses;
     chapterVerseIds = ids;
     currentVerseId = result.kind === 'reference' ? result.verses[0]?.vid : undefined;
+    currentVersePart = 0;
   }
 
   async function openChapter(number: number) {
@@ -230,21 +248,36 @@
     verses = await connection.call<BibleVerse[]>('bible.chapter', version, book!.book, number);
     chapterVerseIds = verses.map((verse) => verse.vid);
     currentVerseId = undefined;
+    currentVersePart = 0;
   }
 
   async function moveBibleVerse(step: -1 | 1) {
     if (!verseNavigationIds.length) return;
     const fromId = currentVerseId ?? (selected?.kind === 'bible' ? Number(selected.key.split(':').at(-1)) : undefined);
     const fromIndex = fromId === undefined ? -1 : verseNavigationIds.indexOf(fromId);
-    const nextIndex = Math.max(0, Math.min(verseNavigationIds.length - 1, fromIndex + step));
-    const vid = verseNavigationIds[nextIndex];
+    const current =
+      fromId === undefined
+        ? undefined
+        : (verses.find((item) => item.vid === fromId) ??
+          (await connection.call<BibleVerse | undefined>('bible.verse', version, fromId)));
+    const currentParts = current ? verseParts(current.text) : [];
+    if (step > 0 && current && currentVersePart < currentParts.length - 1) {
+      sendToAir(verseItem(current, currentVersePart + 1));
+      return;
+    }
+    if (step < 0 && current && currentVersePart > 0) {
+      sendToAir(verseItem(current, currentVersePart - 1));
+      return;
+    }
+
+    const vid = verseNavigationIds[fromIndex + step];
     if (vid === undefined || vid === fromId) return;
     const verse =
       verses.find((item) => item.vid === vid) ??
       (await connection.call<BibleVerse | undefined>('bible.verse', version, vid));
     if (!verse) return;
     if (!verses.some((item) => item.vid === vid)) verses = [verse];
-    sendToAir(verseItem(verse));
+    sendToAir(verseItem(verse, step < 0 ? verseParts(verse.text).length - 1 : 0));
   }
 
   async function changeVersion() {
@@ -260,6 +293,7 @@
     verses = [];
     chapterVerseIds = [];
     currentVerseId = undefined;
+    currentVersePart = 0;
   }
 
   // Volver a tocar la pestaña en la que se está lleva al inicio de ese menú.
@@ -665,13 +699,13 @@
       </div>
     {:else if tab === 'biblia' && verseNavigationIds.length}
       <div class="stepper">
-        <button id="control-versiculo-anterior" disabled={verseNavigationIndex <= 0} onclick={() => moveBibleVerse(-1)}>
+        <button id="control-versiculo-anterior" disabled={!canGoToPreviousVerse} onclick={() => moveBibleVerse(-1)}>
           ‹ Anterior
         </button>
         <button
           id="control-versiculo-siguiente"
           class="live"
-          disabled={verseNavigationIndex >= verseNavigationIds.length - 1}
+          disabled={!canGoToNextVerse}
           onclick={() => moveBibleVerse(1)}
         >
           Siguiente ›

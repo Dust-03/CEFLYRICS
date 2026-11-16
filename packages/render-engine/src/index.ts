@@ -20,7 +20,7 @@ const STYLES = `
 .cef-wallpaper { display: flex; align-items: center; justify-content: center; background: #05070d; }
 .cef-logo { width: 46u; height: 20.7u; color: #fff; }
 .cef-logo svg { display: block; width: 100%; height: 100%; }
-.cef-text { display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: 2.8u 6%; text-align: center; }
+.cef-text { display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: var(--cef-margin-y, 5vh) var(--cef-margin-x, 5vw); text-align: center; }
 .cef-body { margin: 0; max-width: 100%; line-height: 1.25; font-weight: 600; white-space: pre-line; overflow-wrap: break-word; word-wrap: break-word; }
 .cef-shadow .cef-body { text-shadow: 0 0.2u 0.8u rgba(0, 0, 0, 0.6); }
 .cef-title { margin: 2.5u 0 0; font-weight: 600; }
@@ -175,6 +175,8 @@ export function createRenderer(
   function measure() {
     const { clientWidth: width, clientHeight: height } = stage;
     if (!width || !height) return;
+    stage.style.setProperty('--cef-margin-x', `${width * 0.05}px`);
+    stage.style.setProperty('--cef-margin-y', `${height * 0.05}px`);
     stage.style.setProperty('--cef-u', `${Math.min(width, (height * 16) / 9) / 100}px`);
     fitText();
   }

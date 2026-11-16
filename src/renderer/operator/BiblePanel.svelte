@@ -2,6 +2,7 @@
   import { untrack } from 'svelte';
   import type { BibleBook, BibleInfo, BibleVerse } from '@shared/api';
   import { TESTAMENTS, bookGroup, bookShortName } from '@shared/bible-groups';
+  import { verseParts } from '@shared/verse-parts';
   import type { PreviewItem } from './preview-item';
 
   type Props = {
@@ -26,6 +27,7 @@
   let chapter = $state<number>();
   let chapterVerseIds = $state<number[]>([]);
   let currentVerseId = $state<number>();
+  let currentVersePart = $state(0);
   let verses = $state<BibleVerse[]>([]);
   let selected = $state(-1);
   let list = $state<HTMLElement>();
@@ -35,8 +37,13 @@
   const chapterNumbers = $derived(Array.from({ length: currentBook?.chapters ?? 0 }, (_, i) => i + 1));
   const navigationIds = $derived(chapterVerseIds.length ? chapterVerseIds : verses.map((verse) => verse.vid));
   const navigationIndex = $derived(currentVerseId === undefined ? -1 : navigationIds.indexOf(currentVerseId));
-  const canGoPrevious = $derived(navigationIndex > 0);
-  const canGoNext = $derived(navigationIds.length > 0 && navigationIndex < navigationIds.length - 1);
+  const activeVerse = $derived(verses.find((verse) => verse.vid === currentVerseId));
+  const activeParts = $derived(activeVerse ? verseParts(activeVerse.text) : []);
+  const canGoPrevious = $derived(currentVersePart > 0 || navigationIndex > 0);
+  const canGoNext = $derived(
+    currentVersePart < activeParts.length - 1 ||
+      (navigationIds.length > 0 && navigationIndex < navigationIds.length - 1),
+  );
   const emptyMessage = $derived(
     query.trim() ? `No se encontró «${query.trim()}» en ${version}` : 'Elegí un libro o escribí una cita o una palabra',
   );
@@ -74,17 +81,20 @@
       if (run !== searchRun) return;
       verses = result.verses;
       currentVerseId = result.kind === 'reference' ? result.verses[0]?.vid : undefined;
+      currentVersePart = 0;
     } else if (book && chapter) {
       const value = await api.chapter(code, book, chapter);
       if (run === searchRun) {
         chapterVerseIds = value.map((verse) => verse.vid);
         verses = value;
         currentVerseId = undefined;
+        currentVersePart = 0;
       }
     } else {
       chapterVerseIds = [];
       verses = [];
       currentVerseId = undefined;
+      currentVersePart = 0;
     }
     selected = -1;
   }
@@ -100,6 +110,7 @@
     chapter = undefined;
     chapterVerseIds = [];
     currentVerseId = undefined;
+    currentVersePart = 0;
     verses = [];
     selected = -1;
     searchBox?.focus();
@@ -111,6 +122,7 @@
     chapter = undefined;
     chapterVerseIds = [];
     currentVerseId = undefined;
+    currentVersePart = 0;
     verses = [];
     selected = -1;
   }
@@ -130,9 +142,7 @@
     if (run !== searchRun || code !== version) return;
     if (!verse) return;
     verses = [verse];
-    selected = 0;
-    currentVerseId = vid;
-    onPreview(toItem(verse));
+    showVerse(verse, 0);
     list?.focus();
   }
 
@@ -141,36 +151,55 @@
     clearTimeout(typing);
     const fromId = currentVerseId ?? (selected >= 0 ? verses[selected]?.vid : undefined);
     const fromIndex = fromId === undefined ? -1 : navigationIds.indexOf(fromId);
-    const nextIndex = Math.max(0, Math.min(navigationIds.length - 1, fromIndex + step));
-    const vid = navigationIds[nextIndex];
-    if (vid === undefined || vid === fromId) return;
     const followsAir = fromId !== undefined && onAirKey === `bible:${fromId}`;
     const run = ++searchRun;
+    const current =
+      fromId === undefined
+        ? undefined
+        : (verses.find((verse) => verse.vid === fromId) ?? (await api.verse(version, fromId)));
+    if (run !== searchRun) return;
+    const currentParts = current ? verseParts(current.text) : [];
+
+    if (step > 0 && current && currentVersePart < currentParts.length - 1) {
+      showVerse(current, currentVersePart + 1);
+      if (followsAir) onAir(toItem(current, currentVersePart));
+      return;
+    }
+    if (step < 0 && current && currentVersePart > 0) {
+      showVerse(current, currentVersePart - 1);
+      if (followsAir) onAir(toItem(current, currentVersePart));
+      return;
+    }
+
+    const nextIndex = fromIndex + step;
+    const vid = navigationIds[nextIndex];
+    if (vid === undefined || vid === fromId) return;
     const visibleIndex = verses.findIndex((verse) => verse.vid === vid);
     const verse = visibleIndex >= 0 ? verses[visibleIndex] : await api.verse(version, vid);
     if (run !== searchRun || !verse) return;
-    if (visibleIndex >= 0) select(visibleIndex);
-    else {
-      verses = [verse];
-      selected = 0;
-      currentVerseId = vid;
-      onPreview(toItem(verse));
-      list?.focus();
-    }
-    if (followsAir) onAir(toItem(verse));
+    if (visibleIndex < 0) verses = [verse];
+    const part = step < 0 ? verseParts(verse.text).length - 1 : 0;
+    showVerse(verse, part);
+    if (followsAir) onAir(toItem(verse, part));
+    list?.focus();
   }
 
-  const toItem = (verse: BibleVerse): PreviewItem => ({
+  const toItem = (verse: BibleVerse, part = 0): PreviewItem => ({
     kind: 'bible',
     key: `bible:${verse.vid}`,
-    slide: { body: verse.text, title: `${verse.label} · ${version}` },
+    slide: { body: verseParts(verse.text)[part] ?? verse.text, title: `${verse.label} · ${version}` },
   });
 
+  function showVerse(verse: BibleVerse, part: number) {
+    selected = verses.findIndex((item) => item.vid === verse.vid);
+    currentVerseId = verse.vid;
+    currentVersePart = part;
+    onPreview(toItem(verse, part));
+    if (selected >= 0) list?.querySelectorAll('li')[selected]?.scrollIntoView({ block: 'nearest' });
+  }
+
   function select(index: number) {
-    selected = index;
-    currentVerseId = verses[index].vid;
-    onPreview(toItem(verses[index]));
-    list?.querySelectorAll('li')[index]?.scrollIntoView({ block: 'nearest' });
+    showVerse(verses[index], 0);
   }
 
   async function onSearchKey(event: KeyboardEvent) {
@@ -195,7 +224,7 @@
       void navigateVerse(step);
     } else if (event.key === 'Enter' && selected >= 0) {
       event.preventDefault();
-      onAir(toItem(verses[selected]));
+      onAir(toItem(verses[selected], currentVersePart));
     }
   }
 

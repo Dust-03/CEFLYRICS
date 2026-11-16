@@ -1,5 +1,10 @@
 # Cambios
 
+## 1.3.2
+
+- Divide los versículos largos en dos diapositivas y permite recorrer ambas partes con las flechas.
+- Ajusta el margen del texto al 5 % de la resolución de cada salida y adapta el tamaño al contenido disponible.
+
 ## 1.3.1
 
 - Aumenta un poco el tamaño base de las letras proyectadas y conserva el ajuste automático para textos largos.
