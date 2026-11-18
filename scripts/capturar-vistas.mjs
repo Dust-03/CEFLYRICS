@@ -1,11 +1,12 @@
 // Guarda capturas de la búsqueda bíblica para revisar la interfaz de cada versión.
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import Database from 'better-sqlite3';
 import { _electron as electron } from '@playwright/test';
 
-const output = resolve('release/capturas-1.3.0');
+const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
+const output = resolve(`release/capturas-${version}`);
 const userData = mkdtempSync(join(tmpdir(), 'ceflyrics-capturas-'));
 mkdirSync(output, { recursive: true });
 copyFileSync('resources/bibles.db', join(userData, 'ceflyrics.db'));

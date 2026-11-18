@@ -1,7 +1,35 @@
-// Fuentes incluidas en el programa, con licencia OFL. Ver FONTS en src/shared/theme.ts.
+// Fuentes incluidas en el programa, con licencia OFL. Ver FONTS y WEIGHTS en src/shared/theme.ts.
+// Cada grosor y la cursiva son archivos aparte: sin ellos el navegador los imita y se ven mal.
+import '@fontsource/inter/latin-400.css';
+import '@fontsource/inter/latin-400-italic.css';
 import '@fontsource/inter/latin-600.css';
+import '@fontsource/inter/latin-600-italic.css';
+import '@fontsource/inter/latin-700.css';
+import '@fontsource/inter/latin-700-italic.css';
+import '@fontsource/montserrat/latin-400.css';
+import '@fontsource/montserrat/latin-400-italic.css';
 import '@fontsource/montserrat/latin-600.css';
+import '@fontsource/montserrat/latin-600-italic.css';
+import '@fontsource/montserrat/latin-700.css';
+import '@fontsource/montserrat/latin-700-italic.css';
+import '@fontsource/oswald/latin-400.css';
 import '@fontsource/oswald/latin-600.css';
+import '@fontsource/oswald/latin-700.css';
+import '@fontsource/lora/latin-400.css';
+import '@fontsource/lora/latin-400-italic.css';
 import '@fontsource/lora/latin-600.css';
+import '@fontsource/lora/latin-600-italic.css';
+import '@fontsource/lora/latin-700.css';
+import '@fontsource/lora/latin-700-italic.css';
+import '@fontsource/playfair-display/latin-400.css';
+import '@fontsource/playfair-display/latin-400-italic.css';
 import '@fontsource/playfair-display/latin-600.css';
+import '@fontsource/playfair-display/latin-600-italic.css';
+import '@fontsource/playfair-display/latin-700.css';
+import '@fontsource/playfair-display/latin-700-italic.css';
+import '@fontsource/merriweather/latin-400.css';
+import '@fontsource/merriweather/latin-400-italic.css';
+import '@fontsource/merriweather/latin-600.css';
+import '@fontsource/merriweather/latin-600-italic.css';
 import '@fontsource/merriweather/latin-700.css';
+import '@fontsource/merriweather/latin-700-italic.css';

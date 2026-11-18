@@ -3,18 +3,17 @@
 Programa de escritorio para proyectar versículos, letras, fotos, videos y temporizadores en el
 culto. Funciona sin internet: las teles y los celulares se conectan por la red local.
 
-Versión actual: **1.3.0**.
+Versión actual: **1.4.0**.
 
 ## Qué hace
 
 - **Biblia:** Reina-Valera 1909, KJV, WEB y BSB incluidas, con búsqueda por cita o palabra y selección por capítulo o versículo.
 - **Actualizaciones:** comprueba versiones nuevas publicadas en GitHub y permite instalarlas desde la app.
-- **Actualizaciones:** comprueba versiones nuevas publicadas en GitHub y permite instalarlas desde la app.
 - **Canciones:** letras con diapositivas por verso y coro.
 - **Medios:** fotos y videos, con sonido en la salida.
-- **Atajos:** versículos, canciones y medios guardados con una estrella.
+- **Atajos:** versículos, canciones y medios guardados con una estrella, a mano en la barra de título con vista previa.
 - **Temporizadores:** por duración o en cuenta atrás hasta una hora.
-- **Estilos:** fuentes, colores y fondos, con modo claro y oscuro en la consola.
+- **Estilos:** fuentes, grosor, cursiva, interlineado, contorno, colores y fondos, por separado para Biblia y canciones, con modo claro y oscuro en la consola.
 - **Salida:** se abre sola en el segundo monitor y se adapta a cualquier resolución.
 - **Transmisión:** cualquier tele con navegador muestra lo que está al aire, en una dirección fija.
 - **Control desde el celular:** app de Android o navegador, con PIN y un nombre por cada celular.
@@ -47,7 +46,7 @@ se actualiza en todos al instante.
    mandes al aire los saca solo. **Quitar** deja la pantalla limpia.
 
 Los **atajos** son lo que se guarda con la estrella para tenerlo a mano; en la PC, Ctrl+1 a Ctrl+9
-llevan a los nueve primeros. Tocar de nuevo el menú en el que estás te devuelve a su inicio.
+llevan a los nueve primeros, que también están en la barra de título. Tocar de nuevo el menú en el que estás te devuelve a su inicio.
 
 ### La red
 
@@ -68,7 +67,7 @@ biblias, y para pasar todo a otra PC en un solo archivo.
 
 Hace falta Windows 10 u 11 de 64 bits.
 
-1. Abrí `CEFLYRICS-Instalador-1.2.5.exe`. Como no tiene firma digital, Windows puede avisar: tocá
+1. Abrí `CEFLYRICS-Instalador-1.4.0.exe`. Como no tiene firma digital, Windows puede avisar: tocá
    **Más información** y **Ejecutar de todas formas**.
 2. Seguí los pasos y aceptá el permiso de administrador. El instalador crea la regla del firewall, y
    no hace falta instalar nada más.
@@ -111,7 +110,7 @@ npm test           # pruebas unitarias
 npm run test:app   # pruebas de la app
 npm run test:sync  # pruebas de sincronía del prototipo
 npm run check      # tipos, ESLint y formato
-npm run capturas   # capturas de la interfaz bíblica, en release/capturas-1.3.0/
+npm run capturas   # capturas de la interfaz bíblica, en release/capturas-<versión>/
 npm run apk        # app de Android, en resources/
 npm run dist       # instalador, en release/
 ```
@@ -122,9 +121,7 @@ sola la primera vez, fuera del repositorio.
 La especificación está en [docs/investigacion.md](docs/investigacion.md), y los planes en
 [docs/](docs/).
 
-Los pasos para preparar y publicar una versión están en [docs/publicar-1.3.0.md](docs/publicar-1.3.0.md).
-
-Los pasos para preparar y publicar una versión están en [docs/publicar-1.3.0.md](docs/publicar-1.3.0.md).
+Los pasos para preparar y publicar una versión están en [docs/publicar-1.4.0.md](docs/publicar-1.4.0.md).
 
 ## Licencia
 

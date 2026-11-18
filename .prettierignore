@@ -9,3 +9,4 @@ tests/.media/
 prototype/media/
 package-lock.json
 *.md
+graphify-out/

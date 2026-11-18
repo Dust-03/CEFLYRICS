@@ -7,6 +7,13 @@ type Page = 'operator' | 'output';
 
 const WINDOWED_OUTPUT = { width: 1280, height: 720 };
 
+// La barra de título la dibuja la consola; Windows pone encima sólo sus tres botones.
+export const TITLE_BAR = {
+  height: 38,
+  dark: { color: '#171e2d', symbolColor: '#e9edf5' },
+  light: { color: '#ffffff', symbolColor: '#1c2433' },
+};
+
 function baseOptions(): BrowserWindowConstructorOptions {
   return {
     show: false,
@@ -38,6 +45,8 @@ export function createOperatorWindow() {
     minHeight: 600,
     title: 'CEFLYRICS',
     backgroundColor: '#0e1320',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { ...TITLE_BAR.dark, height: TITLE_BAR.height },
   });
   window.once('ready-to-show', () => window.show());
   loadPage(window, 'operator');

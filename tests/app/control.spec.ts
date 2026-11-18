@@ -94,6 +94,21 @@ test('el celular se vincula con el PIN y manda un versículo al aire', async () 
   await expect(operator.locator('#lan-celulares li')).toContainText('Conectado');
 });
 
+test('con el celular acostado la lista queda al lado de la pantalla y se sigue mandando', async () => {
+  const phone = await pairPhone();
+  await phone.setViewportSize({ width: 800, height: 380 });
+  const header = (await phone.locator('header').boundingBox())!;
+  const list = (await phone.locator('main').boundingBox())!;
+  expect(list.x).toBeGreaterThanOrEqual(header.x + header.width - 1);
+  expect(list.height).toBeGreaterThan(300);
+  await expect(phone.locator('#control-tab-biblia')).toBeInViewport();
+
+  await phone.locator('#control-buscar').fill('jn 3 16');
+  await phone.getByRole('button', { name: /Juan 3:16/ }).click();
+  await phone.locator('#control-aire-boton').click();
+  await expect(output.locator('.cef-body')).toContainText('de tal manera');
+});
+
 test('el mismo versículo se puede mandar en otra versión', async () => {
   const phone = await pairPhone();
   await phone.locator('#control-buscar').fill('jn 3 16');

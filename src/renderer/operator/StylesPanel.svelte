@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import type { MediaItem, ThemeAssignment } from '@shared/api';
-  import { BACKGROUNDS, FONTS, type Background, type Theme, type ThemeEntry } from '@shared/theme';
+  import { BACKGROUNDS, FONTS, WEIGHTS, type Background, type Theme, type ThemeEntry } from '@shared/theme';
   import Screen from './Screen.svelte';
 
   type Props = {
@@ -134,15 +134,34 @@
         Fuente
         <select id="estilo-fuente" bind:value={draft.font}>
           {#each FONTS as font (font.id)}
-            <option value={font.id}>{font.name}</option>
+            <option value={font.id} style:font-family={font.css}>{font.name}</option>
           {/each}
         </select>
       </label>
+      <div class="row">
+        <label class="grow">
+          Grosor
+          <select id="estilo-grosor" bind:value={draft.weight}>
+            {#each WEIGHTS as weight (weight.value)}
+              <option value={weight.value}>{weight.name}</option>
+            {/each}
+          </select>
+        </label>
+        <label class="check"><input id="estilo-cursiva" type="checkbox" bind:checked={draft.italic} /> Cursiva</label>
+      </div>
       <label>
         Tamaño · {Math.round(draft.scale * 100)} %
         <input id="estilo-tamano" type="range" min="0.5" max="2" step="0.05" bind:value={draft.scale} />
       </label>
-      <p class="hint">El tamaño se ajusta para mantener libre el margen del 5 % de la pantalla.</p>
+      <label>
+        Margen · {Math.round(draft.margin * 100)} % de la pantalla
+        <input id="estilo-margen" type="range" min="0" max="0.2" step="0.01" bind:value={draft.margin} />
+      </label>
+      <p class="hint">Es una proporción: el mismo margen en una tele de 32" que en una de 70" o en el proyector.</p>
+      <label>
+        Interlineado · {draft.lineHeight.toFixed(2)}
+        <input id="estilo-interlineado" type="range" min="0.9" max="2" step="0.05" bind:value={draft.lineHeight} />
+      </label>
       <div class="row">
         <label class="color">Color de letra <input id="estilo-color" type="color" bind:value={draft.color} /></label>
         <label class="color">Título <input type="color" bind:value={draft.titleColor} /></label>
@@ -164,10 +183,23 @@
             type="color"
             value={draft.outlineColor ?? '#000000'}
             disabled={!draft.outlineColor}
-            onchange={(event) => (draft!.outlineColor = event.currentTarget.value)}
+            oninput={(event) => (draft!.outlineColor = event.currentTarget.value)}
           />
         </label>
       </div>
+      {#if draft.outlineColor}
+        <label>
+          Grosor del contorno · {Math.round(draft.outlineWidth * 1000) / 10} %
+          <input
+            id="estilo-grosor-contorno"
+            type="range"
+            min="0.01"
+            max="0.15"
+            step="0.005"
+            bind:value={draft.outlineWidth}
+          />
+        </label>
+      {/if}
 
       <span class="legend">Fondo</span>
       <div class="swatches">
@@ -286,6 +318,10 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 12px;
+  }
+
+  .grow {
+    flex: 1;
   }
 
   .color {

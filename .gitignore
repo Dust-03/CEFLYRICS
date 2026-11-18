@@ -45,3 +45,6 @@ android/build/
 android/app/build/
 android/local.properties
 android/firma.properties
+
+# Grafo de graphify (se regenera)
+graphify-out/

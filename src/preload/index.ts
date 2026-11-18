@@ -17,6 +17,8 @@ const api: CeflyricsApi = {
   getOutputInfo: () => ipcRenderer.invoke(IPC.getOutputInfo),
   toggleOutput: () => ipcRenderer.send(IPC.toggleOutput),
   toggleFullscreen: () => ipcRenderer.send(IPC.toggleFullscreen),
+  setTitleBarTheme: (theme) => ipcRenderer.send(IPC.setTitleBarTheme, theme),
+  checkUpdates: () => ipcRenderer.invoke(IPC.checkUpdates),
   onOutputInfo: (listener) => subscribe(IPC.outputInfoChanged, listener),
   data: {
     export: () => ipcRenderer.invoke(IPC.dataExport),

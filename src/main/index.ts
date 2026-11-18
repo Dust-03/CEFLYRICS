@@ -10,6 +10,7 @@ import {
   type ThemeAssignment,
   type ThemeInput,
   type TimerInput,
+  type UpdateCheck,
 } from '@shared/api';
 import { parsePort } from '@shared/lan';
 import { parseAction, type Action } from '@shared/state';
@@ -27,7 +28,7 @@ import { SongService } from './songs';
 import { OnAirStore } from './store';
 import { ThemeService } from './themes';
 import { TimerService } from './timers';
-import { OutputWindow, createOperatorWindow } from './windows';
+import { OutputWindow, TITLE_BAR, createOperatorWindow } from './windows';
 
 // En desarrollo los datos quedan en el proyecto, no en el perfil del usuario.
 if (!app.isPackaged) app.setPath('userData', process.env.CEF_USER_DATA ?? join(app.getAppPath(), 'userdata'));
@@ -52,7 +53,8 @@ function toggleFullscreen(contents: WebContents) {
   window?.setFullScreen(!window.isFullScreen());
 }
 
-function configureAutoUpdates(operator: BrowserWindow) {
+// Devuelve la búsqueda manual; sin instalar (desarrollo, pruebas) no hay nada que buscar.
+function configureAutoUpdates(operator: BrowserWindow): (() => Promise<UpdateCheck>) | undefined {
   if (!app.isPackaged) return;
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
@@ -98,9 +100,12 @@ function configureAutoUpdates(operator: BrowserWindow) {
     }
   });
 
-  autoUpdater.on('error', () => undefined);
+  // El avance de la descarga se ve en el ícono de la barra de tareas.
+  autoUpdater.on('download-progress', ({ percent }) => operator.setProgressBar(percent / 100));
+  autoUpdater.on('error', () => operator.setProgressBar(-1));
 
   autoUpdater.on('update-downloaded', async (info) => {
+    operator.setProgressBar(-1);
     if (promptOpen) return;
     promptOpen = true;
     try {
@@ -133,6 +138,13 @@ function configureAutoUpdates(operator: BrowserWindow) {
   initialCheck.unref();
   const periodicCheck = setInterval(check, 6 * 60 * 60 * 1_000);
   periodicCheck.unref();
+
+  // Si hay una versión nueva, el aviso de 'update-available' ofrece descargarla.
+  return async () => {
+    const result = await autoUpdater.checkForUpdates().catch(() => null);
+    if (!result) return 'error';
+    return result.isUpdateAvailable ? 'available' : 'latest';
+  };
 }
 
 function handleShortcuts(contents: WebContents, canChangeSize: () => boolean = () => true) {
@@ -431,9 +443,14 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC.getOutputInfo, () => output.info);
   ipcMain.on(IPC.toggleOutput, () => output.toggle());
   ipcMain.on(IPC.toggleFullscreen, (event) => toggleFullscreen(event.sender));
+  ipcMain.on(IPC.setTitleBarTheme, (event, theme: unknown) => {
+    const colors = theme === 'light' ? TITLE_BAR.light : TITLE_BAR.dark;
+    BrowserWindow.fromWebContents(event.sender)?.setTitleBarOverlay({ ...colors, height: TITLE_BAR.height });
+  });
 
   const operator = createOperatorWindow();
-  configureAutoUpdates(operator);
+  const checkUpdates = configureAutoUpdates(operator);
+  ipcMain.handle(IPC.checkUpdates, (): Promise<UpdateCheck> | UpdateCheck => checkUpdates?.() ?? 'dev');
   handleShortcuts(operator.webContents);
   // La salida sola no sirve: al cerrar el operador se cierra todo.
   operator.on('closed', () => output.close());

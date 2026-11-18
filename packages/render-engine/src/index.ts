@@ -21,9 +21,9 @@ const STYLES = `
 .cef-logo { width: 46u; height: 20.7u; color: #fff; }
 .cef-logo svg { display: block; width: 100%; height: 100%; }
 .cef-text { display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: var(--cef-margin-y, 5vh) var(--cef-margin-x, 5vw); text-align: center; }
-.cef-body { margin: 0; max-width: 100%; line-height: 1.25; font-weight: 600; white-space: pre-line; overflow-wrap: break-word; word-wrap: break-word; paint-order: stroke fill; }
+.cef-body { margin: 0; max-width: 100%; white-space: pre-line; overflow-wrap: break-word; word-wrap: break-word; paint-order: stroke fill; }
 .cef-shadow .cef-body { text-shadow: 0 0.2u 0.8u rgba(0, 0, 0, 0.6); }
-.cef-title { margin: 2.5u 0 0; font-weight: 600; }
+.cef-title { margin: 2.5u 0 0; font-weight: 600; paint-order: stroke fill; }
 .cef-title:empty { margin: 0; }
 .cef-timer { display: none; flex-direction: column; align-items: center; justify-content: center; opacity: 1; font-variant-numeric: tabular-nums; }
 .cef-timer.cef-on { display: flex; }
@@ -94,8 +94,14 @@ function applyTheme(
   parts.background.style.background = bg.kind === 'css' ? bg.value : '#000';
   parts.text.style.fontFamily = fontCss(theme.font);
   parts.text.classList.toggle('cef-shadow', theme.shadow);
+  parts.text.style.fontWeight = String(theme.weight);
+  parts.text.style.fontStyle = theme.italic ? 'italic' : 'normal';
   parts.body.style.color = theme.color;
-  parts.body.style.setProperty('-webkit-text-stroke', theme.outlineColor ? `0.045em ${theme.outlineColor}` : '0');
+  parts.body.style.lineHeight = String(theme.lineHeight);
+  // El trazo se pinta detrás de la letra y la mitad queda tapada: se duplica para que se vea el grosor elegido.
+  const stroke = theme.outlineColor ? `${theme.outlineWidth * 2}em ${theme.outlineColor}` : '0';
+  parts.body.style.setProperty('-webkit-text-stroke', stroke);
+  parts.title.style.setProperty('-webkit-text-stroke', stroke);
   parts.body.style.fontSize = `calc(${5.8 * theme.scale} * var(--cef-u) * var(--cef-fit, 1))`;
   parts.body.style.textTransform = theme.uppercase ? 'uppercase' : 'none';
   parts.title.style.color = theme.titleColor;
@@ -148,19 +154,21 @@ export function createRenderer(
   let theme = DEFAULT_THEME;
   let ticker: ReturnType<typeof setInterval> | undefined;
   let fitted = '';
+  // El margen es una fracción de la pantalla: el mismo 5 % en una tele chica que en una grande.
+  let margin = DEFAULT_THEME.margin;
 
   // Prueba tamaños hasta que el texto y la referencia entran en la pantalla.
   function fitText(force = false) {
     const { clientWidth: width, clientHeight: height } = stage;
-    const key = [width, height, body.textContent, title.textContent, body.style.cssText].join('|');
+    const key = [width, height, body.textContent, title.textContent, body.style.cssText, margin].join('|');
     if (!width || !height || (key === fitted && !force)) return;
     fitted = key;
     const style = getComputedStyle(text);
     const room = text.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
-    const margin = parseFloat(getComputedStyle(title).marginTop);
+    const gap = parseFloat(getComputedStyle(title).marginTop);
     const fits = (scale: number) => {
       stage.style.setProperty('--cef-fit', String(scale));
-      return body.offsetHeight + margin + title.offsetHeight <= room;
+      return body.offsetHeight + gap + title.offsetHeight <= room;
     };
     if (fits(1)) return;
     let small = MIN_FIT;
@@ -176,8 +184,8 @@ export function createRenderer(
   function measure() {
     const { clientWidth: width, clientHeight: height } = stage;
     if (!width || !height) return;
-    stage.style.setProperty('--cef-margin-x', `${width * 0.05}px`);
-    stage.style.setProperty('--cef-margin-y', `${height * 0.05}px`);
+    stage.style.setProperty('--cef-margin-x', `${width * margin}px`);
+    stage.style.setProperty('--cef-margin-y', `${height * margin}px`);
     stage.style.setProperty('--cef-u', `${Math.min(width, (height * 16) / 9) / 100}px`);
     fitText();
   }
@@ -216,6 +224,10 @@ export function createRenderer(
     const timerFull = !!run && shownTimer?.layout === 'full';
     const look = (timerFull && run?.theme) || theme;
     applyTheme(look, { background, text, body, title });
+    if ((look.margin ?? DEFAULT_THEME.margin) !== margin) {
+      margin = look.margin ?? DEFAULT_THEME.margin;
+      measure();
+    }
     const bg = look.background;
     // El video de fondo no lleva sonido: el audio es de lo que se proyecta.
     const backgroundFile = bg.kind === 'css' ? null : { kind: bg.kind, url: bg.url, thumb: bg.thumb, loop: true };

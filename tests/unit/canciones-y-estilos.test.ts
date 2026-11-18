@@ -181,7 +181,9 @@ test('los estilos y medios inválidos se rechazan', () => {
   expect(parseTheme({ ...DEFAULT_THEME, color: 'red; background: url(x)' })).toBeNull();
   expect(parseTheme({ ...DEFAULT_THEME, background: { kind: 'css', value: 'url(http://x/y.png)' } })).toBeNull();
   expect(parseTheme({ ...DEFAULT_THEME, background: { kind: 'image', url: 'file:///c:/secreto.png' } })).toBeNull();
-  expect(parseTheme({ ...DEFAULT_THEME, scale: 99 })?.scale).toBe(1.6);
+  expect(parseTheme({ ...DEFAULT_THEME, scale: 99 })?.scale).toBe(2);
+  expect(parseTheme({ ...DEFAULT_THEME, margin: 0.9 })?.margin).toBe(0.2);
+  expect(parseTheme({ ...DEFAULT_THEME, margin: undefined })?.margin).toBe(0.05);
   for (const entry of FACTORY_THEMES) expect(parseTheme(entry.theme), entry.name).toEqual(entry.theme);
 
   const slide = { body: '', title: '', media: { kind: 'image', url: 'file:///c:/secreto.png', loop: false } };

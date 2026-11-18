@@ -11,6 +11,9 @@ export type AppInfo = {
   electron: string;
 };
 
+// Resultado de buscar actualizaciones a mano: 'dev' cuando corre sin instalar.
+export type UpdateCheck = 'available' | 'latest' | 'error' | 'dev';
+
 export type OutputInfo = {
   open: boolean;
   fullscreen: boolean;
@@ -133,6 +136,8 @@ export type CeflyricsApi = {
   getOutputInfo: () => Promise<OutputInfo>;
   toggleOutput: () => void;
   toggleFullscreen: () => void;
+  setTitleBarTheme: (theme: 'dark' | 'light') => void;
+  checkUpdates: () => Promise<UpdateCheck>;
   onOutputInfo: (listener: (info: OutputInfo) => void) => () => void;
   bible: BibleApi;
   songs: SongApi;
@@ -152,6 +157,8 @@ export const IPC = {
   getOutputInfo: 'output:get-info',
   toggleOutput: 'output:toggle',
   toggleFullscreen: 'window:toggle-fullscreen',
+  setTitleBarTheme: 'window:title-bar-theme',
+  checkUpdates: 'app:check-updates',
   outputInfoChanged: 'output:info-changed',
   bibleList: 'bible:list',
   bibleBooks: 'bible:books',

@@ -11,7 +11,8 @@
   --on-accent: #231803;
   --live: #e5534b;
   --on-live: #ffffff;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px rgb(0 0 0 / 0.18);
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
 
   --g-pentateuco: #f0a04b;
   --g-historicos: #e0c04e;
@@ -37,7 +38,7 @@
   --on-accent: #ffffff;
   --live: #cf3a32;
   --on-live: #ffffff;
-  --shadow: 0 1px 2px rgb(20 30 50 / 0.08);
+  --shadow: 0 1px 2px rgb(20 30 50 / 0.06), 0 8px 24px rgb(20 30 50 / 0.06);
 
   --g-pentateuco: #b8640f;
   --g-historicos: #8f7406;
@@ -84,6 +85,28 @@ textarea {
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 8px;
+  transition:
+    border-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  outline: none;
+}
+
+input[type='range'] {
+  padding: 0;
+  accent-color: var(--accent);
+  border: 0;
+  box-shadow: none;
+}
+
+input[type='checkbox'] {
+  accent-color: var(--accent);
 }
 
 input:focus-visible,
@@ -100,10 +123,25 @@ button {
   border: 1px solid var(--line);
   border-radius: 8px;
   cursor: pointer;
+  transition:
+    background-color 0.15s var(--ease),
+    border-color 0.15s var(--ease),
+    color 0.15s var(--ease),
+    transform 0.1s var(--ease),
+    filter 0.15s var(--ease);
 }
 
 button:hover:enabled {
   border-color: var(--accent);
+}
+
+button:active:enabled {
+  transform: scale(0.97);
+}
+
+button.primary:hover:enabled,
+button.live:hover:enabled {
+  filter: brightness(1.08);
 }
 
 button:disabled {
@@ -132,4 +170,19 @@ h2 {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* Barras de desplazamiento finas, del color de la consola. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
 }

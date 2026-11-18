@@ -307,8 +307,8 @@ test('un texto corto se ve igual de grande en proporción en 720p y en 4K', asyn
     sizes.push(await tv.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.cef-body')!).fontSize)));
     await tv.context().close();
   }
-  expect(sizes[0]).toBeCloseTo(64, 0);
-  expect(sizes[1]).toBeCloseTo(192, 0);
+  expect(sizes[0]).toBeCloseTo(74.24, 0); // 5,8 % de 1280
+  expect(sizes[1]).toBeCloseTo(222.72, 0); // 5,8 % de 3840
 });
 
 test('si la ventana de la tele cambia de tamaño, el texto se vuelve a acomodar', async () => {

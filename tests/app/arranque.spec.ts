@@ -9,6 +9,9 @@ test('la app abre la consola del operador con el puente seguro', async () => {
 
   await expect(window.locator('h1')).toHaveText('Ceflyrics');
   await expect(window.locator('small')).toContainText('Versión');
+  // Sin instalar no hay de dónde actualizar, y se avisa en lugar de fallar callado.
+  await window.locator('#btn-actualizar').dispatchEvent('click');
+  await expect(window.locator('#estado-actualizacion')).toHaveText('Solo se actualiza la app instalada');
   await expect(window.locator('h1.logo')).toHaveCSS('mask-image', /logo-cef|svg/);
   await expect(window.locator('h1.logo')).toHaveCSS('width', '58px');
 

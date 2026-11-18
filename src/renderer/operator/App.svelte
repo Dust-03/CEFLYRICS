@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AppInfo, MediaItem, OutputInfo, Shortcut, ThemeAssignment } from '@shared/api';
+  import type { AppInfo, MediaItem, OutputInfo, Shortcut, ThemeAssignment, UpdateCheck } from '@shared/api';
   import { initialState, type OnAirState, type OverrideMode } from '@shared/state';
   import { FACTORY_THEMES, type ThemeEntry } from '@shared/theme';
   import BiblePanel from './BiblePanel.svelte';
@@ -12,6 +12,7 @@
   import Splash from './Splash.svelte';
   import StylesPanel from './StylesPanel.svelte';
   import TimersPanel from './TimersPanel.svelte';
+  import TitleBar from './TitleBar.svelte';
   import TransferPanel from './TransferPanel.svelte';
   import TransmissionPanel from './TransmissionPanel.svelte';
 
@@ -29,6 +30,19 @@
   ] as const;
 
   let info = $state<AppInfo | null>(null);
+  let updateStatus = $state('');
+
+  const UPDATE_MESSAGES: Record<UpdateCheck, string> = {
+    available: 'Hay una versión nueva',
+    latest: 'Ya tenés la última versión',
+    error: 'No se pudo consultar GitHub; revisá internet',
+    dev: 'Solo se actualiza la app instalada',
+  };
+
+  async function checkUpdates() {
+    updateStatus = 'Buscando…';
+    updateStatus = UPDATE_MESSAGES[await api.checkUpdates()];
+  }
   let output = $state<OutputInfo | null>(null);
   let onAir = $state<OnAirState>(initialState);
   let tab = $state<(typeof MENU)[number]['id']>('biblia');
@@ -123,6 +137,7 @@
 
   $effect(() => {
     document.documentElement.dataset.theme = theme;
+    api.setTitleBarTheme(theme);
     try {
       localStorage.setItem(THEME_KEY, theme);
     } catch {
@@ -144,6 +159,19 @@
   }
 
   const showPreview = (item: PreviewItem) => (preview = item);
+
+  // Lo que muestra la barra al pasar por un atajo: una canción, su primera diapositiva.
+  function shortcutSlide(shortcut: Shortcut) {
+    const item = shortcutItem(shortcut);
+    if (item) return withTheme(item);
+    const theme = themes.find((entry) => entry.id === assignment.song)?.theme;
+    return { body: shortcut.text, title: shortcut.title, theme };
+  }
+
+  function shortcutToAir(shortcut: Shortcut) {
+    const item = shortcutItem(shortcut);
+    if (item) sendToAir(item);
+  }
 
   function openTab(id: typeof tab) {
     if (tab === id) {
@@ -173,197 +201,219 @@
 
 <Splash />
 
-<div class="app">
-  <nav class="menu" aria-label="Menú principal">
-    <h1 class="logo"><span>Ceflyrics</span></h1>
-    {#each MENU as item (item.id)}
-      <button id={`tab-${item.id}`} class:active={tab === item.id} onclick={() => openTab(item.id)}>
-        <Icon name={item.icon} />
-        <span>{item.label}</span>
+<div class="shell">
+  <TitleBar
+    {shortcuts}
+    aspect={outputAspect}
+    slideOf={shortcutSlide}
+    onUse={useShortcut}
+    onAir={shortcutToAir}
+    onManage={() => openTab('atajos')}
+  />
+  <div class="app">
+    <nav class="menu" aria-label="Menú principal">
+      <h1 class="logo"><span>Ceflyrics</span></h1>
+      {#each MENU as item (item.id)}
+        <button id={`tab-${item.id}`} class:active={tab === item.id} onclick={() => openTab(item.id)}>
+          <Icon name={item.icon} />
+          <span>{item.label}</span>
+        </button>
+      {/each}
+      <button
+        id="btn-tema"
+        class="theme"
+        aria-label={theme === 'dark' ? 'Pasar a modo claro' : 'Pasar a modo oscuro'}
+        title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+        onclick={() => (theme = theme === 'dark' ? 'light' : 'dark')}
+      >
+        {theme === 'dark' ? '☀' : '☾'}
       </button>
-    {/each}
-    <button
-      id="btn-tema"
-      class="theme"
-      aria-label={theme === 'dark' ? 'Pasar a modo claro' : 'Pasar a modo oscuro'}
-      title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-      onclick={() => (theme = theme === 'dark' ? 'light' : 'dark')}
-    >
-      {theme === 'dark' ? '☀' : '☾'}
-    </button>
-  </nav>
+    </nav>
 
-  <main>
-    <section class="card work">
-      <div class="pane" hidden={tab !== 'biblia'}>
-        {#key libraryRev}
-          <BiblePanel
-            home={homes.biblia ?? 0}
-            {onAirKey}
-            onPreview={showPreview}
-            onAir={sendToAir}
-            saved={savedRefs}
-            onToggleShortcut={toggleShortcut}
-          />
-        {/key}
-      </div>
-      <div class="pane" hidden={tab !== 'canciones'}>
-        {#if opened.canciones}
+    <main>
+      <section class="card work">
+        <div class="pane" hidden={tab !== 'biblia'}>
           {#key libraryRev}
-            <SongsPanel
-              home={homes.canciones ?? 0}
+            <BiblePanel
+              home={homes.biblia ?? 0}
               {onAirKey}
-              {openSongId}
               onPreview={showPreview}
               onAir={sendToAir}
               saved={savedRefs}
               onToggleShortcut={toggleShortcut}
-              onChange={loadShortcuts}
             />
           {/key}
-        {/if}
-      </div>
-      <div class="pane" hidden={tab !== 'medios'}>
-        {#if opened.medios}
-          <MediaPanel
-            home={homes.medios ?? 0}
-            {onAirKey}
-            onPreview={showPreview}
-            onAir={sendToAir}
-            onChange={() => {
-              loadLibrary();
-              loadShortcuts();
-            }}
-            saved={savedRefs}
-            onToggleShortcut={toggleShortcut}
-          />
-        {/if}
-      </div>
-      <div class="pane" hidden={tab !== 'atajos'}>
-        {#if opened.atajos}
-          <ShortcutsPanel
-            home={homes.atajos ?? 0}
-            {shortcuts}
-            {onAirKey}
-            onUse={useShortcut}
-            onAir={sendToAir}
-            toItem={shortcutItem}
-            onRemove={(item) => toggleShortcut(item.ref)}
-            onReorder={async (ids) => {
-              await api.shortcuts.reorder(ids);
-              await loadShortcuts();
-            }}
-          />
-        {/if}
-      </div>
-      <div class="pane" hidden={tab !== 'temporizadores'}>
-        {#if opened.temporizadores}
-          <TimersPanel
-            home={homes.temporizadores ?? 0}
-            {onAir}
-            active={tab === 'temporizadores'}
-            theme={themes.find((entry) => entry.id === assignment.song)?.theme}
-          />
-        {/if}
-      </div>
-      <div class="pane settings" hidden={tab !== 'configuracion'}>
-        <div class="settings-head">
-          <h2>Configuración</h2>
-          <div class="settings-tabs">
-            <button id="btn-pantalla-completa" onclick={() => api.toggleFullscreen()}>Pantalla completa (F11)</button>
-            <button
-              id="config-estilos"
-              class:primary={settingsTab === 'estilos'}
-              onclick={() => (settingsTab = 'estilos')}
-            >
-              Estilos y fuentes
-            </button>
-            <button id="config-datos" class:primary={settingsTab === 'datos'} onclick={() => (settingsTab = 'datos')}>
-              Importar y exportar
-            </button>
-          </div>
         </div>
-        {#if opened.configuracion}
-          {#if settingsTab === 'estilos'}
-            <StylesPanel home={homes.configuracion ?? 0} {themes} {assignment} {media} onChange={loadLibrary} />
-          {:else}
-            <TransferPanel
+        <div class="pane" hidden={tab !== 'canciones'}>
+          {#if opened.canciones}
+            {#key libraryRev}
+              <SongsPanel
+                home={homes.canciones ?? 0}
+                {onAirKey}
+                {openSongId}
+                onPreview={showPreview}
+                onAir={sendToAir}
+                saved={savedRefs}
+                onToggleShortcut={toggleShortcut}
+                onChange={loadShortcuts}
+              />
+            {/key}
+          {/if}
+        </div>
+        <div class="pane" hidden={tab !== 'medios'}>
+          {#if opened.medios}
+            <MediaPanel
+              home={homes.medios ?? 0}
+              {onAirKey}
+              onPreview={showPreview}
+              onAir={sendToAir}
               onChange={() => {
-                libraryRev++;
+                loadLibrary();
                 loadShortcuts();
+              }}
+              saved={savedRefs}
+              onToggleShortcut={toggleShortcut}
+            />
+          {/if}
+        </div>
+        <div class="pane" hidden={tab !== 'atajos'}>
+          {#if opened.atajos}
+            <ShortcutsPanel
+              home={homes.atajos ?? 0}
+              {shortcuts}
+              {onAirKey}
+              onUse={useShortcut}
+              onAir={sendToAir}
+              toItem={shortcutItem}
+              onRemove={(item) => toggleShortcut(item.ref)}
+              onReorder={async (ids) => {
+                await api.shortcuts.reorder(ids);
+                await loadShortcuts();
               }}
             />
           {/if}
-        {/if}
-      </div>
-      <div class="pane" hidden={tab !== 'transmision'}>
-        {#if opened.transmision}
-          <TransmissionPanel />
-        {/if}
-      </div>
-      <div class="pane text-pane" hidden={tab !== 'texto'}>
-        <textarea id="cuerpo" rows="8" placeholder="Texto a proyectar" bind:value={body}></textarea>
-        <input id="titulo" type="text" placeholder="Referencia o título" bind:value={title} />
-        <div>
-          <button
-            id="btn-mostrar"
-            class="primary"
-            disabled={!body.trim()}
-            onclick={() => showPreview({ kind: 'text', slide: { body, title } })}
-          >
-            A vista previa
+        </div>
+        <div class="pane" hidden={tab !== 'temporizadores'}>
+          {#if opened.temporizadores}
+            <TimersPanel
+              home={homes.temporizadores ?? 0}
+              {onAir}
+              active={tab === 'temporizadores'}
+              theme={themes.find((entry) => entry.id === assignment.song)?.theme}
+            />
+          {/if}
+        </div>
+        <div class="pane settings" hidden={tab !== 'configuracion'}>
+          <div class="settings-head">
+            <h2>Configuración</h2>
+            <div class="settings-tabs">
+              <button id="btn-pantalla-completa" onclick={() => api.toggleFullscreen()}>Pantalla completa (F11)</button>
+              <button
+                id="config-estilos"
+                class:primary={settingsTab === 'estilos'}
+                onclick={() => (settingsTab = 'estilos')}
+              >
+                Estilos y fuentes
+              </button>
+              <button id="config-datos" class:primary={settingsTab === 'datos'} onclick={() => (settingsTab = 'datos')}>
+                Importar y exportar
+              </button>
+            </div>
+          </div>
+          {#if opened.configuracion}
+            {#if settingsTab === 'estilos'}
+              <StylesPanel home={homes.configuracion ?? 0} {themes} {assignment} {media} onChange={loadLibrary} />
+            {:else}
+              <TransferPanel
+                onChange={() => {
+                  libraryRev++;
+                  loadShortcuts();
+                }}
+              />
+            {/if}
+          {/if}
+        </div>
+        <div class="pane" hidden={tab !== 'transmision'}>
+          {#if opened.transmision}
+            <TransmissionPanel />
+          {/if}
+        </div>
+        <div class="pane text-pane" hidden={tab !== 'texto'}>
+          <textarea id="cuerpo" rows="8" placeholder="Texto a proyectar" bind:value={body}></textarea>
+          <input id="titulo" type="text" placeholder="Referencia o título" bind:value={title} />
+          <div>
+            <button
+              id="btn-mostrar"
+              class="primary"
+              disabled={!body.trim()}
+              onclick={() => showPreview({ kind: 'text', slide: { body, title } })}
+            >
+              A vista previa
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <aside>
+        <section class="card">
+          <h2>Vista previa</h2>
+          <Screen
+            id="vista-previa"
+            aspect={outputAspect}
+            state={{ slide: preview ? withTheme(preview) : null, mode: 'live' }}
+          />
+          <button id="btn-aire" class="live" disabled={!preview} onclick={() => preview && sendToAir(preview)}>
+            Al aire
+          </button>
+        </section>
+
+        <section class="card">
+          <h2 class:on={onAir.mode === 'live' && !!onAir.slide}>Al aire</h2>
+          <Screen id="vista-aire" aspect={outputAspect} state={onAir} />
+          <div class="modes">
+            {#each MODES as { mode, label } (mode)}
+              <button class:primary={onAir.mode === mode} onclick={() => api.dispatch({ type: 'toggle-mode', mode })}>
+                {label}
+              </button>
+            {/each}
+            <button id="btn-limpiar" onclick={() => api.dispatch({ type: 'clear' })}>Quitar Esc</button>
+          </div>
+        </section>
+
+        <div class="status">
+          <span>
+            <span id="estado-salida">{outputLabel}</span>
+            {#if output?.open}<span id="salida-resolucion">{output.width} × {output.height}</span>{/if}
+          </span>
+          <button id="btn-salida" onclick={() => api.toggleOutput()}>
+            {output?.open ? 'Cerrar salida' : 'Abrir salida'}
           </button>
         </div>
-      </div>
-    </section>
-
-    <aside>
-      <section class="card">
-        <h2>Vista previa</h2>
-        <Screen
-          id="vista-previa"
-          aspect={outputAspect}
-          state={{ slide: preview ? withTheme(preview) : null, mode: 'live' }}
-        />
-        <button id="btn-aire" class="live" disabled={!preview} onclick={() => preview && sendToAir(preview)}>
-          Al aire
-        </button>
-      </section>
-
-      <section class="card">
-        <h2>Al aire</h2>
-        <Screen id="vista-aire" aspect={outputAspect} state={onAir} />
-        <div class="modes">
-          {#each MODES as { mode, label } (mode)}
-            <button class:primary={onAir.mode === mode} onclick={() => api.dispatch({ type: 'toggle-mode', mode })}>
-              {label}
+        {#if info}
+          <small class="version">
+            Versión {info.version} ·
+            <button id="btn-actualizar" disabled={updateStatus === 'Buscando…'} onclick={checkUpdates}>
+              Buscar actualizaciones
             </button>
-          {/each}
-          <button id="btn-limpiar" onclick={() => api.dispatch({ type: 'clear' })}>Quitar Esc</button>
-        </div>
-      </section>
-
-      <div class="status">
-        <span>
-          <span id="estado-salida">{outputLabel}</span>
-          {#if output?.open}<span id="salida-resolucion">{output.width} × {output.height}</span>{/if}
-        </span>
-        <button id="btn-salida" onclick={() => api.toggleOutput()}>
-          {output?.open ? 'Cerrar salida' : 'Abrir salida'}
-        </button>
-      </div>
-      {#if info}
-        <small>Versión {info.version}</small>
-      {/if}
-    </aside>
-  </main>
+            {#if updateStatus}<span id="estado-actualizacion">{updateStatus}</span>{/if}
+          </small>
+        {/if}
+      </aside>
+    </main>
+  </div>
 </div>
 
 <style>
+  .shell {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+  }
+
   .app {
     display: grid;
     grid-template-columns: 100px minmax(0, 1fr);
-    height: 100%;
+    min-height: 0;
   }
 
   .menu {
@@ -406,12 +456,14 @@
 
   .menu button:hover {
     color: var(--text);
+    background: var(--surface-2);
   }
 
   .menu button.active {
     font-weight: 600;
     color: var(--on-accent);
     background: var(--accent);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
   }
 
   .menu .theme {
@@ -449,6 +501,17 @@
 
   .pane[hidden] {
     display: none;
+  }
+
+  .pane:not([hidden]) {
+    animation: pane-in 0.18s var(--ease);
+  }
+
+  @keyframes pane-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
   }
 
   .settings {
@@ -493,6 +556,24 @@
     overflow-y: auto;
   }
 
+  h2.on::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    vertical-align: 1px;
+    background: var(--live);
+    border-radius: 50%;
+    animation: live-pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes live-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+
   .modes {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -526,5 +607,17 @@
   small {
     color: var(--muted);
     text-align: center;
+  }
+
+  .version button {
+    padding: 0;
+    font: inherit;
+    color: var(--accent);
+    text-decoration: underline;
+    background: none;
+  }
+
+  .version span {
+    display: block;
   }
 </style>

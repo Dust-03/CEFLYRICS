@@ -5,7 +5,16 @@ import ts from 'typescript-eslint';
 
 export default ts.config(
   {
-    ignores: ['out/', 'release/', 'node_modules/', 'test-results/', 'playwright-report/', 'tests/.media/', 'userdata/'],
+    ignores: [
+      'out/',
+      'release/',
+      'node_modules/',
+      'test-results/',
+      'playwright-report/',
+      'tests/.media/',
+      'userdata/',
+      'graphify-out/',
+    ],
   },
   js.configs.recommended,
   ts.configs.recommended,

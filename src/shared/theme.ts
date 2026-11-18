@@ -11,6 +11,14 @@ export type Theme = {
   uppercase: boolean;
   shadow: boolean;
   background: Background;
+  // Grosor de la letra: 400 normal, 600 seminegrita, 700 negrita.
+  weight: number;
+  italic: boolean;
+  lineHeight: number;
+  // Grosor del contorno, en fracción del tamaño de la letra.
+  outlineWidth: number;
+  // Margen libre en cada borde, en fracción de la pantalla: 0,05 deja un 5 % en cualquier tamaño.
+  margin: number;
 };
 
 export type ThemeEntry = { id: string; name: string; theme: Theme; factory: boolean };
@@ -29,6 +37,12 @@ export const FONTS = [
 export function fontCss(id: string) {
   return (FONTS.find((font) => font.id === id) ?? FONTS[0]).css;
 }
+
+export const WEIGHTS = [
+  { value: 400, name: 'Normal' },
+  { value: 600, name: 'Seminegrita' },
+  { value: 700, name: 'Negrita' },
+] as const;
 
 export const BACKGROUNDS = [
   { name: 'Noche', value: 'radial-gradient(circle at 50% 40%, #1b2440, #05070d 75%)' },
@@ -49,6 +63,11 @@ export const DEFAULT_THEME: Theme = {
   uppercase: false,
   shadow: true,
   background: { kind: 'css', value: BACKGROUNDS[0].value },
+  weight: 600,
+  italic: false,
+  lineHeight: 1.25,
+  outlineWidth: 0.045,
+  margin: 0.05,
 };
 
 const style = (name: string, font: string, background: number, extra: Partial<Theme> = {}): ThemeEntry => ({
@@ -65,10 +84,15 @@ export const FACTORY_THEMES: ThemeEntry[] = [
   style('Mar', 'inter', 3, { titleColor: '#bdeef0' }),
   style('Vino', 'playfair', 4, { titleColor: '#f2c6d3' }),
   style('Negro', 'oswald', 5, { uppercase: true, titleColor: '#cccccc' }),
-  style('Claro', 'merriweather', 6, { color: '#1c2433', titleColor: '#8a5a12', shadow: false }),
+  style('Claro', 'merriweather', 6, { color: '#1c2433', titleColor: '#8a5a12', shadow: false, weight: 700 }),
 ];
 
 const HEX = /^#[0-9a-f]{6}$/i;
+
+// Un número dentro del rango, o el de fábrica si no vino (estilos guardados antes de la 1.4.0).
+function number(input: unknown, min: number, max: number, fallback: number) {
+  return typeof input === 'number' && Number.isFinite(input) ? Math.min(max, Math.max(min, input)) : fallback;
+}
 
 function parseBackground(input: unknown): Background | null {
   if (typeof input !== 'object' || input === null) return null;
@@ -90,6 +114,7 @@ export function parseTheme(input: unknown): Theme | null {
     string,
     unknown
   >;
+  const { weight, italic, lineHeight, outlineWidth, margin } = input as Record<string, unknown>;
   const parsedBackground = parseBackground(background);
   if (!parsedBackground || typeof font !== 'string' || !FONTS.some((item) => item.id === font)) return null;
   if (typeof color !== 'string' || !HEX.test(color) || typeof titleColor !== 'string' || !HEX.test(titleColor)) {
@@ -112,5 +137,10 @@ export function parseTheme(input: unknown): Theme | null {
     uppercase: !!uppercase,
     shadow: !!shadow,
     background: parsedBackground,
+    weight: WEIGHTS.find((item) => item.value === weight)?.value ?? DEFAULT_THEME.weight,
+    italic: italic === true,
+    lineHeight: number(lineHeight, 0.9, 2, DEFAULT_THEME.lineHeight),
+    outlineWidth: number(outlineWidth, 0.01, 0.15, DEFAULT_THEME.outlineWidth),
+    margin: number(margin, 0, 0.2, DEFAULT_THEME.margin),
   };
 }

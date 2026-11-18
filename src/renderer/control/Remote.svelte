@@ -73,6 +73,8 @@
     currentVersePart < activeVerseParts.length - 1 ||
       (verseNavigationIds.length > 0 && verseNavigationIndex < verseNavigationIds.length - 1),
   );
+  // Lo elegido con un toque que todavía no está al aire: mientras tanto se ve "Al aire" y no las flechas.
+  const canSend = $derived(!!selected && !(selected.key === airKey && !!onAir.slide && onAir.mode === 'live'));
 
   let media = $state<MediaItem[]>([]);
   let shortcuts = $state<Shortcut[]>([]);
@@ -697,7 +699,7 @@
           Siguiente ›
         </button>
       </div>
-    {:else if tab === 'biblia' && verseNavigationIds.length}
+    {:else if tab === 'biblia' && verseNavigationIds.length && !canSend}
       <div class="stepper">
         <button id="control-versiculo-anterior" disabled={!canGoToPreviousVerse} onclick={() => moveBibleVerse(-1)}>
           ‹ Anterior
@@ -715,7 +717,7 @@
       <button
         id="control-aire-boton"
         class="live send"
-        disabled={!selected || (selected.key === airKey && !!onAir.slide && onAir.mode === 'live')}
+        disabled={!canSend}
         onclick={() => selected && sendToAir(selected)}
       >
         {selected ? `Al aire: ${selected.label}` : 'Un toque elige, dos van al aire'}
@@ -1091,5 +1093,29 @@
     font-weight: 600;
     color: var(--on-accent);
     background: var(--accent);
+  }
+
+  /* Celular acostado: la pantalla y los botones a la izquierda, la lista a la derecha con todo el alto. */
+  @media (orientation: landscape) and (max-height: 540px) {
+    .remote {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+      padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
+    }
+
+    header,
+    footer {
+      grid-column: 1;
+      border: 0;
+      border-right: 1px solid var(--line);
+    }
+
+    header {
+      overflow-y: auto;
+    }
+
+    main {
+      grid-area: 1 / 2 / 3 / 3;
+    }
   }
 </style>
