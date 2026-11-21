@@ -1,5 +1,7 @@
-import { copyFileSync, existsSync } from 'node:fs';
+import { copyFileSync, createWriteStream, existsSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import { BrowserWindow, Menu, app, dialog, ipcMain, nativeImage, protocol, type WebContents } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import {
@@ -232,9 +234,31 @@ app.whenReady().then(() => {
       properties: ['openFile', 'multiSelections'],
       filters: [{ name: 'Fotos y videos', extensions: MEDIA_EXTENSIONS }],
     });
-    return canceled ? { added: 0, rejected: [] } : media.add(filePaths);
+    if (canceled) return { added: 0, rejected: [] };
+    const result = await media.add(filePaths);
+    control.notify('media');
+    return result;
   });
-  ipcMain.handle(IPC.mediaRemove, (_event, id: number) => media.remove(Number(id)));
+  ipcMain.handle(IPC.mediaRemove, async (_event, id: number) => {
+    await media.remove(Number(id));
+    control.notify('media');
+  });
+  // Lo que suben los celulares: la PC y los demás celulares tienen que verlo enseguida.
+  const uploadMedia = async (name: string, body: NodeJS.ReadableStream) => {
+    const folder = await mkdtemp(join(app.getPath('userData'), 'subida-'));
+    try {
+      const file = join(folder, name);
+      await pipeline(body, createWriteStream(file));
+      const result = await media.add([file]);
+      if (result.added) {
+        broadcast(IPC.mediaChanged, null);
+        control.notify('media');
+      }
+      return result;
+    } finally {
+      await rm(folder, { recursive: true, force: true });
+    }
+  };
 
   const themes = new ThemeService(db);
   ipcMain.handle(IPC.themeList, () => themes.list());
@@ -425,6 +449,7 @@ app.whenReady().then(() => {
       : join(app.getAppPath(), 'resources/ceflyrics-control.apk'),
     getState: () => store.current,
     serveMedia: (request) => media.serve(request),
+    addMedia: uploadMedia,
     onChange: (info) => broadcast(IPC.lanInfoChanged, info),
   });
   store.subscribe((state) => lan.broadcast(state));

@@ -97,6 +97,40 @@
     shortcuts = await connection.call<Shortcut[]>('shortcuts.list');
   }
 
+  async function loadMedia() {
+    media = await connection.call<MediaItem[]>('media.list');
+  }
+
+  // Desde el celular se suben solo fotos y videos; la PC los vuelve a revisar.
+  let uploadNote = $state('');
+  async function uploadFiles(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const files = [...(input.files ?? [])];
+    input.value = '';
+    let added = 0;
+    let rejected = 0;
+    for (const [index, file] of files.entries()) {
+      uploadNote = `Subiendo ${index + 1} de ${files.length}…`;
+      try {
+        const response = await fetch('/api/medios', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'X-File-Name': encodeURIComponent(file.name) },
+          body: file,
+        });
+        const result = response.ok ? ((await response.json()) as { added: number }) : { added: 0 };
+        if (result.added) added += 1;
+        else rejected += 1;
+      } catch {
+        rejected += 1;
+      }
+    }
+    uploadNote = [
+      added === 1 ? 'Se agregó 1 archivo.' : added ? `Se agregaron ${added} archivos.` : '',
+      rejected ? `${rejected} no se pudieron agregar: solo fotos (JPG, PNG, WebP, GIF) y videos (MP4, MOV, WebM).` : '',
+    ].join(' ');
+    await loadMedia();
+  }
+
   async function loadTimers() {
     timers = await connection.call<TimerConfig[]>('timers.list');
   }
@@ -144,6 +178,7 @@
     },
     onShortcuts: () => loadShortcuts(),
     onTimers: () => loadTimers(),
+    onMedia: () => loadMedia(),
     onRejected: () => onRejected(),
   });
   $effect(() => onConnection(connection));
@@ -549,6 +584,11 @@
         {/if}
       {/if}
     {:else if tab === 'medios'}
+      <label class="upload">
+        + Subir fotos o videos
+        <input id="control-subir" type="file" accept="image/*,video/*" multiple onchange={uploadFiles} hidden />
+      </label>
+      {#if uploadNote}<p class="upload-note">{uploadNote}</p>{/if}
       {#if media.length}
         <div class="grid photos">
           {#each media as file (file.id)}
@@ -1032,6 +1072,21 @@
 
   .kinds button {
     padding: 11px 4px;
+  }
+
+  .upload {
+    display: block;
+    margin-bottom: 8px;
+    padding: 10px;
+    border: 1px dashed var(--muted);
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .upload-note {
+    margin: 0 0 8px;
+    color: var(--muted);
   }
 
   .timer-error {

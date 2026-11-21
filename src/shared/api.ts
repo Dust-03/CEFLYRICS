@@ -65,6 +65,7 @@ export type MediaApi = {
   list: () => Promise<MediaItem[]>;
   add: () => Promise<MediaAddResult>;
   remove: (id: number) => Promise<void>;
+  onChange: (listener: () => void) => () => void;
 };
 
 export type ThemeInput = { id?: string; name: string; theme: Theme };
@@ -173,6 +174,7 @@ export const IPC = {
   mediaList: 'media:list',
   mediaAdd: 'media:add',
   mediaRemove: 'media:remove',
+  mediaChanged: 'media:changed',
   themeList: 'themes:list',
   themeSave: 'themes:save',
   themeRemove: 'themes:remove',

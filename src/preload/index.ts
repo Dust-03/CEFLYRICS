@@ -55,6 +55,7 @@ const api: CeflyricsApi = {
     list: () => ipcRenderer.invoke(IPC.mediaList),
     add: () => ipcRenderer.invoke(IPC.mediaAdd),
     remove: (id) => ipcRenderer.invoke(IPC.mediaRemove, id),
+    onChange: (listener) => subscribe(IPC.mediaChanged, listener),
   },
   themes: {
     list: () => ipcRenderer.invoke(IPC.themeList),

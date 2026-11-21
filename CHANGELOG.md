@@ -1,5 +1,12 @@
 # Cambios
 
+## 1.5.0
+
+- Desde el control del celular se pueden subir fotos y videos a la biblioteca de la PC. Solo entran imágenes (JPG, PNG, WebP, GIF) y videos (MP4, MOV, WebM).
+- Lo que se sube aparece enseguida en la consola y en los demás celulares conectados.
+- La app de Android abre la galería para elegir varias fotos o videos a la vez.
+- Las notas de cada versión en GitHub salen de este archivo de cambios.
+
 ## 1.4.0
 
 - Muestra los atajos en la barra de título, con miniatura y vista previa al pasar el mouse. Clic los abre y doble clic los manda al aire.

@@ -109,6 +109,10 @@ export class LanControl {
   }
 
   // Una página de internet abierta en la red no puede hablarle al control.
+  isPaired(token: unknown) {
+    return typeof token === 'string' && this.devices.some(({ tokenHash }) => tokenHash === hashOf(token));
+  }
+
   isSameOrigin(request: IncomingMessage) {
     const { origin, host } = request.headers;
     return !origin || origin === `http://${host}`;
@@ -164,7 +168,7 @@ export class LanControl {
   }
 
   // Avisa que cambió una lista, para que los celulares la vuelvan a pedir.
-  notify(list: 'shortcuts' | 'timers') {
+  notify(list: 'shortcuts' | 'timers' | 'media') {
     this.send({ t: list });
   }
 

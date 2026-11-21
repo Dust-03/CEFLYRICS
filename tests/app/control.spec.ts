@@ -275,6 +275,27 @@ test('las fotos se ven y salen al aire, y los modos funcionan', async () => {
   await expect(output.locator('.cef-black')).not.toHaveClass(/cef-on/);
 });
 
+test('desde el celular se suben fotos y videos, y nada más', async () => {
+  const phone = await pairPhone();
+  const token = await phone.evaluate(() => localStorage.getItem('cef-control-token'));
+  const upload = (name: string, auth = `Bearer ${token}`) =>
+    fetch(`${BASE}/api/medios`, {
+      method: 'POST',
+      headers: { Authorization: auth, 'X-File-Name': encodeURIComponent(name) },
+      body: PNG,
+    });
+  expect((await upload('foto.png', 'Bearer inventado')).status).toBe(403);
+  expect((await upload('notas.txt')).status).toBe(415);
+  expect((await upload('..\\..\\virus.exe')).status).toBe(415);
+
+  await phone.locator('#control-tab-medios').click();
+  await phone.locator('#control-subir').setInputFiles({ name: 'mi foto.png', mimeType: 'image/png', buffer: PNG });
+  await expect(phone.locator('.upload-note')).toHaveText('Se agregó 1 archivo.');
+  await expect(phone.locator('.photo')).toHaveCount(1);
+  await operator.locator('#tab-medios').click();
+  await expect(operator.locator('#medios .item')).toHaveCount(1);
+});
+
 test('nada se sale de la pantalla en un celular angosto', async () => {
   const fits = (page: Page) =>
     page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);

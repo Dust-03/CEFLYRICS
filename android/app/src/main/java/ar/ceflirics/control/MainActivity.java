@@ -1,11 +1,16 @@
 package ar.ceflirics.control;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -32,9 +37,11 @@ public class MainActivity extends Activity {
     private static final String ADDRESS_KEY = "direccion";
     private static final int DEFAULT_PORT = 8787;
     private static final int THREADS = 48;
+    private static final int PICK_FILES = 1;
 
     private WebView web;
     private SharedPreferences preferences;
+    private ValueCallback<Uri[]> pickedFiles;
 
     @Override
     protected void onCreate(Bundle savedState) {
@@ -58,10 +65,47 @@ public class MainActivity extends Activity {
                 if (request.isForMainFrame()) view.loadUrl(START_PAGE);
             }
         });
+        // "Subir fotos o videos": la galería del celular, solo fotos y videos.
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (pickedFiles != null) pickedFiles.onReceiveValue(null);
+                pickedFiles = callback;
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("*/*");
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] { "image/*", "video/*" });
+                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                try {
+                    startActivityForResult(Intent.createChooser(intent, null), PICK_FILES);
+                } catch (Exception error) {
+                    pickedFiles = null;
+                    return false;
+                }
+                return true;
+            }
+        });
         setContentView(web);
 
         String address = preferences.getString(ADDRESS_KEY, null);
         web.loadUrl(address == null ? START_PAGE : controlUrl(address));
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode != PICK_FILES || pickedFiles == null) return;
+        Uri[] files = null;
+        if (resultCode == RESULT_OK && data != null) {
+            ClipData clip = data.getClipData();
+            if (clip != null) {
+                files = new Uri[clip.getItemCount()];
+                for (int i = 0; i < files.length; i++) files[i] = clip.getItemAt(i).getUri();
+            } else if (data.getData() != null) {
+                files = new Uri[] { data.getData() };
+            }
+        }
+        pickedFiles.onReceiveValue(files);
+        pickedFiles = null;
     }
 
     @Override

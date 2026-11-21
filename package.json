@@ -1,6 +1,6 @@
 {
   "name": "ceflyrics",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "Software de proyección para iglesias",
   "license": "GPL-3.0-only",
@@ -18,7 +18,8 @@
     "bibles": "tsx scripts/build-bibles.mts",
     "medir": "electron-vite build && node scripts/medir-rendimiento.mjs",
     "capturas": "node scripts/capturar-vistas.mjs",
-    "apk": "node scripts/build-apk.mjs"
+    "apk": "node scripts/build-apk.mjs",
+    "release-notes": "node scripts/release-notes.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

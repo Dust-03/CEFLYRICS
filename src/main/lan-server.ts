@@ -2,7 +2,7 @@ import { createReadStream, existsSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { networkInterfaces } from 'node:os';
-import { extname, join } from 'node:path';
+import { basename, extname, join } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as WebStream } from 'node:stream/web';
@@ -17,9 +17,11 @@ import {
   type LanScreen,
   type LanStatus,
 } from '@shared/lan';
+import type { MediaAddResult } from '@shared/api';
 import type { OnAirState } from '@shared/state';
 import type { Db } from './db/database';
 import type { LanControl } from './lan-control';
+import { MEDIA_EXTENSIONS } from './media';
 import { readSetting, writeSetting } from './settings';
 
 const PORT_KEY = 'lan.port';
@@ -82,12 +84,29 @@ type LanOptions = {
   apk: string;
   getState: () => OnAirState;
   serveMedia: (request: Request) => Promise<Response>;
+  // Guarda en la biblioteca una foto o un video que mandó un celular vinculado.
+  addMedia: (name: string, body: IncomingMessage) => Promise<MediaAddResult>;
   onChange: (info: LanInfo) => void;
 };
 
 // La tele pide por http: el protocolo cef-media solo existe adentro de la app.
 function toMessage(state: OnAirState) {
   return JSON.stringify({ t: 'state', state }).split('cef-media://media/').join('/media/');
+}
+
+// Desde el celular solo entran fotos y videos, con un nombre que Windows acepte.
+function uploadName(header: unknown) {
+  let name: string;
+  try {
+    name = decodeURIComponent(String(header ?? ''));
+  } catch {
+    return null;
+  }
+  name = basename(name.replaceAll('\\', '/'))
+    // eslint-disable-next-line no-control-regex -- los caracteres de control no van en un nombre de archivo
+    .replace(/[<>:"|?*\x00-\x1f]/g, '_')
+    .slice(-120);
+  return MEDIA_EXTENSIONS.includes(extname(name).slice(1).toLowerCase()) ? name : null;
 }
 
 function addressOf(request: IncomingMessage) {
@@ -315,6 +334,10 @@ export class LanServer {
       await this.pair(request, response);
       return;
     }
+    if (request.method === 'POST' && path === '/api/medios') {
+      await this.upload(request, response);
+      return;
+    }
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       response.writeHead(405).end();
       return;
@@ -361,6 +384,22 @@ export class LanServer {
     const errors = { locked: 429, name: 400, pin: 403 };
     const status = 'token' in result ? 200 : errors[result.error];
     response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+  }
+
+  private async upload(request: IncomingMessage, response: ServerResponse) {
+    const { control } = this.options;
+    const token = (request.headers.authorization ?? '').replace(/^Bearer /, '');
+    if (!control.isSameOrigin(request) || !control.isPaired(token)) {
+      response.writeHead(403, { Connection: 'close' }).end();
+      return;
+    }
+    const name = uploadName(request.headers['x-file-name']);
+    if (!name) {
+      response.writeHead(415, { Connection: 'close' }).end();
+      return;
+    }
+    const result = await this.options.addMedia(name, request);
+    response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
   }
 
   private async sendRendererFile(name: string, type: string, response: ServerResponse) {

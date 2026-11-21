@@ -44,6 +44,11 @@
     items = await api.list();
   }
   refresh();
+  // Lo que suben desde un celular.
+  api.onChange(() => {
+    refresh();
+    onChange();
+  });
 
   async function add() {
     const { added, rejected } = await api.add();
