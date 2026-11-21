@@ -1,5 +1,9 @@
 # Cambios
 
+## 1.5.1
+
+- Mientras se descarga una actualización, la consola muestra el porcentaje y una barra de avance junto a la versión.
+
 ## 1.5.0
 
 - Desde el control del celular se pueden subir fotos y videos a la biblioteca de la PC. Solo entran imágenes (JPG, PNG, WebP, GIF) y videos (MP4, MOV, WebM).

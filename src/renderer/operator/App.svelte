@@ -31,6 +31,7 @@
 
   let info = $state<AppInfo | null>(null);
   let updateStatus = $state('');
+  let downloading = $state<number | null>(null);
 
   const UPDATE_MESSAGES: Record<UpdateCheck, string> = {
     available: 'Hay una versión nueva',
@@ -72,6 +73,7 @@
     if (!value.slide) onAirKey = undefined;
   });
   api.onOutputInfo((value) => (output = value));
+  api.onUpdateProgress((percent) => (downloading = percent));
 
   async function loadLibrary() {
     [themes, assignment, media] = await Promise.all([api.themes.list(), api.themes.assignment(), api.media.list()]);
@@ -391,11 +393,19 @@
         </div>
         {#if info}
           <small class="version">
-            Versión {info.version} ·
-            <button id="btn-actualizar" disabled={updateStatus === 'Buscando…'} onclick={checkUpdates}>
-              Buscar actualizaciones
-            </button>
-            {#if updateStatus}<span id="estado-actualizacion">{updateStatus}</span>{/if}
+            Versión {info.version}
+            {#if downloading === null}
+              ·
+              <button id="btn-actualizar" disabled={updateStatus === 'Buscando…'} onclick={checkUpdates}>
+                Buscar actualizaciones
+              </button>
+              {#if updateStatus}<span id="estado-actualizacion">{updateStatus}</span>{/if}
+            {:else}
+              <span id="descarga-actualizacion">Descargando actualización… {Math.floor(downloading)} %</span>
+              <span class="update-bar" role="progressbar" aria-valuenow={Math.floor(downloading)}>
+                <span style:width="{downloading}%"></span>
+              </span>
+            {/if}
           </small>
         {/if}
       </aside>
@@ -619,5 +629,20 @@
 
   .version span {
     display: block;
+  }
+
+  .version .update-bar {
+    height: 4px;
+    margin-top: 6px;
+    overflow: hidden;
+    background: var(--line);
+    border-radius: 999px;
+  }
+
+  .update-bar span {
+    height: 100%;
+    background: var(--accent);
+    border-radius: inherit;
+    transition: width 0.3s var(--ease);
   }
 </style>

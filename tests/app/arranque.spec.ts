@@ -21,3 +21,26 @@ test('la app abre la consola del operador con el puente seguro', async () => {
 
   await app.close();
 });
+
+test('la descarga de una actualización muestra su avance junto a la versión', async () => {
+  const app = await electron.launch({ args: ['.'] });
+  await app.firstWindow();
+  await expect.poll(() => app.windows().some((w) => w.url().includes('operator'))).toBe(true);
+  const window = app.windows().find((w) => w.url().includes('operator'))!;
+  await expect(window.locator('#btn-actualizar')).toBeVisible();
+  // Sin instalar no hay descarga real: se simula el aviso que manda el actualizador.
+  const progress = (percent: number | null) =>
+    app.evaluate(({ BrowserWindow }, value) => {
+      for (const w of BrowserWindow.getAllWindows()) w.webContents.send('app:update-progress', value);
+    }, percent);
+
+  await progress(42.7);
+  await expect(window.locator('#descarga-actualizacion')).toHaveText('Descargando actualización… 42 %');
+  await expect(window.locator('.update-bar')).toHaveAttribute('aria-valuenow', '42');
+  await expect(window.locator('#btn-actualizar')).toHaveCount(0);
+
+  await progress(null);
+  await expect(window.locator('#descarga-actualizacion')).toHaveCount(0);
+  await expect(window.locator('#btn-actualizar')).toBeVisible();
+  await app.close();
+});

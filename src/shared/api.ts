@@ -139,6 +139,8 @@ export type CeflyricsApi = {
   toggleFullscreen: () => void;
   setTitleBarTheme: (theme: 'dark' | 'light') => void;
   checkUpdates: () => Promise<UpdateCheck>;
+  // Porcentaje de la descarga de una actualización; null cuando termina o falla.
+  onUpdateProgress: (listener: (percent: number | null) => void) => () => void;
   onOutputInfo: (listener: (info: OutputInfo) => void) => () => void;
   bible: BibleApi;
   songs: SongApi;
@@ -160,6 +162,7 @@ export const IPC = {
   toggleFullscreen: 'window:toggle-fullscreen',
   setTitleBarTheme: 'window:title-bar-theme',
   checkUpdates: 'app:check-updates',
+  updateProgress: 'app:update-progress',
   outputInfoChanged: 'output:info-changed',
   bibleList: 'bible:list',
   bibleBooks: 'bible:books',

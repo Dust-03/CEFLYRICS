@@ -62,6 +62,11 @@ function configureAutoUpdates(operator: BrowserWindow): (() => Promise<UpdateChe
   autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.allowPrerelease = false;
   let promptOpen = false;
+  // El avance se ve en el ícono de la barra de tareas y en la consola, junto a la versión.
+  const progress = (percent: number | null) => {
+    operator.setProgressBar(percent === null ? -1 : percent / 100);
+    operator.webContents.send(IPC.updateProgress, percent);
+  };
 
   autoUpdater.on('update-available', async (info) => {
     if (promptOpen) return;
@@ -84,8 +89,10 @@ function configureAutoUpdates(operator: BrowserWindow): (() => Promise<UpdateChe
     }
     if (choice.response !== 0) return;
     try {
+      progress(0);
       await autoUpdater.downloadUpdate();
     } catch {
+      progress(null);
       if (!promptOpen) {
         promptOpen = true;
         try {
@@ -102,12 +109,11 @@ function configureAutoUpdates(operator: BrowserWindow): (() => Promise<UpdateChe
     }
   });
 
-  // El avance de la descarga se ve en el ícono de la barra de tareas.
-  autoUpdater.on('download-progress', ({ percent }) => operator.setProgressBar(percent / 100));
-  autoUpdater.on('error', () => operator.setProgressBar(-1));
+  autoUpdater.on('download-progress', ({ percent }) => progress(percent));
+  autoUpdater.on('error', () => progress(null));
 
   autoUpdater.on('update-downloaded', async (info) => {
-    operator.setProgressBar(-1);
+    progress(null);
     if (promptOpen) return;
     promptOpen = true;
     try {
