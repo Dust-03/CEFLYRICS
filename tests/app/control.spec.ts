@@ -200,11 +200,11 @@ test('volver a tocar la pestaña lleva al inicio del menú', async () => {
   await expect(phone.locator('.row', { hasText: 'Juan 3:16' })).toBeVisible();
   await phone.locator('#control-tab-biblia').click();
   await expect(phone.locator('#control-buscar')).toHaveValue('');
-  await expect(phone.getByRole('button', { name: 'Gén', exact: true })).toBeVisible();
+  await expect(phone.getByRole('button', { name: 'Gn', exact: true })).toBeVisible();
 
   await phone.getByRole('button', { name: 'Sal', exact: true }).click();
   await phone.locator('#control-tab-biblia').click();
-  await expect(phone.getByRole('button', { name: 'Gén', exact: true })).toBeVisible();
+  await expect(phone.getByRole('button', { name: 'Gn', exact: true })).toBeVisible();
 
   await phone.locator('#control-tab-canciones').click();
   await phone.getByRole('button', { name: /Prueba/ }).click();

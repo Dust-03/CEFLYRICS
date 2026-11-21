@@ -361,7 +361,7 @@
     align-content: start;
     gap: 8px;
     padding: 2px;
-    border-radius: 8px;
+    border-radius: var(--radius);
   }
 
   .slide {
@@ -383,8 +383,9 @@
   }
 
   .text {
+    font-family: var(--font-text);
     white-space: pre-line;
-    line-height: 1.3;
+    line-height: 1.45;
   }
 
   li.selected .slide {

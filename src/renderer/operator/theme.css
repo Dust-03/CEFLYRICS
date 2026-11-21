@@ -1,18 +1,25 @@
 /* Tokens de la consola. Las salidas no usan esto: lo proyectado no cambia con el modo. */
 :root {
   color-scheme: dark;
-  --bg: #0f1420;
-  --surface: #171e2d;
-  --surface-2: #1f2838;
-  --line: #2b3548;
-  --text: #e9edf5;
-  --muted: #94a0b5;
+  /* Cabina de transmisión: azul de sala a oscuras, marfil de papel, oro de atril. */
+  --bg: #101a2e;
+  --surface: #18233a;
+  --surface-2: #202d47;
+  --line: #2a3854;
+  --text: #ece6d6;
+  --muted: #9aa3b5;
   --accent: #f2b544;
   --on-accent: #231803;
-  --live: #e5534b;
+  --live: #e5484d;
   --on-live: #ffffff;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px rgb(0 0 0 / 0.18);
+  --preview: #3fb37f;
+  --shadow: none;
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --radius-lg: 12px;
+  --radius: 8px;
+  --radius-sm: 5px;
+  --font-ui: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
+  --font-text: 'Literata Variable', Georgia, serif;
 
   --g-pentateuco: #f0a04b;
   --g-historicos: #e0c04e;
@@ -20,25 +27,24 @@
   --g-mayores: #4fc7c0;
   --g-menores: #5eb0ee;
   --g-evangelios: #9c95f2;
-  --g-hechos: #c58cf0;
   --g-paulinas: #ee86c2;
   --g-generales: #f08a8a;
-  --g-apocalipsis: #cfd5e1;
 }
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --bg: #f3f5f9;
-  --surface: #ffffff;
-  --surface-2: #eef1f6;
-  --line: #d9dfe9;
-  --text: #1c2433;
-  --muted: #5d687c;
-  --accent: #b9770e;
+  /* Luz de día: blanco azulado frío, la misma tinta y el mismo oro, más oscuro para leerse. */
+  --bg: #edf2f8;
+  --surface: #fbfcfe;
+  --surface-2: #e3eaf3;
+  --line: #cbd5e3;
+  --text: #17223a;
+  --muted: #56627a;
+  --accent: #a86a08;
   --on-accent: #ffffff;
-  --live: #cf3a32;
+  --live: #cc2f35;
   --on-live: #ffffff;
-  --shadow: 0 1px 2px rgb(20 30 50 / 0.06), 0 8px 24px rgb(20 30 50 / 0.06);
+  --preview: #1f8a5a;
 
   --g-pentateuco: #b8640f;
   --g-historicos: #8f7406;
@@ -46,10 +52,8 @@
   --g-mayores: #0d7f79;
   --g-menores: #1a6cb4;
   --g-evangelios: #5147c9;
-  --g-hechos: #8a3fc4;
   --g-paulinas: #b92f85;
   --g-generales: #c0393b;
-  --g-apocalipsis: #4a5468;
 }
 
 * {
@@ -66,8 +70,9 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, 'Segoe UI', sans-serif;
+  font-family: var(--font-ui);
   font-size: 14px;
+  font-variant-numeric: tabular-nums;
 }
 
 button,
@@ -84,7 +89,7 @@ textarea {
   padding: 8px 10px;
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   transition:
     border-color 0.15s var(--ease),
     box-shadow 0.15s var(--ease);
@@ -121,7 +126,7 @@ button {
   padding: 7px 12px;
   background: var(--surface-2);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   cursor: pointer;
   transition:
     background-color 0.15s var(--ease),
@@ -165,11 +170,23 @@ button.live {
 
 h2 {
   margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+/* Teclas como teclas: una tapa con borde inferior más grueso. */
+kbd {
+  display: inline-block;
+  min-width: 2.2em;
+  padding: 1px 6px;
+  font: 600 11px/1.5 var(--font-ui);
+  text-align: center;
   color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* Barras de desplazamiento finas, del color de la consola. */

@@ -1,5 +1,3 @@
-import { bookName } from './reference';
-
 // Grupos de libros de la Biblia. `id` es también el sufijo de la variable de color en el tema.
 export const BOOK_GROUPS = [
   { id: 'pentateuco', name: 'Pentateuco', from: 1, to: 5 },
@@ -7,11 +5,9 @@ export const BOOK_GROUPS = [
   { id: 'poeticos', name: 'Poéticos', from: 18, to: 22 },
   { id: 'mayores', name: 'Profetas mayores', from: 23, to: 27 },
   { id: 'menores', name: 'Profetas menores', from: 28, to: 39 },
-  { id: 'evangelios', name: 'Evangelios', from: 40, to: 43 },
-  { id: 'hechos', name: 'Hechos', from: 44, to: 44 },
+  { id: 'evangelios', name: 'Evangelios y Hechos', from: 40, to: 44 },
   { id: 'paulinas', name: 'Cartas de Pablo', from: 45, to: 57 },
-  { id: 'generales', name: 'Cartas generales', from: 58, to: 65 },
-  { id: 'apocalipsis', name: 'Apocalipsis', from: 66, to: 66 },
+  { id: 'generales', name: 'Cartas generales y Apocalipsis', from: 58, to: 66 },
 ] as const;
 
 export const TESTAMENTS = [
@@ -23,10 +19,16 @@ export function bookGroup(book: number) {
   return BOOK_GROUPS.find((group) => book >= group.from && book <= group.to) ?? BOOK_GROUPS[0];
 }
 
-// Etiqueta corta para el botón del libro: "Gén", "1 Sam", "Flm".
+// Abreviaturas de la Biblia de la iglesia, en el orden de vid: "Gn", "1 S", "Flm".
+// El espacio después del número es duro para que "1 S" no se corte en dos renglones.
+const ABBREVIATIONS = (
+  'Gn Éx Lv Nm Dt Jos Jue Rt 1_S 2_S 1_R 2_R 1_Cr 2_Cr Esd Neh Est Job Sal Pr Ec Cnt Is Jer Lm Ez Dn Os Jl Am ' +
+  'Abd Jon Miq Nah Hab Sof Hag Zac Mal Mt Mc Lc Jn Hch Ro 1_Co 2_Co Gl Ef Fil Col 1_Ts 2_Ts 1_Ti 2_Ti Tit Flm Heb ' +
+  'Stg 1_P 2_P 1_Jn 2_Jn 3_Jn Jud Ap'
+)
+  .split(' ')
+  .map((abbreviation) => abbreviation.replace('_', ' '));
+
 export function bookShortName(book: number) {
-  if (book === 57) return 'Flm'; // Filipenses y Filemón empiezan igual
-  const name = bookName(book);
-  const numbered = /^(\d) (.+)$/.exec(name);
-  return numbered ? `${numbered[1]} ${numbered[2].slice(0, 3)}` : name.slice(0, 3);
+  return ABBREVIATIONS[book - 1] ?? '';
 }

@@ -104,6 +104,7 @@
   h1 {
     margin: 0;
     font-size: 24px;
+    font-weight: 650;
   }
 
   p {
@@ -115,8 +116,10 @@
     box-sizing: border-box;
     width: 100%;
     font-size: 34px;
+    font-weight: 600;
     text-align: center;
     letter-spacing: 0.2em;
+    background: var(--surface);
   }
 
   input.name {
@@ -127,6 +130,7 @@
   button {
     padding: 12px;
     font-size: 17px;
+    border-radius: var(--radius-lg);
   }
 
   .error {

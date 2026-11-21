@@ -176,6 +176,22 @@ test('los estilos propios se guardan y al borrarlos vuelve el de fábrica', () =
   expect(() => themes.save({ name: ' ', theme: DEFAULT_THEME })).toThrow();
 });
 
+test('se pueden borrar todos los estilos, también los de fábrica, y crear otro', () => {
+  const themes = new ThemeService(db);
+  themes.assign({ song: FACTORY_THEMES[0].id, bible: FACTORY_THEMES[1].id });
+  themes.remove(FACTORY_THEMES[0].id);
+  expect(themes.list().map((entry) => entry.id)).not.toContain(FACTORY_THEMES[0].id);
+  // Lo que lo usaba pasa al primero que queda.
+  expect(themes.assignment().song).toBe(FACTORY_THEMES[1].id);
+
+  for (const entry of themes.list()) themes.remove(entry.id);
+  expect(themes.list()).toEqual([]);
+  expect(themes.assignment()).toEqual({ song: '', bible: '' });
+
+  const id = themes.save({ name: 'Desde cero', theme: DEFAULT_THEME });
+  expect(themes.list()).toMatchObject([{ id, name: 'Desde cero' }]);
+});
+
 test('los estilos y medios inválidos se rechazan', () => {
   expect(parseTheme({ ...DEFAULT_THEME, font: 'comic' })).toBeNull();
   expect(parseTheme({ ...DEFAULT_THEME, color: 'red; background: url(x)' })).toBeNull();

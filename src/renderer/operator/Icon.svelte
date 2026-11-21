@@ -1,5 +1,19 @@
 <script lang="ts">
-  type Props = { name: 'bible' | 'songs' | 'media' | 'star' | 'timer' | 'settings' | 'text' | 'cast' };
+  type Props = {
+    name:
+      | 'bible'
+      | 'songs'
+      | 'media'
+      | 'star'
+      | 'timer'
+      | 'settings'
+      | 'text'
+      | 'cast'
+      | 'palette'
+      | 'keys'
+      | 'transfer'
+      | 'fullscreen';
+  };
   let { name }: Props = $props();
 </script>
 
@@ -28,6 +42,20 @@
     <path d="M4 7h10M18 7h2M4 17h2M10 17h10" stroke-linecap="round" />
     <circle cx="16" cy="7" r="2" />
     <circle cx="8" cy="17" r="2" />
+  {:else if name === 'palette'}
+    <path d="M3.5 19 8.5 5h1.5l5 14M5.5 13.5h7.5" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="18.5" cy="16.5" r="2.5" />
+  {:else if name === 'keys'}
+    <rect x="3.5" y="6" width="17" height="12" rx="2" />
+    <path d="M7 10h1M11 10h2M16 10h1M8 14h8" stroke-linecap="round" />
+  {:else if name === 'transfer'}
+    <path
+      d="M7 4v14M3.5 14.5 7 18l3.5-3.5M17 20V6M13.5 9.5 17 6l3.5 3.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  {:else if name === 'fullscreen'}
+    <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" stroke-linecap="round" stroke-linejoin="round" />
   {:else}
     <path d="M5 6h14M5 11h14M5 16h9" stroke-linecap="round" />
   {/if}

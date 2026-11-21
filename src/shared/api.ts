@@ -1,3 +1,4 @@
+import type { KeyButton } from './keys';
 import type { LanApi } from './lan';
 import type { SongSlide } from './song-text';
 import type { Action, OnAirState } from './state';
@@ -106,6 +107,12 @@ export type ShortcutApi = {
   onChange: (listener: () => void) => () => void;
 };
 
+export type KeyButtonApi = {
+  get: () => Promise<KeyButton[]>;
+  save: (buttons: KeyButton[]) => Promise<KeyButton[]>;
+  onChange: (listener: (buttons: KeyButton[]) => void) => () => void;
+};
+
 export type DataCounts = {
   songs: number;
   media: number;
@@ -148,6 +155,7 @@ export type CeflyricsApi = {
   themes: ThemeApi;
   timers: TimerApi;
   shortcuts: ShortcutApi;
+  keys: KeyButtonApi;
   lan: LanApi;
   data: DataApi;
 };
@@ -192,6 +200,9 @@ export const IPC = {
   shortcutRemove: 'shortcuts:remove',
   shortcutReorder: 'shortcuts:reorder',
   shortcutsChanged: 'shortcuts:changed',
+  keysGet: 'keys:get',
+  keysSave: 'keys:save',
+  keysChanged: 'keys:changed',
   dataExport: 'data:export',
   dataImport: 'data:import',
   dataImportSongs: 'data:import-songs',

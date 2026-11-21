@@ -14,8 +14,9 @@ import {
   type TimerInput,
   type UpdateCheck,
 } from '@shared/api';
+import { DEFAULT_KEY_BUTTONS, keyActionToAction, parseKeyButtons } from '@shared/keys';
 import { parsePort } from '@shared/lan';
-import { parseAction, type Action } from '@shared/state';
+import { parseAction } from '@shared/state';
 import { createTimerRun, remainingMs } from '@shared/timers';
 import { BackupService } from './backup';
 import { BIBLE_EXTENSIONS, BibleImporter } from './bible/import';
@@ -24,6 +25,7 @@ import { openDatabase } from './db/database';
 import { LanControl } from './lan-control';
 import { LanServer } from './lan-server';
 import { MEDIA_EXTENSIONS, MEDIA_SCHEME, MediaService } from './media';
+import { readSetting, writeSetting } from './settings';
 import { ShortcutService } from './shortcuts';
 import { SONG_EXTENSIONS, SongImporter } from './song-import';
 import { SongService } from './songs';
@@ -42,12 +44,9 @@ protocol.registerSchemesAsPrivileged([
 
 const store = new OnAirStore();
 
-const SHORTCUTS: Record<string, Action> = {
-  F8: { type: 'toggle-mode', mode: 'wallpaper' },
-  F9: { type: 'toggle-mode', mode: 'background' },
-  F10: { type: 'toggle-mode', mode: 'black' },
-  Escape: { type: 'clear' },
-};
+// Teclas de los botones de salida; se cargan de la base al abrir y cambian desde Configuración.
+const KEY_BUTTONS_KEY = 'key-buttons';
+let keyButtons = DEFAULT_KEY_BUTTONS;
 
 // Los atajos se atienden acá para que funcionen desde cualquier ventana, con cualquier foco.
 function toggleFullscreen(contents: WebContents) {
@@ -163,10 +162,10 @@ function handleShortcuts(contents: WebContents, canChangeSize: () => boolean = (
       if (canChangeSize()) toggleFullscreen(contents);
       return;
     }
-    const action = SHORTCUTS[input.key];
-    if (!action) return;
+    const button = keyButtons.find((entry) => entry.key === input.key);
+    if (!button) return;
     event.preventDefault();
-    store.dispatch(action);
+    store.dispatch(keyActionToAction(button.action));
   });
 }
 
@@ -186,6 +185,15 @@ app.whenReady().then(() => {
   if (!existsSync(dbFile) && existsSync(factoryDb)) copyFileSync(factoryDb, dbFile);
   const db = openDatabase(dbFile);
   app.on('will-quit', () => db.close());
+
+  keyButtons = parseKeyButtons(readSetting(db, KEY_BUTTONS_KEY));
+  ipcMain.handle(IPC.keysGet, () => keyButtons);
+  ipcMain.handle(IPC.keysSave, (_event, value: unknown) => {
+    keyButtons = parseKeyButtons(value);
+    writeSetting(db, KEY_BUTTONS_KEY, keyButtons);
+    broadcast(IPC.keysChanged, keyButtons);
+    return keyButtons;
+  });
 
   const output = new OutputWindow(
     (info) => broadcast(IPC.outputInfoChanged, info),
@@ -442,6 +450,7 @@ app.whenReady().then(() => {
       'timers.show': toggleTimerShow,
       'themes.list': () => themes.list(),
       'themes.assignment': () => themes.assignment(),
+      'keys.list': () => keyButtons,
     },
     onChange: () => broadcast(IPC.lanInfoChanged, lan.info),
   });

@@ -8,7 +8,7 @@ test('la app abre la consola del operador con el puente seguro', async () => {
   const window = app.windows().find((w) => w.url().includes('operator'))!;
 
   await expect(window.locator('h1')).toHaveText('Ceflyrics');
-  await expect(window.locator('small')).toContainText('Versión');
+  await expect(window.locator('small.version')).toContainText('Versión');
   // Sin instalar no hay de dónde actualizar, y se avisa en lugar de fallar callado.
   await window.locator('#btn-actualizar').dispatchEvent('click');
   await expect(window.locator('#estado-actualizacion')).toHaveText('Solo se actualiza la app instalada');

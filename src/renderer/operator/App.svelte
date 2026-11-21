@@ -1,9 +1,11 @@
 <script lang="ts">
   import type { AppInfo, MediaItem, OutputInfo, Shortcut, ThemeAssignment, UpdateCheck } from '@shared/api';
-  import { initialState, type OnAirState, type OverrideMode } from '@shared/state';
+  import { DEFAULT_KEY_BUTTONS, keyActionToAction, keyName, type KeyButton } from '@shared/keys';
+  import { initialState, type OnAirState } from '@shared/state';
   import { FACTORY_THEMES, type ThemeEntry } from '@shared/theme';
   import BiblePanel from './BiblePanel.svelte';
   import Icon from './Icon.svelte';
+  import KeysPanel from './KeysPanel.svelte';
   import MediaPanel from './MediaPanel.svelte';
   import type { PreviewItem } from './preview-item';
   import Screen from './Screen.svelte';
@@ -50,7 +52,12 @@
   let opened = $state<Record<string, boolean>>({ biblia: true });
   // Cuántas veces se volvió a tocar cada menú estando en él: lo devuelve a su inicio.
   let homes = $state<Record<string, number>>({});
-  let settingsTab = $state<'estilos' | 'datos'>('estilos');
+  const SETTINGS = [
+    { id: 'estilos', label: 'Estilos y fuentes', hint: 'Cómo se ven las letras y la Biblia', icon: 'palette' },
+    { id: 'teclas', label: 'Botones de salida', hint: 'Nombre, tecla y qué hace cada uno', icon: 'keys' },
+    { id: 'datos', label: 'Importar y exportar', hint: 'Canciones, Biblias y copias de todo', icon: 'transfer' },
+  ] as const;
+  let settingsTab = $state<(typeof SETTINGS)[number]['id']>('estilos');
   // Sube al importar: Biblia y Canciones se vuelven a armar con lo nuevo.
   let libraryRev = $state(0);
   let preview = $state<PreviewItem | null>(null);
@@ -85,6 +92,12 @@
   }
   loadShortcuts();
   api.shortcuts.onChange(loadShortcuts);
+
+  let keyButtons = $state<KeyButton[]>(DEFAULT_KEY_BUTTONS);
+  api.keys.get().then((value) => (keyButtons = value));
+  api.keys.onChange((value) => (keyButtons = value));
+  // El primero que quita lo que está al aire conserva el id de siempre.
+  const clearIndex = $derived(keyButtons.findIndex((button) => button.action === 'clear'));
 
   async function toggleShortcut(ref: string) {
     const existing = shortcuts.find((item) => item.ref === ref);
@@ -184,18 +197,14 @@
     opened[id] = true;
   }
 
-  const MODES: { mode: OverrideMode; label: string }[] = [
-    { mode: 'wallpaper', label: 'Wallpaper F8' },
-    { mode: 'background', label: 'Fondo F9' },
-    { mode: 'black', label: 'Negro F10' },
-  ];
-
   const outputLabel = $derived.by(() => {
     if (!output?.open) return 'Salida cerrada';
     return output.fullscreen ? 'Salida en el segundo monitor' : 'Salida en ventana';
   });
 
   // Las vistas toman la forma de la pantalla real: lo que se ve acá corta las líneas igual que allá.
+  // Luz de tally, como en una cabina: roja mientras la salida muestra algo.
+  const live = $derived(onAir.mode === 'live' ? !!(onAir.slide || onAir.shownTimer) : true);
   const outputAspect = $derived(output?.width && output.height ? `${output.width} / ${output.height}` : undefined);
 </script>
 
@@ -232,7 +241,8 @@
       </button>
     </nav>
 
-    <main>
+    <!-- Configuración y Transmisión no proyectan nada: usan todo el ancho, sin los monitores. -->
+    <main class:wide={tab === 'configuracion' || tab === 'transmision'}>
       <section class="card work">
         <div class="pane" hidden={tab !== 'biblia'}>
           {#key libraryRev}
@@ -306,34 +316,44 @@
           {/if}
         </div>
         <div class="pane settings" hidden={tab !== 'configuracion'}>
-          <div class="settings-head">
+          <nav class="settings-nav" aria-label="Secciones de Configuración">
             <h2>Configuración</h2>
-            <div class="settings-tabs">
-              <button id="btn-pantalla-completa" onclick={() => api.toggleFullscreen()}>Pantalla completa (F11)</button>
+            {#each SETTINGS as section (section.id)}
               <button
-                id="config-estilos"
-                class:primary={settingsTab === 'estilos'}
-                onclick={() => (settingsTab = 'estilos')}
+                id="config-{section.id}"
+                class:active={settingsTab === section.id}
+                aria-current={settingsTab === section.id ? 'page' : undefined}
+                onclick={() => (settingsTab = section.id)}
               >
-                Estilos y fuentes
+                <Icon name={section.icon} />
+                <span>
+                  <strong>{section.label}</strong>
+                  <small>{section.hint}</small>
+                </span>
               </button>
-              <button id="config-datos" class:primary={settingsTab === 'datos'} onclick={() => (settingsTab = 'datos')}>
-                Importar y exportar
-              </button>
-            </div>
-          </div>
-          {#if opened.configuracion}
-            {#if settingsTab === 'estilos'}
-              <StylesPanel home={homes.configuracion ?? 0} {themes} {assignment} {media} onChange={loadLibrary} />
-            {:else}
-              <TransferPanel
-                onChange={() => {
-                  libraryRev++;
-                  loadShortcuts();
-                }}
-              />
+            {/each}
+            <button id="btn-pantalla-completa" class="fullscreen" onclick={() => api.toggleFullscreen()}>
+              <Icon name="fullscreen" />
+              <span>Pantalla completa</span>
+              <kbd>F11</kbd>
+            </button>
+          </nav>
+          <div class="settings-body">
+            {#if opened.configuracion}
+              {#if settingsTab === 'estilos'}
+                <StylesPanel home={homes.configuracion ?? 0} {themes} {assignment} {media} onChange={loadLibrary} />
+              {:else if settingsTab === 'teclas'}
+                <KeysPanel buttons={keyButtons} />
+              {:else}
+                <TransferPanel
+                  onChange={() => {
+                    libraryRev++;
+                    loadShortcuts();
+                  }}
+                />
+              {/if}
             {/if}
-          {/if}
+          </div>
         </div>
         <div class="pane" hidden={tab !== 'transmision'}>
           {#if opened.transmision}
@@ -357,28 +377,37 @@
       </section>
 
       <aside>
-        <section class="card">
+        <section class="monitor">
           <h2>Vista previa</h2>
-          <Screen
-            id="vista-previa"
-            aspect={outputAspect}
-            state={{ slide: preview ? withTheme(preview) : null, mode: 'live' }}
-          />
-          <button id="btn-aire" class="live" disabled={!preview} onclick={() => preview && sendToAir(preview)}>
-            Al aire
-          </button>
+          <div class="tally preview" class:lit={!!preview}>
+            <Screen
+              id="vista-previa"
+              aspect={outputAspect}
+              state={{ slide: preview ? withTheme(preview) : null, mode: 'live' }}
+            />
+          </div>
         </section>
 
-        <section class="card">
-          <h2 class:on={onAir.mode === 'live' && !!onAir.slide}>Al aire</h2>
-          <Screen id="vista-aire" aspect={outputAspect} state={onAir} />
+        <button id="btn-aire" class="live take" disabled={!preview} onclick={() => preview && sendToAir(preview)}>
+          Al aire
+        </button>
+
+        <section class="monitor">
+          <h2 class:on={live}>Al aire</h2>
+          <div class="tally" class:lit={live}>
+            <Screen id="vista-aire" aspect={outputAspect} state={onAir} />
+          </div>
           <div class="modes">
-            {#each MODES as { mode, label } (mode)}
-              <button class:primary={onAir.mode === mode} onclick={() => api.dispatch({ type: 'toggle-mode', mode })}>
-                {label}
+            {#each keyButtons as button, index (index)}
+              <button
+                id={index === clearIndex ? 'btn-limpiar' : `btn-modo-${index}`}
+                class:primary={onAir.mode === button.action}
+                onclick={() => api.dispatch(keyActionToAction(button.action))}
+              >
+                {button.label}
+                {#if button.key}<kbd>{keyName(button.key)}</kbd>{/if}
               </button>
             {/each}
-            <button id="btn-limpiar" onclick={() => api.dispatch({ type: 'clear' })}>Quitar Esc</button>
           </div>
         </section>
 
@@ -414,16 +443,16 @@
 </div>
 
 <style>
+  /* El menú sube hasta arriba; la barra de atajos queda a su derecha, sobre el trabajo. */
   .shell {
     display: grid;
+    grid-template-columns: 100px minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     height: 100%;
   }
 
   .app {
-    display: grid;
-    grid-template-columns: 100px minmax(0, 1fr);
-    min-height: 0;
+    display: contents;
   }
 
   .menu {
@@ -431,6 +460,9 @@
     grid-template-rows: auto repeat(8, auto) 1fr;
     gap: 4px;
     padding: 10px 8px;
+    grid-row: 1 / 3;
+    grid-column: 1;
+    min-height: 0;
     background: var(--surface);
     border-right: 1px solid var(--line);
   }
@@ -441,6 +473,8 @@
     width: 58px;
     height: 58px;
     margin: 2px 0 8px;
+    /* Sin barra arriba del menú, la ventana se arrastra desde el logo. */
+    -webkit-app-region: drag;
     background: var(--text);
     mask: url('../../../assets/logo-cef.svg') center / contain no-repeat;
   }
@@ -469,11 +503,27 @@
     background: var(--surface-2);
   }
 
+  .menu button {
+    position: relative;
+  }
+
   .menu button.active {
-    font-weight: 600;
-    color: var(--on-accent);
+    font-weight: 650;
+    color: var(--text);
+    background: var(--surface-2);
+  }
+
+  .menu button.active :global(svg) {
+    color: var(--accent);
+  }
+
+  .menu button.active::before {
+    content: '';
+    position: absolute;
+    inset: 8px auto 8px -8px;
+    width: 3px;
     background: var(--accent);
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: 0 3px 3px 0;
   }
 
   .menu .theme {
@@ -482,11 +532,21 @@
   }
 
   main {
+    grid-row: 2;
+    grid-column: 2;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 330px;
     gap: 12px;
     min-height: 0;
     padding: 12px;
+  }
+
+  main.wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  main.wide aside {
+    display: none;
   }
 
   .card {
@@ -496,8 +556,7 @@
     padding: 12px;
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
+    border-radius: var(--radius-lg);
   }
 
   .work {
@@ -524,28 +583,80 @@
     }
   }
 
+  /* Configuración: un índice a la izquierda que se lee como tal, y la sección elegida a la derecha. */
   .settings {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns: 228px minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
+    padding-right: 14px;
+    border-right: 1px solid var(--line);
+  }
+
+  .settings-nav h2 {
+    margin: 2px 0 10px 10px;
+    font-size: 18px;
+  }
+
+  .settings-nav button {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
     gap: 10px;
+    align-items: start;
+    padding: 10px 10px 10px 8px;
+    text-align: left;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    border-left: 3px solid transparent;
+    border-radius: 0 var(--radius) var(--radius) 0;
   }
 
-  .settings-head {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+  .settings-nav button:hover:enabled {
+    color: var(--text);
+    background: var(--surface-2);
+  }
+
+  .settings-nav button.active {
+    color: var(--text);
+    background: var(--surface-2);
+    border-left-color: var(--accent);
+  }
+
+  .settings-nav button.active :global(svg) {
+    color: var(--accent);
+  }
+
+  .settings-nav strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .settings-nav small {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--muted);
+    text-align: left;
+  }
+
+  .settings-nav .fullscreen {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
+    margin-top: auto;
   }
 
-  .settings-tabs {
-    display: flex;
-    gap: 6px;
-  }
-
-  .settings-tabs button {
-    padding: 4px 12px;
-    font-size: 13px;
+  .settings-body {
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .text-pane {
@@ -561,9 +672,35 @@
   aside {
     display: grid;
     align-content: start;
-    gap: 10px;
+    gap: 12px;
     min-height: 0;
     overflow-y: auto;
+  }
+
+  .monitor {
+    display: grid;
+    gap: 8px;
+  }
+
+  /* El marco se enciende verde en la previa y rojo al aire: se ve sin leer nada. */
+  .tally {
+    padding: 3px;
+    border: 2px solid var(--line);
+    border-radius: 11px;
+    transition: border-color 0.2s var(--ease);
+  }
+
+  .tally.lit {
+    border-color: var(--live);
+  }
+
+  .tally.preview.lit {
+    border-color: var(--preview);
+  }
+
+  .take {
+    padding: 10px;
+    font-size: 15px;
   }
 
   h2.on::before {
@@ -591,6 +728,10 @@
   }
 
   .modes button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
     padding: 5px 8px;
     font-size: 13px;
   }

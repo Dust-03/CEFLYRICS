@@ -10,9 +10,10 @@
     SongSummary,
     ThemeAssignment,
   } from '@shared/api';
-  import { bookGroup, bookShortName } from '@shared/bible-groups';
+  import { TESTAMENTS, bookGroup, bookShortName } from '@shared/bible-groups';
+  import { DEFAULT_KEY_BUTTONS, keyActionToAction, type KeyButton } from '@shared/keys';
   import { verseParts } from '@shared/verse-parts';
-  import { initialState, type OnAirState, type OverrideMode, type Slide } from '@shared/state';
+  import { initialState, type OnAirState, type Slide } from '@shared/state';
   import type { ThemeEntry } from '@shared/theme';
   import { formatRemaining, remainingMs, type TimerConfig, type TimerLayout } from '@shared/timers';
   import Screen from '../operator/Screen.svelte';
@@ -34,13 +35,11 @@
     { id: 'atajos', label: 'Atajos' },
     { id: 'tiempo', label: 'Tiempo' },
   ] as const;
-  const MODES: { mode: OverrideMode; label: string }[] = [
-    { mode: 'wallpaper', label: 'Logo' },
-    { mode: 'background', label: 'Fondo' },
-    { mode: 'black', label: 'Negro' },
-  ];
 
   let onAir = $state<OnAirState>(initialState);
+  // Los mismos botones de salida que la consola, con los nombres que les pusieron ahí.
+  let keyButtons = $state<KeyButton[]>(DEFAULT_KEY_BUTTONS);
+  const live = $derived(onAir.mode === 'live' ? !!(onAir.slide || onAir.shownTimer) : true);
   let online = $state(false);
   let tab = $state<(typeof TABS)[number]['id']>('biblia');
   let selected = $state<Item | null>(null);
@@ -188,12 +187,13 @@
     version ||= bibles[0]?.code ?? '';
     // Lo que se escribió mientras cargaba necesitaba la versión para buscar.
     if (query.trim()) searchBible();
-    [themes, assignment, media, shortcuts, songs] = await Promise.all([
+    [themes, assignment, media, shortcuts, songs, keyButtons] = await Promise.all([
       connection.call<ThemeEntry[]>('themes.list'),
       connection.call<ThemeAssignment>('themes.assignment'),
       connection.call<MediaItem[]>('media.list'),
       connection.call<Shortcut[]>('shortcuts.list'),
       connection.call<SongSummary[]>('songs.list', ''),
+      connection.call<KeyButton[]>('keys.list'),
     ]);
     await loadTimers();
     books = await connection.call<BibleBook[]>('bible.books', version);
@@ -483,18 +483,18 @@
 <div class="remote">
   <header>
     <div class="screen-row">
-      <div class="preview"><Screen id="control-aire" state={onAir} now={connection.now} /></div>
+      <div class="preview" class:lit={live}><Screen id="control-aire" state={onAir} now={connection.now} /></div>
       <div class="modes">
-        {#each MODES as { mode, label } (mode)}
+        {#each keyButtons as button, index (index)}
           <button
-            data-modo={mode}
-            class:primary={onAir.mode === mode}
-            onclick={() => connection.dispatch({ type: 'toggle-mode', mode })}
+            id={button.action === 'clear' ? 'control-quitar' : undefined}
+            data-modo={button.action === 'clear' ? undefined : button.action}
+            class:primary={onAir.mode === button.action}
+            onclick={() => connection.dispatch(keyActionToAction(button.action))}
           >
-            {label}
+            {button.label}
           </button>
         {/each}
-        <button id="control-quitar" onclick={() => connection.dispatch({ type: 'clear' })}>Quitar</button>
       </div>
     </div>
     {#if !online}<p id="control-offline" class="offline">Buscando la PC…</p>{/if}
@@ -541,13 +541,25 @@
           {/each}
         </ul>
       {:else}
-        <div class="grid books">
-          {#each books as entry (entry.book)}
-            <button style:color={`var(--g-${bookGroup(entry.book)?.id})`} onclick={() => (book = entry)}>
-              {bookShortName(entry.book)}
-            </button>
-          {/each}
-        </div>
+        {#each TESTAMENTS as testament (testament.name)}
+          {@const inTestament = books.filter((entry) => entry.book >= testament.from && entry.book <= testament.to)}
+          {#if inTestament.length}
+            <section>
+              <h3>{testament.name}</h3>
+              <div class="grid books">
+                {#each inTestament as entry (entry.book)}
+                  <button
+                    class="book"
+                    style:--group={`var(--g-${bookGroup(entry.book)?.id})`}
+                    onclick={() => (book = entry)}
+                  >
+                    {bookShortName(entry.book)}
+                  </button>
+                {/each}
+              </div>
+            </section>
+          {/if}
+        {/each}
       {/if}
     {:else if tab === 'canciones'}
       {#if song}
@@ -815,18 +827,34 @@
     gap: 8px;
   }
 
+  /* Luz de tally, como en la consola: roja mientras la salida muestra algo. */
   .preview {
     min-width: 0;
+    padding: 2px;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    transition: border-color 0.2s var(--ease);
+  }
+
+  .preview.lit {
+    border-color: var(--live);
   }
 
   .modes {
     display: grid;
+    grid-auto-rows: minmax(0, 1fr);
     gap: 4px;
   }
 
+  /* Tapas de tecla, como los botones debajo de Al aire. */
   .modes button {
     padding: 2px;
+    overflow: hidden;
     font-size: 13px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-bottom-width: 3px;
   }
 
   .offline {
@@ -861,6 +889,13 @@
     font-size: 16px;
   }
 
+  h3 {
+    margin: 6px 0 6px;
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--muted);
+  }
+
   .back {
     align-self: start;
     padding: 6px 12px;
@@ -875,9 +910,22 @@
     grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
   }
 
-  .books button {
-    padding: 11px 2px;
+  /* Como en la consola: tarjeta neutra con la franja del color de su grupo. */
+  .book {
+    position: relative;
+    padding: 11px 4px 11px 13px;
     font-weight: 600;
+    text-align: left;
+    background: var(--surface);
+  }
+
+  .book::after {
+    position: absolute;
+    inset: 6px auto 6px 5px;
+    width: 3px;
+    content: '';
+    background: var(--group);
+    border-radius: 2px;
   }
 
   .numbers {
@@ -992,9 +1040,15 @@
     gap: 3px;
     width: 100%;
     padding: 10px 12px;
+    font-family: var(--font-text);
     font-size: 15px;
-    line-height: 1.3;
+    line-height: 1.4;
     text-align: left;
+  }
+
+  .row small {
+    font-family: var(--font-ui);
+    font-weight: 600;
   }
 
   .row small {
@@ -1011,7 +1065,7 @@
     padding: 10px 12px;
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
   }
 
   .timer-head {
@@ -1079,7 +1133,7 @@
     margin-bottom: 8px;
     padding: 10px;
     border: 1px dashed var(--muted);
-    border-radius: 8px;
+    border-radius: var(--radius);
     text-align: center;
     cursor: pointer;
   }

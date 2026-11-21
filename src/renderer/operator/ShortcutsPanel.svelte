@@ -300,8 +300,9 @@
     left: 10px;
     min-width: 20px;
     padding: 1px 5px;
-    font: 600 12px system-ui;
+    font: 650 12px var(--font-ui);
     color: #fff;
+    border: 0;
     text-align: center;
     background: rgb(0 0 0 / 0.65);
     border-radius: 4px;

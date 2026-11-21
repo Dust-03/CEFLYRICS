@@ -21,7 +21,7 @@ const TABLES: Record<string, string[]> = {
   timers: ['id', 'name', 'kind', 'seconds', 'clock', 'message'],
   shortcuts: ['id', 'ref', 'position'],
 };
-const SETTINGS = ['themes.assignment'];
+const SETTINGS = ['themes.assignment', 'themes.hidden'];
 
 const FILE_NAME = /^([0-9a-f]{64})(\.thumb)?\.([a-z0-9]+)$/;
 

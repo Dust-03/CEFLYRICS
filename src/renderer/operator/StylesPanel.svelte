@@ -1,7 +1,15 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import type { MediaItem, ThemeAssignment } from '@shared/api';
-  import { BACKGROUNDS, FONTS, WEIGHTS, type Background, type Theme, type ThemeEntry } from '@shared/theme';
+  import {
+    BACKGROUNDS,
+    DEFAULT_THEME,
+    FONTS,
+    WEIGHTS,
+    type Background,
+    type Theme,
+    type ThemeEntry,
+  } from '@shared/theme';
   import Screen from './Screen.svelte';
 
   type Props = {
@@ -39,6 +47,14 @@
     error = '';
   }
 
+  // Un estilo en blanco: siempre se puede empezar de cero, aunque no quede ninguno.
+  function create() {
+    current = null;
+    draft = structuredClone(DEFAULT_THEME);
+    name = 'Estilo nuevo';
+    error = '';
+  }
+
   async function assign(kind: 'song' | 'bible', id: string) {
     await api.assign({ ...$state.snapshot(assignment), [kind]: id });
     onChange();
@@ -64,7 +80,7 @@
   }
 
   async function remove() {
-    if (!current || current.factory) return;
+    if (!current) return;
     await api.remove(current.id);
     current = null;
     draft = null;
@@ -98,20 +114,31 @@
           <button
             class:primary={assignment.song === entry.id}
             data-usar-canciones={entry.id}
+            aria-pressed={assignment.song === entry.id}
             onclick={() => assign('song', entry.id)}
           >
-            Canciones
+            {assignment.song === entry.id ? '✓ ' : ''}Canciones
           </button>
           <button
             class:primary={assignment.bible === entry.id}
             data-usar-biblia={entry.id}
+            aria-pressed={assignment.bible === entry.id}
             onclick={() => assign('bible', entry.id)}
           >
-            Biblia
+            {assignment.bible === entry.id ? '✓ ' : ''}Biblia
           </button>
         </div>
       </div>
     {/each}
+    <button id="estilo-nuevo" class="new" onclick={create}>
+      <span aria-hidden="true">+</span>
+      Nuevo estilo
+    </button>
+    {#if !themes.length}
+      <p class="hint empty">
+        No queda ningún estilo: lo proyectado sale con letra blanca sobre el fondo Noche hasta que crees uno.
+      </p>
+    {/if}
   </div>
 
   <div class="editor">
@@ -240,7 +267,7 @@
         <button id="estilo-guardar" class="primary" onclick={save}>
           {current?.factory ? 'Guardar como nuevo' : 'Guardar'}
         </button>
-        {#if current && !current.factory}
+        {#if current}
           <button id="estilo-borrar" onclick={remove}>Borrar</button>
         {/if}
       </div>
@@ -253,7 +280,7 @@
 <style>
   .panel {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 290px;
+    grid-template-columns: minmax(0, 1fr) 270px;
     gap: 14px;
     height: 100%;
     min-height: 0;
@@ -261,7 +288,7 @@
 
   .themes {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     align-content: start;
     gap: 10px;
     overflow-y: auto;
@@ -281,6 +308,29 @@
     border-color: var(--accent);
   }
 
+  /* Ocupa el lugar de una tarjeta más, con borde punteado: es un hueco para llenar. */
+  .new {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 4px;
+    min-height: 120px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+  }
+
+  .new span {
+    font-size: 26px;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  .empty {
+    grid-column: 1 / -1;
+  }
+
   .pick {
     padding: 0;
     background: transparent;
@@ -296,6 +346,7 @@
   .uses button {
     padding: 3px 4px;
     font-size: 12px;
+    white-space: nowrap;
   }
 
   .editor {

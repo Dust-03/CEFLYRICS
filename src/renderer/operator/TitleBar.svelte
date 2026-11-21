@@ -31,7 +31,7 @@
 </script>
 
 <header class="titlebar">
-  <span class="brand">CEFLYRICS</span>
+  <span class="label">Atajos</span>
   <div class="chips" id="barra-atajos" role="toolbar" aria-label="Atajos">
     {#each shortcuts as shortcut, index (shortcut.id)}
       <button
@@ -92,11 +92,10 @@
     user-select: none;
   }
 
-  .brand {
+  .label {
     flex: none;
     font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-weight: 650;
     color: var(--muted);
   }
 
@@ -137,10 +136,10 @@
     flex: none;
     min-width: 18px;
     height: 18px;
-    font:
-      600 11px/1 system-ui,
-      sans-serif;
+    padding: 0;
+    font: 650 11px/1 var(--font-ui);
     color: var(--on-accent);
+    border: 0;
     background: var(--accent);
     border-radius: 999px;
   }
@@ -184,8 +183,7 @@
     padding: 8px;
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 12px;
-    box-shadow: 0 12px 32px rgb(0 0 0 / 0.35);
+    border-radius: var(--radius-lg);
     pointer-events: none;
     animation: peek-in 0.14s ease-out;
   }

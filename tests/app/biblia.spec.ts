@@ -33,8 +33,9 @@ test('los libros se separan por testamento, con el color de su grupo', async () 
   const scroll = await operator.locator('.books').evaluate((el) => el.scrollHeight - el.clientHeight);
   expect(scroll).toBeLessThanOrEqual(0);
 
+  // El grupo se ve en la marca de abajo de cada ficha.
   const color = (book: number) =>
-    operator.locator(`button[data-book="${book}"]`).evaluate((el) => getComputedStyle(el).color);
+    operator.locator(`button[data-book="${book}"]`).evaluate((el) => getComputedStyle(el, '::after').backgroundColor);
   expect(await color(1)).toBe(await color(5));
   expect(await color(1)).not.toBe(await color(40));
 });

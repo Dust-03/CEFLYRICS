@@ -1,6 +1,6 @@
 {
   "name": "ceflyrics",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "private": true,
   "description": "Software de proyección para iglesias",
   "license": "GPL-3.0-only",
@@ -49,6 +49,8 @@
     "vitest": "^5.1.0"
   },
   "dependencies": {
+    "@fontsource-variable/atkinson-hyperlegible-next": "^5.3.0",
+    "@fontsource-variable/literata": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
     "@fontsource/lora": "^5.3.0",
     "@fontsource/merriweather": "^5.3.0",

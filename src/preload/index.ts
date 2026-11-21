@@ -71,6 +71,11 @@ const api: CeflyricsApi = {
     remove: (id) => ipcRenderer.invoke(IPC.timerRemove, id),
     onChange: (listener) => subscribe(IPC.timersChanged, listener),
   },
+  keys: {
+    get: () => ipcRenderer.invoke(IPC.keysGet),
+    save: (buttons) => ipcRenderer.invoke(IPC.keysSave, buttons),
+    onChange: (listener) => subscribe(IPC.keysChanged, listener),
+  },
   shortcuts: {
     list: () => ipcRenderer.invoke(IPC.shortcutList),
     add: (ref) => ipcRenderer.invoke(IPC.shortcutAdd, ref),

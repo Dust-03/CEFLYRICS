@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import type { BibleBook, BibleInfo, BibleVerse } from '@shared/api';
-  import { TESTAMENTS, bookGroup, bookShortName } from '@shared/bible-groups';
+  import { TESTAMENTS, bookGroup } from '@shared/bible-groups';
   import { verseParts } from '@shared/verse-parts';
   import type { PreviewItem } from './preview-item';
 
@@ -28,6 +28,8 @@
   let chapterVerseIds = $state<number[]>([]);
   let currentVerseId = $state<number>();
   let currentVersePart = $state(0);
+  // Con un capítulo ya abierto, el operador puede volver a la grilla de capítulos.
+  let pickingChapter = $state(false);
   let verses = $state<BibleVerse[]>([]);
   let selected = $state(-1);
   let list = $state<HTMLElement>();
@@ -108,6 +110,7 @@
     query = '';
     book = undefined;
     chapter = undefined;
+    pickingChapter = false;
     chapterVerseIds = [];
     currentVerseId = undefined;
     currentVersePart = 0;
@@ -120,6 +123,7 @@
     query = '';
     book = value;
     chapter = undefined;
+    pickingChapter = false;
     chapterVerseIds = [];
     currentVerseId = undefined;
     currentVersePart = 0;
@@ -130,6 +134,7 @@
   async function chooseChapter(value: number) {
     query = '';
     chapter = value;
+    pickingChapter = false;
     await refresh(version);
     list?.focus();
   }
@@ -263,12 +268,14 @@
               <button
                 class="book"
                 class:active={item.book === book}
+                class:long={item.name.length > 12}
                 style:--group="var(--g-{group.id})"
                 title={`${item.name} · ${group.name}`}
                 data-book={item.book}
                 onclick={() => chooseBook(item.book)}
               >
-                {bookShortName(item.book)}
+                <!-- El número no se separa del nombre: "1 Tesalonicenses" no se parte en dos renglones. -->
+                {item.name.replace(/^(d) /, '$1 ')}
               </button>
             {/each}
           </div>
@@ -278,32 +285,45 @@
 
     <div class="reader">
       {#if currentBook}
-        <div class="chapters">
-          <strong>{currentBook.name}</strong>
-          <div class="chapter-list">
-            {#each chapterNumbers as number (number)}
-              <button class:active={number === chapter} data-chapter={number} onclick={() => chooseChapter(number)}>
-                {number}
+        {@const showChapters = !chapter || pickingChapter}
+        <div class="picker">
+          <div class="picker-head">
+            <span class="ref"
+              >{currentBook.name}{#if chapter}<span class="ref-chapter">{chapter}</span>{/if}</span
+            >
+            {#if !chapter}
+              <span class="step">Elegí el capítulo</span>
+            {:else}
+              {#if verses.length === 1 && !pickingChapter}
+                <button class="link" onclick={() => chooseChapter(chapter!)}>Todo el capítulo</button>
+              {/if}
+              <button class="link" aria-expanded={pickingChapter} onclick={() => (pickingChapter = !pickingChapter)}>
+                {pickingChapter ? 'Volver a los versículos' : 'Otro capítulo'}
               </button>
-            {/each}
+            {/if}
           </div>
-          {#if chapter && chapterVerseIds.length > 0}
-            <div class="verse-numbers" aria-label="Versículos">
-              <span>Versículos</span>
-              <div class="verse-list">
-                {#each chapterVerseIds as vid (vid)}
-                  {@const number = vid % 1000}
-                  <button
-                    class:active={verses.length === 1 && verses[0].vid === vid}
-                    aria-label={`Versículo ${number}`}
-                    aria-pressed={verses.length === 1 && verses[0].vid === vid}
-                    data-verse-number={number}
-                    onclick={() => chooseVerse(vid)}
-                  >
-                    {number}
-                  </button>
-                {/each}
-              </div>
+          {#if showChapters}
+            <div class="tiles" class:roomy={verses.length === 0} role="group" aria-label="Capítulos">
+              {#each chapterNumbers as number (number)}
+                <button class:active={number === chapter} data-chapter={number} onclick={() => chooseChapter(number)}>
+                  {number}
+                </button>
+              {/each}
+            </div>
+          {:else if chapterVerseIds.length > 0}
+            <div class="tiles" role="group" aria-label="Versículos">
+              {#each chapterVerseIds as vid (vid)}
+                {@const number = vid % 1000}
+                <button
+                  class:active={verses.length === 1 && verses[0].vid === vid}
+                  aria-label={`Versículo ${number}`}
+                  aria-pressed={verses.length === 1 && verses[0].vid === vid}
+                  data-verse-number={number}
+                  onclick={() => chooseVerse(vid)}
+                >
+                  {number}
+                </button>
+              {/each}
             </div>
           {/if}
         </div>
@@ -382,7 +402,7 @@
 
   .body {
     display: grid;
-    grid-template-columns: 372px minmax(0, 1fr);
+    grid-template-columns: 460px minmax(0, 1fr);
     gap: 12px;
     min-height: 0;
   }
@@ -397,26 +417,48 @@
 
   h3 {
     margin: 0 0 6px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    font-size: 13px;
+    font-weight: 650;
     color: var(--muted);
   }
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 4px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3px;
   }
 
+  /* Fichas neutras con el nombre entero: el grupo se lee en el filo de la izquierda,
+     como la pestaña de un índice; solo el libro elegido va lleno. */
   .book {
-    padding: 8px 0;
-    font-size: 14px;
+    position: relative;
+    min-height: 27px;
+    padding: 3px 4px 3px 11px;
+    overflow: hidden;
+    font-size: 13px;
     font-weight: 600;
+    text-align: left;
+    text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--group);
-    background: color-mix(in srgb, var(--group) 12%, var(--surface));
-    border-color: color-mix(in srgb, var(--group) 30%, var(--surface));
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+  }
+
+  /* Los nombres largos se achican un poco y, si hace falta, van en dos renglones. */
+  .book.long {
+    padding-block: 1px;
+    font-size: 11.5px;
+    line-height: 1.05;
+    white-space: normal;
+  }
+
+  .book::after {
+    content: '';
+    position: absolute;
+    inset: 4px auto 4px 4px;
+    width: 3px;
+    background: var(--group);
+    border-radius: 2px;
   }
 
   .book:hover:enabled {
@@ -424,9 +466,14 @@
   }
 
   .book.active {
-    color: var(--surface);
+    color: var(--bg);
     background: var(--group);
     border-color: var(--group);
+  }
+
+  .book.active::after {
+    background: currentColor;
+    opacity: 0.5;
   }
 
   .reader {
@@ -448,56 +495,79 @@
     font-size: 16px;
   }
 
-  .chapters {
+  .picker {
     display: grid;
-    gap: 6px;
-  }
-
-  .chapter-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    max-height: 92px;
-    overflow-y: auto;
-  }
-
-  .chapter-list button {
-    min-width: 34px;
-    padding: 3px 6px;
-    font-size: 13px;
-  }
-
-  .chapter-list button.active {
-    font-weight: 700;
-    color: var(--on-accent);
-    background: var(--accent);
-    border-color: var(--accent);
-  }
-
-  .verse-numbers {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: start;
     gap: 8px;
-    font-size: 12px;
+  }
+
+  .picker-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    min-height: 30px;
+  }
+
+  /* La referencia en la letra de la Biblia: es lo que el operador está buscando. */
+  .ref {
+    margin-right: auto;
+    font-family: var(--font-text);
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .ref-chapter {
+    margin-left: 0.3em;
+    color: var(--accent);
+  }
+
+  .step {
     color: var(--muted);
   }
 
-  .verse-list {
-    display: flex;
-    flex-wrap: wrap;
+  .link {
+    padding: 4px 2px;
+    font-size: 13px;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    text-underline-offset: 3px;
+  }
+
+  .link:hover:enabled {
+    color: var(--text);
+    text-decoration-color: var(--accent);
+  }
+
+  /* Números grandes y parejos, fáciles de acertar con el mouse o en una pantalla táctil. */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+    grid-auto-rows: 36px;
     gap: 4px;
-    max-height: 68px;
+    max-height: 160px;
+    padding: 2px;
     overflow-y: auto;
+    scroll-snap-type: y proximity;
+    scroll-padding: 2px;
   }
 
-  .verse-list button {
-    min-width: 30px;
-    padding: 3px 5px;
-    font-size: 12px;
+  .tiles.roomy {
+    max-height: min(52vh, 420px);
   }
 
-  .verse-list button.active {
+  .tiles button {
+    padding: 0;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    scroll-snap-align: start;
+  }
+
+  .tiles button.active {
     color: var(--on-accent);
     background: var(--accent);
     border-color: var(--accent);
@@ -508,7 +578,7 @@
     padding: 2px;
     overflow-y: auto;
     list-style: none;
-    border-radius: 8px;
+    border-radius: var(--radius);
   }
 
   /* El navegador no dibuja los resultados que están fuera de la vista. */
@@ -522,17 +592,21 @@
     display: grid;
     gap: 2px;
     width: 100%;
-    padding: 8px 34px 8px 10px;
-    font-size: 15px;
-    line-height: 1.35;
+    padding: 8px 34px 8px 12px;
+    font-family: var(--font-text);
+    font-size: 15.5px;
+    line-height: 1.5;
     text-align: left;
     background: transparent;
-    border-color: transparent;
+    border: 0;
+    border-left: 3px solid transparent;
+    border-radius: 0 var(--radius) var(--radius) 0;
   }
 
   .label {
-    font-size: 11px;
-    font-weight: 700;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 650;
     color: var(--muted);
   }
 
@@ -554,13 +628,14 @@
     color: var(--accent);
   }
 
+  /* Regla dorada a la izquierda: el versículo elegido; roja si además está al aire. */
   li.selected .verse {
     background: var(--surface-2);
-    border-color: var(--accent);
+    border-left-color: var(--accent);
   }
 
   li.on-air .verse {
-    border-color: var(--live);
+    border-left-color: var(--live);
   }
 
   li.on-air .label {

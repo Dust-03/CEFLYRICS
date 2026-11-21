@@ -205,6 +205,25 @@ test('se puede crear un estilo con otra fuente y una foto de fondo', async () =>
   await expect(output.locator('.cef-background img')).toHaveCount(1);
 });
 
+test('se borran todos los estilos, también los de fábrica, y se crea uno de cero', async () => {
+  await operator.locator('#tab-configuracion').click();
+  const cards = operator.locator('#estilos .theme');
+  const total = await cards.count();
+  for (let left = total; left > 0; left--) {
+    await cards.first().locator('.pick').click();
+    await operator.locator('#estilo-borrar').click();
+    await expect(cards).toHaveCount(left - 1);
+  }
+  await expect(operator.locator('#estilos .empty')).toBeVisible();
+
+  await operator.locator('#estilo-nuevo').click();
+  await operator.locator('#estilo-nombre').fill('Desde cero');
+  await operator.locator('#estilo-guardar').click();
+  await expect(cards).toHaveCount(1);
+  await expect(operator.locator('[aria-label="Editar Desde cero"]')).toBeVisible();
+  await expect(operator.locator('#estilos .empty')).toHaveCount(0);
+});
+
 test('la biblioteca sobrevive al cerrar y abrir la app', async () => {
   await addSong();
   await operator.locator('#tab-configuracion').click();

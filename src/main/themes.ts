@@ -3,6 +3,8 @@ import { DEFAULT_THEME, FACTORY_THEMES, parseTheme, type ThemeEntry } from '@sha
 import type { Db } from './db/database';
 
 const ASSIGNMENT_KEY = 'themes.assignment';
+// Los de fábrica viven en el código: borrarlos es esconderlos.
+const HIDDEN_KEY = 'themes.hidden';
 const DEFAULT_ASSIGNMENT: ThemeAssignment = { song: FACTORY_THEMES[0].id, bible: FACTORY_THEMES[0].id };
 
 export class ThemeService {
@@ -20,7 +22,8 @@ export class ThemeService {
       factory: false,
       theme: parseTheme(JSON.parse(definition_json)) ?? DEFAULT_THEME,
     }));
-    return [...FACTORY_THEMES, ...own];
+    const hidden = new Set(this.setting<string[]>(HIDDEN_KEY) ?? []);
+    return [...FACTORY_THEMES.filter((entry) => !hidden.has(entry.id)), ...own];
   }
 
   save({ id, name, theme }: ThemeInput) {
@@ -38,27 +41,40 @@ export class ThemeService {
   }
 
   remove(id: string) {
-    this.db.prepare('DELETE FROM themes WHERE id = ?').run(Number(id));
+    if (FACTORY_THEMES.some((entry) => entry.id === id)) {
+      this.setSetting(HIDDEN_KEY, [...new Set([...(this.setting<string[]>(HIDDEN_KEY) ?? []), id])]);
+    } else {
+      this.db.prepare('DELETE FROM themes WHERE id = ?').run(Number(id));
+    }
+    // Lo que usaba el estilo borrado pasa al primero que quede; sin ninguno, sale el de base.
+    const fallback = this.list()[0]?.id ?? '';
     const assignment = this.assignment();
     this.assign({
-      song: assignment.song === id ? DEFAULT_ASSIGNMENT.song : assignment.song,
-      bible: assignment.bible === id ? DEFAULT_ASSIGNMENT.bible : assignment.bible,
+      song: assignment.song === id ? fallback : assignment.song,
+      bible: assignment.bible === id ? fallback : assignment.bible,
     });
   }
 
   assignment(): ThemeAssignment {
-    const row = this.db.prepare('SELECT value_json FROM settings WHERE key = ?').get(ASSIGNMENT_KEY) as
-      { value_json: string } | undefined;
-    return row ? { ...DEFAULT_ASSIGNMENT, ...JSON.parse(row.value_json) } : DEFAULT_ASSIGNMENT;
+    return { ...DEFAULT_ASSIGNMENT, ...this.setting<ThemeAssignment>(ASSIGNMENT_KEY) };
   }
 
   assign(assignment: ThemeAssignment) {
-    const value = JSON.stringify({ song: String(assignment.song), bible: String(assignment.bible) });
+    this.setSetting(ASSIGNMENT_KEY, { song: String(assignment.song), bible: String(assignment.bible) });
+  }
+
+  private setting<T>(key: string): T | undefined {
+    const row = this.db.prepare('SELECT value_json FROM settings WHERE key = ?').get(key) as
+      { value_json: string } | undefined;
+    return row ? JSON.parse(row.value_json) : undefined;
+  }
+
+  private setSetting(key: string, value: unknown) {
     this.db
       .prepare(
         `INSERT INTO settings (key, value_json) VALUES (?, ?)
          ON CONFLICT (key) DO UPDATE SET value_json = excluded.value_json`,
       )
-      .run(ASSIGNMENT_KEY, value);
+      .run(key, JSON.stringify(value));
   }
 }

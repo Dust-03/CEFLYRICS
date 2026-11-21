@@ -130,6 +130,40 @@ test('F8, F9, F10 y ESC funcionan desde la consola y desde la salida', async () 
   await expect(output.locator('.cef-body')).toHaveText('');
 });
 
+test('los botones de salida cambian de nombre, tecla y acción, y se recuerdan', async () => {
+  await operator.locator('#tab-configuracion').click();
+  await operator.locator('#config-teclas').click();
+  try {
+    await operator.locator('#tecla-nombre-0').fill('Logo');
+    await operator.locator('#tecla-nombre-0').blur();
+    // F9 era de "Fondo": al dársela al primero, el segundo queda sin tecla.
+    await operator.locator('#tecla-tecla-0').selectOption('F9');
+    await operator.locator('#tecla-accion-0').selectOption('black');
+    await expect(operator.locator('#btn-modo-0')).toHaveText(/Logo\s*F9/);
+    await expect(operator.locator('#btn-modo-1 kbd')).toHaveCount(0);
+
+    await pressKey('operator', 'F9');
+    await expect(layerOn('black')).toHaveCount(1);
+    await pressKey('output', 'F8');
+    await expect(layerOn('wallpaper')).toHaveCount(0);
+    // En Configuración no se ven los botones: se vuelve a una pestaña con monitores.
+    await operator.locator('#tab-biblia').click();
+    await operator.locator('#btn-modo-0').click();
+    await expect(layerOn('black')).toHaveCount(0);
+
+    await app.close();
+    app = await electron.launch({ args: ['.'], env: { ...process.env, CEF_OUTPUT: 'window' } });
+    await expect.poll(() => app.windows().length).toBe(2);
+    operator = app.windows().find((w) => w.url().includes('operator'))!;
+    await expect(operator.locator('#btn-modo-0')).toHaveText(/Logo\s*F9/);
+  } finally {
+    await operator.locator('#tab-configuracion').click();
+    await operator.locator('#config-teclas').click();
+    await operator.locator('#teclas-fabrica').click();
+    await expect(operator.locator('#btn-modo-0')).toHaveText(/Wallpaper\s*F8/);
+  }
+});
+
 test('la salida no tiene acceso a Node y rechaza acciones inválidas', async () => {
   expect(await output.evaluate(() => typeof (globalThis as any).require)).toBe('undefined');
   await dispatch(output, { type: 'borrar-todo' });

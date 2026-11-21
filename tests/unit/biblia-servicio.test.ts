@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { afterAll, describe, expect, test } from 'vitest';
 import { BibleService } from '../../src/main/bible/service';
 import { BOOK_GROUPS, bookShortName } from '../../src/shared/bible-groups';
+import { parseReference } from '../../src/shared/reference';
 
 test('los grupos cubren los 66 libros sin repetir', () => {
   const books = BOOK_GROUPS.flatMap(({ from, to }) => Array.from({ length: to - from + 1 }, (_, i) => from + i));
@@ -12,9 +13,11 @@ test('los grupos cubren los 66 libros sin repetir', () => {
 test('cada libro tiene una etiqueta corta distinta', () => {
   const labels = Array.from({ length: 66 }, (_, i) => bookShortName(i + 1));
   expect(new Set(labels).size).toBe(66);
-  expect(labels[0]).toBe('Gén');
-  expect(labels[8]).toBe('1 Sam');
+  expect(labels[0]).toBe('Gn');
+  expect(labels[8]).toBe('1 S');
   expect(labels[56]).toBe('Flm');
+  // Cada abreviatura se puede escribir en el buscador y lleva a su libro.
+  labels.forEach((label, i) => expect(parseReference(`${label} 1`)?.book).toBe(i + 1));
 });
 
 const FILE = 'resources/bibles.db';
