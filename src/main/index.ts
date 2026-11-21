@@ -453,6 +453,7 @@ app.whenReady().then(() => {
       'keys.list': () => keyButtons,
     },
     onChange: () => broadcast(IPC.lanInfoChanged, lan.info),
+    askPermission: (request) => broadcast(IPC.lanDataRequest, request),
   });
   const lan = new LanServer({
     db,
@@ -465,6 +466,16 @@ app.whenReady().then(() => {
     getState: () => store.current,
     serveMedia: (request) => media.serve(request),
     addMedia: uploadMedia,
+    exportData: (target) => backup.export(target),
+    // Lo de la PC cambió entero: las ventanas se recargan, como al importar desde la PC.
+    importData: async (source) => {
+      const counts = await backup.import(source);
+      for (const window of BrowserWindow.getAllWindows()) window.webContents.reload();
+      control.notify('media');
+      control.notify('timers');
+      control.notify('shortcuts');
+      return counts;
+    },
     onChange: (info) => broadcast(IPC.lanInfoChanged, info),
   });
   store.subscribe((state) => lan.broadcast(state));
@@ -478,6 +489,10 @@ app.whenReady().then(() => {
   ipcMain.on(IPC.lanSetSound, (_event, sound: unknown) => lan.setSound(sound === true));
   ipcMain.on(IPC.lanRenewPin, () => lan.renewPin());
   ipcMain.on(IPC.lanUnlink, (_event, id: unknown) => lan.unlink(Number(id)));
+  ipcMain.on(IPC.lanRevokeAlways, (_event, id: unknown) => control.revokeAlways(Number(id)));
+  ipcMain.on(IPC.lanDataAnswer, (_event, id: unknown, answer: unknown) => {
+    if (answer === 'once' || answer === 'always' || answer === 'deny') control.answer(Number(id), answer);
+  });
   lan.start();
 
   ipcMain.handle(IPC.getOutputInfo, () => output.info);

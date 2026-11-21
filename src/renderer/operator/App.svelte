@@ -4,6 +4,7 @@
   import { initialState, type OnAirState } from '@shared/state';
   import { FACTORY_THEMES, type ThemeEntry } from '@shared/theme';
   import BiblePanel from './BiblePanel.svelte';
+  import DataRequest from './DataRequest.svelte';
   import Icon from './Icon.svelte';
   import KeysPanel from './KeysPanel.svelte';
   import MediaPanel from './MediaPanel.svelte';
@@ -211,6 +212,7 @@
 <svelte:window onkeydown={onGlobalKey} />
 
 <Splash />
+<DataRequest />
 
 <div class="shell">
   <TitleBar

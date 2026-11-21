@@ -1,14 +1,18 @@
 package ar.ceflirics.control;
 
 import android.app.Activity;
+import android.app.DownloadManager;
 import android.content.ClipData;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -65,7 +69,21 @@ public class MainActivity extends Activity {
                 if (request.isForMainFrame()) view.loadUrl(START_PAGE);
             }
         });
-        // "Subir fotos o videos": la galería del celular, solo fotos y videos.
+        // "Exportar todo": la copia queda en Descargas, con aviso cuando termina.
+        web.setDownloadListener((url, userAgent, disposition, mimeType, length) -> {
+            String name = URLUtil.guessFileName(url, disposition, mimeType);
+            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url))
+                .setTitle(name)
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            // Antes de Android 10, la carpeta pública pide un permiso: ahí queda en la de la app.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
+            } else {
+                request.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, name);
+            }
+            ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(request);
+        });
+        // "Subir fotos o videos" abre la galería; "Importar todo", cualquier archivo, de a uno.
         web.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
@@ -74,8 +92,9 @@ public class MainActivity extends Activity {
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("*/*");
-                intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] { "image/*", "video/*" });
-                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                boolean media = String.join(",", params.getAcceptTypes()).matches("[^.]*(image|video)[^.]*");
+                if (media) intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] { "image/*", "video/*" });
+                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
                 try {
                     startActivityForResult(Intent.createChooser(intent, null), PICK_FILES);
                 } catch (Exception error) {

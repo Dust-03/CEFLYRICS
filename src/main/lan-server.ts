@@ -1,7 +1,7 @@
-import { createReadStream, existsSync } from 'node:fs';
-import { readFile, stat } from 'node:fs/promises';
+import { createReadStream, createWriteStream, existsSync } from 'node:fs';
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { networkInterfaces } from 'node:os';
+import { networkInterfaces, tmpdir } from 'node:os';
 import { basename, extname, join } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -17,7 +17,7 @@ import {
   type LanScreen,
   type LanStatus,
 } from '@shared/lan';
-import type { MediaAddResult } from '@shared/api';
+import type { DataCounts, MediaAddResult } from '@shared/api';
 import type { OnAirState } from '@shared/state';
 import type { Db } from './db/database';
 import type { LanControl } from './lan-control';
@@ -86,6 +86,9 @@ type LanOptions = {
   serveMedia: (request: Request) => Promise<Response>;
   // Guarda en la biblioteca una foto o un video que mandó un celular vinculado.
   addMedia: (name: string, body: IncomingMessage) => Promise<MediaAddResult>;
+  // Exportar e importar todo, cuando la PC ya lo autorizó.
+  exportData: (target: string) => Promise<DataCounts>;
+  importData: (source: string) => Promise<DataCounts>;
   onChange: (info: LanInfo) => void;
 };
 
@@ -338,6 +341,10 @@ export class LanServer {
       await this.upload(request, response);
       return;
     }
+    if (request.method === 'POST' && path === '/api/datos/importar') {
+      await this.importData(request, response);
+      return;
+    }
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       response.writeHead(405).end();
       return;
@@ -358,6 +365,8 @@ export class LanServer {
       await this.sendRendererFile('control/index.html', 'text/html; charset=utf-8', response);
     } else if (/^\/assets\/[\w.-]+$/.test(path) && ASSET_TYPES[extname(path)]) {
       await this.sendRendererFile(path.slice(1), ASSET_TYPES[extname(path)], response);
+    } else if (path === '/api/datos/exportar') {
+      await this.exportData(request, response);
     } else if (path === '/app.apk' && existsSync(this.options.apk)) {
       await this.sendApk(response);
     } else {
@@ -387,19 +396,63 @@ export class LanServer {
   }
 
   private async upload(request: IncomingMessage, response: ServerResponse) {
+    // Primero el nombre: un archivo rechazado no gasta el permiso que dio la PC.
     const { control } = this.options;
-    const token = (request.headers.authorization ?? '').replace(/^Bearer /, '');
-    if (!control.isSameOrigin(request) || !control.isPaired(token)) {
-      response.writeHead(403, { Connection: 'close' }).end();
-      return;
-    }
     const name = uploadName(request.headers['x-file-name']);
     if (!name) {
       response.writeHead(415, { Connection: 'close' }).end();
       return;
     }
+    if (!control.isSameOrigin(request) || !control.useTicket(request.headers['x-ticket'], 'media')) {
+      response.writeHead(403, { Connection: 'close' }).end();
+      return;
+    }
     const result = await this.options.addMedia(name, request);
     response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+  }
+
+  // El ticket lo da la PC al autorizar, sirve una sola vez y no es el token del celular.
+  private async exportData(request: IncomingMessage, response: ServerResponse) {
+    const ticket = new URL(request.url ?? '/', 'http://lan').searchParams.get('ticket');
+    if (!this.options.control.useTicket(ticket, 'export')) {
+      response.writeHead(403).end();
+      return;
+    }
+    const folder = await mkdtemp(join(tmpdir(), 'cef-exportar-'));
+    try {
+      const file = join(folder, 'datos.ceflyrics');
+      await this.options.exportData(file);
+      const date = new Date().toLocaleDateString('sv');
+      response.writeHead(200, {
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': (await stat(file)).size,
+        'Content-Disposition': `attachment; filename="CEFLYRICS-datos-${date}.ceflyrics"`,
+      });
+      await pipeline(createReadStream(file), response).catch(() => {});
+    } finally {
+      await rm(folder, { recursive: true, force: true });
+    }
+  }
+
+  private async importData(request: IncomingMessage, response: ServerResponse) {
+    const { control } = this.options;
+    if (!control.isSameOrigin(request) || !control.useTicket(request.headers['x-ticket'], 'import')) {
+      response.writeHead(403, { Connection: 'close' }).end();
+      return;
+    }
+    const folder = await mkdtemp(join(tmpdir(), 'cef-importar-'));
+    try {
+      const file = join(folder, 'datos.ceflyrics');
+      await pipeline(request, createWriteStream(file));
+      const counts = await this.options.importData(file);
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(counts));
+    } catch (error) {
+      response
+        .writeHead(400, { 'Content-Type': 'application/json' })
+        .end(JSON.stringify({ error: (error as Error).message }));
+    } finally {
+      await rm(folder, { recursive: true, force: true });
+    }
   }
 
   private async sendRendererFile(name: string, type: string, response: ServerResponse) {

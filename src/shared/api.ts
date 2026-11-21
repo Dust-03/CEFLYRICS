@@ -216,4 +216,7 @@ export const IPC = {
   lanRenewPin: 'lan:renew-pin',
   lanUnlink: 'lan:unlink',
   lanInfoChanged: 'lan:info-changed',
+  lanRevokeAlways: 'lan:revoke-always',
+  lanDataAnswer: 'lan:data-answer',
+  lanDataRequest: 'lan:data-request',
 } as const;

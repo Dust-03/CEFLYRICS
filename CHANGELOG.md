@@ -1,5 +1,13 @@
 # Cambios
 
+## 2.1.0
+
+- Desde el celular, en la nueva pestaña Datos, se puede exportar todo (canciones, medios, estilos, cuentas regresivas, atajos y biblias importadas) y también importar una copia completa a la PC.
+- Cada pedido del celular lo autoriza la PC: muestra qué celular lo pide y qué quiere hacer, con las opciones Permitir, Permitir siempre de este dispositivo y Denegar.
+- Subir fotos y videos desde el celular también pide permiso a la PC, que muestra cuántas fotos y videos llegan y cuánto pesan.
+- En Transmisión se ve qué celulares tienen permiso siempre, y se les puede quitar.
+- La app de Android guarda la copia exportada en Descargas.
+
 ## 2.0.1
 
 - La consola usa la fuente Figtree, más clara para leer de un vistazo.

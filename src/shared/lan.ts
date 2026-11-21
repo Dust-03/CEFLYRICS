@@ -4,8 +4,32 @@ export const DEFAULT_LAN_PORT = 8787;
 export type LanAddress = { ip: string; adapter: string; mac: string };
 export type LanScreen = { id: number; ip: string; device: string; width: number; height: number };
 export type LanStatus = 'on' | 'off' | 'busy';
-// Un celular vinculado. Sin ip, no está conectado ahora.
-export type LanDevice = { id: number; name: string; ip: string | null };
+// Un celular vinculado. Sin ip, no está conectado ahora. alwaysAllowData: exporta e importa sin preguntar.
+export type LanDevice = { id: number; name: string; ip: string | null; alwaysAllowData: boolean };
+
+// Lo que un celular puede pedirle a la PC, y que la PC tiene que autorizar.
+export type DataAction = 'export' | 'import' | 'media';
+export type DataAnswer = 'once' | 'always' | 'deny';
+// Qué fotos y videos quiere mandar el celular, para que la PC sepa qué autoriza.
+export type MediaDetail = { images: number; videos: number; bytes: number };
+// Un pedido nuevo, o el aviso de que el celular se fue o tardó y el pedido ya no vale.
+export type LanDataRequest =
+  { id: number; device: string; action: DataAction; media?: MediaDetail } | { id: number; cancelled: true };
+
+export const MAX_MEDIA_FILES = 100;
+
+// Lo que manda el celular no se cree tal cual: números enteros, sin negativos, y entre 1 y 100 archivos.
+export function cleanMediaDetail(input: unknown): MediaDetail | null {
+  const value = (input ?? {}) as Record<string, unknown>;
+  const count = (key: string) => {
+    const number = Number(value[key]);
+    return Number.isSafeInteger(number) && number >= 0 ? number : -1;
+  };
+  const [images, videos, bytes] = [count('images'), count('videos'), count('bytes')];
+  const files = images + videos;
+  if (images < 0 || videos < 0 || bytes < 0 || files < 1 || files > MAX_MEDIA_FILES) return null;
+  return { images, videos, bytes };
+}
 
 export type LanInfo = {
   status: LanStatus;
@@ -30,6 +54,9 @@ export type LanApi = {
   setSound: (sound: boolean) => void;
   renewPin: () => void;
   unlink: (id: number) => void;
+  revokeAlways: (id: number) => void;
+  answerDataRequest: (id: number, answer: DataAnswer) => void;
+  onDataRequest: (listener: (request: LanDataRequest) => void) => () => void;
   onInfo: (listener: (info: LanInfo) => void) => () => void;
 };
 

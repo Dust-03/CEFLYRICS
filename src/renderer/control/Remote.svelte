@@ -13,6 +13,7 @@
   import { TESTAMENTS, bookGroup, bookShortName } from '@shared/bible-groups';
   import { DEFAULT_KEY_BUTTONS, keyActionToAction, type KeyButton } from '@shared/keys';
   import { verseParts } from '@shared/verse-parts';
+  import { MAX_MEDIA_FILES } from '@shared/lan';
   import { initialState, type OnAirState, type Slide } from '@shared/state';
   import type { ThemeEntry } from '@shared/theme';
   import { formatRemaining, remainingMs, type TimerConfig, type TimerLayout } from '@shared/timers';
@@ -41,7 +42,7 @@
   let keyButtons = $state<KeyButton[]>(DEFAULT_KEY_BUTTONS);
   const live = $derived(onAir.mode === 'live' ? !!(onAir.slide || onAir.shownTimer) : true);
   let online = $state(false);
-  let tab = $state<(typeof TABS)[number]['id']>('biblia');
+  let tab = $state<(typeof TABS)[number]['id'] | 'datos'>('biblia');
   let selected = $state<Item | null>(null);
   let airKey = $state<string>();
   let leaving = $state(false);
@@ -100,12 +101,29 @@
     media = await connection.call<MediaItem[]>('media.list');
   }
 
-  // Desde el celular se suben solo fotos y videos; la PC los vuelve a revisar.
+  // Desde el celular se suben solo fotos y videos; la PC da permiso y los vuelve a revisar.
   let uploadNote = $state('');
   async function uploadFiles(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
     const files = [...(input.files ?? [])];
     input.value = '';
+    if (!files.length) return;
+    if (files.length > MAX_MEDIA_FILES) {
+      uploadNote = `Elegí hasta ${MAX_MEDIA_FILES} archivos por vez.`;
+      return;
+    }
+    const videos = files.filter((file) => file.type.startsWith('video/')).length;
+    const bytes = files.reduce((total, file) => total + file.size, 0);
+    uploadNote = 'Esperando permiso en la PC…';
+    const { ticket } = await connection.call<{ ticket?: string }>('data.request', 'media', {
+      images: files.length - videos,
+      videos,
+      bytes,
+    });
+    if (!ticket) {
+      uploadNote = 'La PC no dio permiso.';
+      return;
+    }
     let added = 0;
     let rejected = 0;
     for (const [index, file] of files.entries()) {
@@ -113,7 +131,7 @@
       try {
         const response = await fetch('/api/medios', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'X-File-Name': encodeURIComponent(file.name) },
+          headers: { 'X-Ticket': ticket, 'X-File-Name': encodeURIComponent(file.name) },
           body: file,
         });
         const result = response.ok ? ((await response.json()) as { added: number }) : { added: 0 };
@@ -128,6 +146,71 @@
       rejected ? `${rejected} no se pudieron agregar: solo fotos (JPG, PNG, WebP, GIF) y videos (MP4, MOV, WebM).` : '',
     ].join(' ');
     await loadMedia();
+  }
+
+  // Exportar o importar todo: la PC tiene que dar permiso, y responde con un pase de un solo uso.
+  type DataNote = { tone: 'wait' | 'ok' | 'bad'; text: string };
+  let dataNote = $state<DataNote | null>(null);
+  let importFile = $state<File | null>(null);
+  let dataBusy = $state(false);
+
+  async function askPc(action: 'export' | 'import') {
+    dataNote = { tone: 'wait', text: 'Esperando permiso en la PC…' };
+    const { ticket } = await connection.call<{ ticket?: string }>('data.request', action);
+    if (!ticket) dataNote = { tone: 'bad', text: 'La PC no dio permiso.' };
+    return ticket;
+  }
+
+  async function exportAll() {
+    dataBusy = true;
+    try {
+      const ticket = await askPc('export');
+      if (!ticket) return;
+      location.href = `/api/datos/exportar?ticket=${encodeURIComponent(ticket)}`;
+      dataNote = { tone: 'ok', text: 'Descargando la copia: queda en la carpeta Descargas del celular.' };
+    } finally {
+      dataBusy = false;
+    }
+  }
+
+  function chooseImport(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    importFile = input.files?.[0] ?? null;
+    input.value = '';
+    dataNote = null;
+  }
+
+  async function importAll() {
+    const file = importFile;
+    if (!file) return;
+    importFile = null;
+    dataBusy = true;
+    try {
+      const ticket = await askPc('import');
+      if (!ticket) return;
+      dataNote = { tone: 'wait', text: 'Enviando la copia a la PC…' };
+      const response = await fetch('/api/datos/importar', {
+        method: 'POST',
+        headers: { 'X-Ticket': ticket },
+        body: file,
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        dataNote = { tone: 'bad', text: result.error ?? 'La PC no pudo importar la copia.' };
+        return;
+      }
+      const { songs: s, media: m, themes: t, bibles: b } = result as Record<string, number>;
+      const n = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+      dataNote = {
+        tone: 'ok',
+        text: `Listo: ${n(s, 'canción', 'canciones')}, ${n(m, 'medio', 'medios')}, ${n(t, 'estilo', 'estilos')} y ${n(b, 'biblia', 'biblias')}. La PC ya tiene los datos nuevos.`,
+      };
+      await Promise.all([loadMedia(), loadShortcuts(), loadTimers()]);
+    } catch {
+      dataNote = { tone: 'bad', text: 'Se cortó la conexión con la PC antes de terminar.' };
+    } finally {
+      dataBusy = false;
+    }
   }
 
   async function loadTimers() {
@@ -712,6 +795,65 @@
           <p class="empty">Creá un temporizador o una cuenta atrás hasta una hora.</p>
         {/if}
       {/if}
+    {:else if tab === 'datos'}
+      <section id="control-datos" class="data">
+        <h2>Datos de la PC</h2>
+        <p class="hint">
+          Cada vez la PC pregunta si da permiso, salvo que elijan "Permitir siempre" para este celular.
+        </p>
+        <div class="data-card">
+          <h3>Importar fotos y videos</h3>
+          <p>Suma fotos y videos de este celular a los medios de la PC. No se borra nada.</p>
+          <label class="pick-file">
+            Elegir fotos o videos…
+            <input
+              id="control-datos-medios"
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onchange={uploadFiles}
+              hidden
+            />
+          </label>
+          {#if uploadNote}<p class="upload-note" role="status">{uploadNote}</p>{/if}
+        </div>
+        <div class="data-card">
+          <h3>Exportar todo</h3>
+          <p>
+            Baja a este celular una copia de las canciones, medios, estilos, cuentas regresivas, atajos y biblias
+            importadas.
+          </p>
+          <button id="control-exportar" class="primary" disabled={dataBusy} onclick={exportAll}>Exportar todo</button>
+        </div>
+        <div class="data-card import">
+          <h3>Importar todo</h3>
+          <p>
+            Manda una copia .ceflyrics que <strong>reemplaza</strong> todo lo de la PC. Lo que hay ahora en la PC se pierde.
+          </p>
+          {#if importFile}
+            <p id="control-importar-confirmar" class="confirm">¿Reemplazar todo lo de la PC por {importFile.name}?</p>
+            <div class="stepper">
+              <button id="control-importar-no" onclick={() => (importFile = null)}>Cancelar</button>
+              <button id="control-importar-si" class="live" onclick={importAll}>Sí, importar</button>
+            </div>
+          {:else}
+            <label class="pick-file" class:disabled={dataBusy}>
+              Elegir copia…
+              <input
+                id="control-importar"
+                type="file"
+                accept=".ceflyrics"
+                onchange={chooseImport}
+                disabled={dataBusy}
+                hidden
+              />
+            </label>
+          {/if}
+        </div>
+        {#if dataNote}<p id="control-datos-estado" class="data-note {dataNote.tone}" role="status">
+            {dataNote.text}
+          </p>{/if}
+      </section>
     {:else if shortcuts.length}
       <p class="hint">Mantené apretado y arrastrá para reordenar.</p>
       <ul id="control-atajos" {@attach reorderable}>
@@ -781,6 +923,26 @@
           {item.label}
         </button>
       {/each}
+      <button
+        id="control-tab-datos"
+        class:active={tab === 'datos'}
+        aria-label="Exportar o importar todo"
+        onclick={() => openTab('datos')}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M7 20V5M3 9l4-4 4 4M17 4v15M13 15l4 4 4-4" />
+        </svg>
+      </button>
       <button id="control-salir" class="leave" aria-label="Desvincular este celular" onclick={() => (leaving = true)}>
         <svg
           viewBox="0 0 24 24"
@@ -1185,8 +1347,103 @@
 
   nav {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) 34px;
+    grid-template-columns: repeat(5, minmax(min-content, 1fr)) 34px 34px;
     gap: 4px;
+  }
+
+  /* En los celulares más angostos las seis pestañas entran enteras achicando un poco la letra. */
+  @media (max-width: 360px) {
+    nav {
+      gap: 2px;
+    }
+
+    nav button {
+      font-size: 11px;
+    }
+  }
+
+  /* Datos: misma luz de tally que el aviso de la PC, oro si se lleva algo y rojo si pisa. */
+  .data {
+    display: grid;
+    gap: 10px;
+  }
+
+  .data-card {
+    --tone: var(--accent);
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--tone);
+    border-radius: var(--radius);
+  }
+
+  .data-card.import {
+    --tone: var(--live);
+  }
+
+  .data-card h3 {
+    margin: 0;
+    font-size: 15px;
+    color: var(--tone);
+  }
+
+  .data-card p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+
+  .data-card strong {
+    color: var(--text);
+  }
+
+  .data-card .primary,
+  .pick-file {
+    min-height: 46px;
+    font-size: 15px;
+  }
+
+  .pick-file {
+    display: grid;
+    place-items: center;
+    font-weight: 600;
+    color: var(--tone);
+    border: 1px solid var(--tone);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+
+  .pick-file.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .data-card .stepper button {
+    min-height: 46px;
+    font-size: 15px;
+  }
+
+  .data-note {
+    margin: 0;
+    padding: 10px 12px;
+    font-size: 14px;
+    border-radius: var(--radius);
+    background: var(--surface-2);
+  }
+
+  .data-note.ok {
+    color: var(--accent);
+  }
+
+  .data-note.bad {
+    color: var(--live);
+  }
+
+  .data-note.wait {
+    color: var(--muted);
   }
 
   nav button {

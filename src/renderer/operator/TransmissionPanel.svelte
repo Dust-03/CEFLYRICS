@@ -164,7 +164,17 @@
             <li>
               <b>{device.name}</b>
               <span class:online={device.ip}>{device.ip ? `Conectado · ${device.ip}` : 'Sin conexión'}</span>
-              <button class="unlink" onclick={() => api.unlink(device.id)}>Desvincular</button>
+              {#if device.alwaysAllowData}
+                <em class="always" title="Exporta e importa todos los datos sin preguntar">Permiso siempre</em>
+              {/if}
+              <div class="device-actions">
+                {#if device.alwaysAllowData}
+                  <button data-quitar-permiso={device.id} onclick={() => api.revokeAlways(device.id)}>
+                    Quitar permiso
+                  </button>
+                {/if}
+                <button onclick={() => api.unlink(device.id)}>Desvincular</button>
+              </div>
             </li>
           {/each}
         </ul>
@@ -340,10 +350,29 @@
     border-radius: 8px;
   }
 
-  ul li .unlink {
-    padding: 2px 10px;
+  ul li {
+    align-items: center;
+  }
+
+  .device-actions {
+    display: flex;
+    gap: 6px;
     margin-left: auto;
+  }
+
+  .device-actions button {
+    padding: 2px 10px;
     font-size: 12px;
+  }
+
+  /* El mismo oro que la franja del pedido de permiso: es la marca de lo que ya está autorizado. */
+  .always {
+    padding: 1px 8px;
+    font-size: 11.5px;
+    font-style: normal;
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    border-radius: 999px;
   }
 
   ul li span.online {

@@ -276,20 +276,26 @@ test('las fotos se ven y salen al aire, y los modos funcionan', async () => {
 });
 
 test('desde el celular se suben fotos y videos, y nada más', async () => {
-  const phone = await pairPhone();
+  const phone = await pairPhone('Celular del sonido');
   const token = await phone.evaluate(() => localStorage.getItem('cef-control-token'));
-  const upload = (name: string, auth = `Bearer ${token}`) =>
+  const upload = (name: string, ticket = 'inventado') =>
     fetch(`${BASE}/api/medios`, {
       method: 'POST',
-      headers: { Authorization: auth, 'X-File-Name': encodeURIComponent(name) },
+      headers: { 'X-Ticket': ticket, 'X-File-Name': encodeURIComponent(name) },
       body: PNG,
     });
-  expect((await upload('foto.png', 'Bearer inventado')).status).toBe(403);
+  // Ni un ticket inventado ni el token del celular alcanzan: cada envío lo autoriza la PC.
+  expect((await upload('foto.png')).status).toBe(403);
+  expect((await upload('foto.png', token!)).status).toBe(403);
   expect((await upload('notas.txt')).status).toBe(415);
   expect((await upload('..\\..\\virus.exe')).status).toBe(415);
 
   await phone.locator('#control-tab-medios').click();
   await phone.locator('#control-subir').setInputFiles({ name: 'mi foto.png', mimeType: 'image/png', buffer: PNG });
+  await expect(phone.locator('.upload-note')).toHaveText('Esperando permiso en la PC…');
+  await expect(operator.locator('#pedido-titulo')).toHaveText('Celular del sonido quiere importar fotos y videos');
+  await expect(operator.locator('#pedido-detalle')).toContainText('Envía 1 foto (1 MB)');
+  await operator.locator('#pedido-permitir').click();
   await expect(phone.locator('.upload-note')).toHaveText('Se agregó 1 archivo.');
   await expect(phone.locator('.photo')).toHaveCount(1);
   await operator.locator('#tab-medios').click();
@@ -310,10 +316,14 @@ test('nada se sale de la pantalla en un celular angosto', async () => {
   await phone.locator('#control-nombre').fill('Angosto');
   await phone.locator('#control-pin').fill(await currentPin());
   await phone.locator('#control-vincular').click();
-  for (const tab of ['biblia', 'canciones', 'medios', 'atajos', 'tiempo']) {
+  for (const tab of ['biblia', 'canciones', 'medios', 'atajos', 'tiempo', 'datos']) {
     await phone.locator(`#control-tab-${tab}`).click();
     expect(await fits(phone), tab).toBe(true);
   }
+  const clipped = await phone.$$eval('nav button', (buttons) =>
+    buttons.filter((button) => button.scrollWidth > button.clientWidth).map((button) => button.id),
+  );
+  expect(clipped).toEqual([]);
 });
 
 test('un temporizador se crea y se maneja desde el celular', async () => {
@@ -541,4 +551,81 @@ test('el celular queda vinculado al reiniciar la app', async () => {
 test('la app del celular reconoce a la PC', async () => {
   const response = await fetch(`${BASE}/api/ceflyrics`);
   expect(await response.json()).toEqual({ app: 'ceflyrics' });
+});
+
+// Con CEF_CAPTURAS=1 deja las capturas en test-results/capturas.
+const capture = async (page: Page, name: string) => {
+  if (process.env.CEF_CAPTURAS)
+    await page.screenshot({ path: `test-results/capturas/${name}.png`, animations: 'disabled' });
+};
+
+test('exportar e importar todo desde el celular lo autoriza la PC', async () => {
+  await operator.evaluate(() =>
+    (window as any).ceflyrics.songs.save({ title: 'Cuán grande es Él', author: '', text: 'Señor mi Dios' }),
+  );
+  const phone = await pairPhone('Celular del sonido');
+  await phone.locator('#control-tab-datos').click();
+  await capture(phone, '1-celular-datos');
+
+  const download = phone.waitForEvent('download');
+  await phone.locator('#control-exportar').click();
+  const dialog = operator.locator('#pedido-datos');
+  await expect(dialog).toContainText('Celular del sonido quiere exportar todos los datos');
+  await expect(operator.locator('#pedido-denegar')).toBeFocused();
+  await expect(phone.locator('#control-datos-estado')).toHaveText('Esperando permiso en la PC…');
+  await capture(phone, '2-celular-esperando');
+  await capture(operator, '3-pc-pedido-exportar');
+  await operator.locator('#pedido-permitir').click();
+  await expect(dialog).toBeHidden();
+  const file = join(dir, (await download).suggestedFilename());
+  await (await download).saveAs(file);
+  expect(file).toMatch(/CEFLYRICS-datos-\d{4}-\d{2}-\d{2}\.ceflyrics$/);
+  await expect(phone.locator('#control-datos-estado')).toContainText('Descargando la copia');
+
+  await phone.locator('#control-importar').setInputFiles(file);
+  await expect(phone.locator('#control-importar-confirmar')).toContainText('¿Reemplazar todo lo de la PC');
+  await capture(phone, '4-celular-confirmar-importar');
+  await phone.locator('#control-importar-si').click();
+  await expect(dialog).toContainText('Celular del sonido quiere importar todos los datos');
+  await capture(operator, '5-pc-pedido-importar');
+  await operator.locator('#pedido-siempre').click();
+  await expect(phone.locator('#control-datos-estado')).toContainText('Listo: 1 canción');
+  await capture(phone, '6-celular-listo');
+
+  await operator.locator('#tab-transmision').click();
+  const row = operator.locator('#lan-celulares li');
+  await expect(row).toContainText('Permiso siempre');
+  await capture(operator, '7-pc-permiso-siempre');
+
+  // Con el permiso siempre ya no pregunta; al quitarlo vuelve a preguntar, y denegar se respeta.
+  await phone.locator('#control-exportar').click();
+  await expect(phone.locator('#control-datos-estado')).toContainText('Descargando la copia');
+  await row.locator('[data-quitar-permiso]').click();
+  await expect(row).not.toContainText('Permiso siempre');
+  await phone.locator('#control-exportar').click();
+  await operator.locator('#pedido-denegar').click();
+  await expect(phone.locator('#control-datos-estado')).toHaveText('La PC no dio permiso.');
+  await capture(phone, '8-celular-denegado');
+
+  const token = await phone.evaluate(() => localStorage.getItem('cef-control-token'));
+  expect((await fetch(`${BASE}/api/datos/exportar?ticket=${token}`)).status).toBe(403);
+  expect((await fetch(`${BASE}/api/datos/importar`, { method: 'POST', body: 'x' })).status).toBe(403);
+});
+
+test('fotos y videos desde la pestaña Datos, con permiso de la PC', async () => {
+  const phone = await pairPhone('Celular de Ana');
+  await phone.locator('#control-tab-datos').click();
+  await capture(phone, '9-celular-medios');
+  await phone.locator('#control-datos-medios').setInputFiles([
+    { name: 'altar.png', mimeType: 'image/png', buffer: PNG },
+    { name: 'coro.png', mimeType: 'image/png', buffer: PNG },
+    { name: 'bautismo.mp4', mimeType: 'video/mp4', buffer: Buffer.from('video') },
+  ]);
+  const dialog = operator.locator('#pedido-datos');
+  await expect(dialog).toContainText('Celular de Ana quiere importar fotos y videos');
+  await expect(dialog).toContainText('Envía 2 fotos y 1 video (1 MB)');
+  await expect(operator.locator('#pedido-denegar')).toBeFocused();
+  await capture(operator, '10-pc-pedido-medios');
+  await operator.locator('#pedido-denegar').click();
+  await expect(phone.locator('.upload-note')).toHaveText('La PC no dio permiso.');
 });

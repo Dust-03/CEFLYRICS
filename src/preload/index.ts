@@ -36,6 +36,9 @@ const api: CeflyricsApi = {
     setSound: (sound) => ipcRenderer.send(IPC.lanSetSound, sound),
     renewPin: () => ipcRenderer.send(IPC.lanRenewPin),
     unlink: (id) => ipcRenderer.send(IPC.lanUnlink, id),
+    revokeAlways: (id) => ipcRenderer.send(IPC.lanRevokeAlways, id),
+    answerDataRequest: (id, answer) => ipcRenderer.send(IPC.lanDataAnswer, id, answer),
+    onDataRequest: (listener) => subscribe(IPC.lanDataRequest, listener),
     onInfo: (listener) => subscribe(IPC.lanInfoChanged, listener),
   },
   bible: {
