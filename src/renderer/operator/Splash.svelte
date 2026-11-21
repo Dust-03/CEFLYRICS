@@ -39,14 +39,15 @@
         <mask id="inicio-escritura" maskUnits="userSpaceOnUse" x="0" y="0" width="6281" height="2828">
           <rect class="wipe" x="300" y="0" width="3000" height="2828" fill="url(#inicio-borde)" />
         </mask>
-        <mask id="inicio-todo" maskUnits="userSpaceOnUse" x="0" y="0" width="6281" height="2828">
-          <path d={ring} fill="#fff" />
-          <path d={dove} fill="#fff" fill-rule="evenodd" />
-          <path d={cef} fill="#fff" fill-rule="evenodd" />
+        <!-- Recorte geométrico y no máscara: con máscara, los bordes del brillo dejaban rayitas sueltas. -->
+        <clipPath id="inicio-todo">
+          <path d={ring} />
+          <path d={dove} clip-rule="evenodd" />
+          <path d={cef} clip-rule="evenodd" />
           {#each letters as letter, index (index)}
-            <path d={letter} fill="#fff" />
+            <path d={letter} />
           {/each}
-        </mask>
+        </clipPath>
         <radialGradient id="inicio-cometa">
           <stop offset="0" stop-color="#ffdf9a" stop-opacity="0.9" />
           <stop offset="1" stop-color="#f2b544" stop-opacity="0" />
@@ -74,12 +75,9 @@
         <path class="white letter" style:--order={index} d={letter} />
       {/each}
 
-      <!-- Su propio recuadro: el borde del brillo se escapa de la máscara y deja una rayita. -->
-      <svg width="6281" height="2828">
-        <g mask="url(#inicio-todo)">
-          <rect class="shine" x="-1600" y="-800" width="1500" height="4400" fill="url(#inicio-brillo)" />
-        </g>
-      </svg>
+      <g clip-path="url(#inicio-todo)">
+        <rect class="shine" x="-1600" y="-800" width="1500" height="4400" fill="url(#inicio-brillo)" />
+      </g>
     </svg>
   </div>
 {/if}
@@ -116,7 +114,9 @@
 
   .orbit {
     transform-origin: 1412px 1417px;
-    animation: orbit 1.1s cubic-bezier(0.55, 0, 0.25, 1) 0.15s both;
+    animation:
+      orbit 1.1s cubic-bezier(0.55, 0, 0.25, 1) 0.15s both,
+      appear 0.25s ease-out both;
   }
 
   .comet {
@@ -137,12 +137,12 @@
 
   .pulse {
     fill: none;
-    stroke: #f2b544;
-    stroke-width: 26;
+    stroke: #ffdf9a;
+    stroke-width: 22;
     opacity: 0;
     transform-box: fill-box;
     transform-origin: center;
-    animation: pulse 0.8s ease-out 1.2s forwards;
+    animation: pulse 0.55s ease-out 1.2s forwards;
   }
 
   .letter {
@@ -171,6 +171,12 @@
     }
     to {
       transform: rotate(0deg);
+    }
+  }
+
+  @keyframes appear {
+    from {
+      opacity: 0;
     }
   }
 
@@ -207,12 +213,12 @@
 
   @keyframes pulse {
     from {
-      opacity: 0.9;
-      transform: scale(0.3);
+      opacity: 0.8;
+      transform: scale(0.4);
     }
     to {
       opacity: 0;
-      transform: scale(4.5);
+      transform: scale(2.6);
     }
   }
 

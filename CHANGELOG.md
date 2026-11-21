@@ -1,5 +1,12 @@
 # Cambios
 
+## 2.0.1
+
+- La consola usa la fuente Figtree, más clara para leer de un vistazo.
+- En Estilos y fuentes la muestra ya no tapa los campos cuando la ventana es chica.
+- La intro al abrir el programa es más pareja y fluida.
+- Las copias de datos hechas con la versión 1.1.0 se pueden volver a importar.
+
 ## 2.0.0
 
 - Nuevo diseño de la consola: azul de sala a oscuras con detalles dorados, y un modo claro que sigue la misma línea.

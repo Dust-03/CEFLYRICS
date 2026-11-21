@@ -77,6 +77,21 @@ test('pasa todo a otra PC, y las canciones se pueden buscar', async () => {
   expect(existsSync(join(target.folder, `${sha256}.thumb.jpg`))).toBe(true);
 });
 
+test('abre las copias de la 1.1.0, que se escribían con i y no traían biblias', async () => {
+  await fillOrigin();
+  const file = join(dir, 'copia.ceflyrics');
+  await origin.backup.export(file);
+  const bytes = readFileSync(file);
+  const end = bytes.indexOf(10);
+  const header = JSON.parse(bytes.subarray(0, end).toString('utf8'));
+  delete header.bibles;
+  header.format = 'ceflirics-datos';
+  writeFileSync(file, Buffer.concat([Buffer.from(JSON.stringify(header)), bytes.subarray(end)]));
+
+  expect(await target.backup.import(file)).toMatchObject({ songs: 1, media: 1, bibles: 0 });
+  expect(target.songs.list('segunda')).toHaveLength(1);
+});
+
 test('las biblias importadas viajan, y las de fábrica no se tocan', async () => {
   const factory = `INSERT INTO bibles (code, name, language, versification, license_kind) VALUES ('RV1909', 'RV', 'es', 'kjv', 'public_domain')`;
   target.db.prepare(factory).run();

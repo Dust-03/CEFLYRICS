@@ -352,6 +352,8 @@
   .editor {
     display: grid;
     align-content: start;
+    /* Sin esto, al no entrar todo, la fila de la vista previa se achica y la muestra tapa los campos. */
+    grid-auto-rows: max-content;
     gap: 8px;
     overflow-y: auto;
     padding-right: 4px;

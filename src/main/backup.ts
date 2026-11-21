@@ -8,6 +8,8 @@ import type { Db } from './db/database';
 import { hashFile, MEDIA_EXTENSIONS } from './media';
 
 const FORMAT = 'ceflyrics-datos';
+// Así la escribía la 1.1.0, antes de que el programa pasara a llamarse con y.
+const OLD_FORMAT = 'ceflirics-datos';
 const VERSION = 1;
 const MAX_HEADER = 512 * 1024 * 1024;
 
@@ -60,7 +62,7 @@ function counts(tables: Record<string, Row[]>, bibles: number): DataCounts {
 // El archivo viene de afuera: no se da nada por bueno.
 function checkHeader(input: unknown): Header {
   const header = input as Header | null;
-  if (header?.format !== FORMAT || header.version !== VERSION) throw invalid();
+  if ((header?.format !== FORMAT && header?.format !== OLD_FORMAT) || header.version !== VERSION) throw invalid();
   if (!Array.isArray(header.files) || !Array.isArray(header.settings)) throw invalid();
   for (const table of Object.keys(TABLES)) {
     const rows = header.tables?.[table];
