@@ -110,11 +110,11 @@ test('una foto guardada se proyecta, y se filtra por tipo', async () => {
   ]);
   await expect(operator.locator('#barra-atajos-filtro')).toHaveValue('verse');
   await expect(bar).toHaveCount(1);
-  await expect(bar.first()).toContainText('2');
   await expect(bar.first()).toContainText('Juan 3:16');
+  // La barra no lleva los números de Ctrl+1…9: no hay lugar.
+  await expect(bar.first().locator('kbd')).toHaveCount(0);
   await operator.locator('#barra-atajos-filtro').selectOption({ label: 'Fotos' });
   await expect(bar).toHaveCount(1);
-  await expect(bar.first()).toContainText('1');
   await operator.locator('#barra-atajos-filtro').selectOption({ label: 'Videos' });
   await expect(operator.locator('#barra-atajos')).toContainText('No hay atajos de este tipo');
 });
@@ -220,7 +220,6 @@ test('en la barra de arriba también se arrastra, dentro del tipo elegido', asyn
   await dragChip(2, 0);
   await expect.poll(chipTitles).toEqual(['Salmos 23:3', 'Salmos 23:1', 'Salmos 23:2']);
   await expect.poll(titles).toEqual(['Salmos 23:3', 'Salmos 23:1', 'Salmos 23:2']);
-  await expect(chips.first().locator('kbd')).toHaveText('1');
   // Soltar no cuenta como clic: no manda nada a la vista previa.
   await expect(operator.locator('#vista-previa .cef-body')).toHaveText('');
   await operator.keyboard.press('Control+1');

@@ -1,5 +1,11 @@
 # Cambios
 
+## 2.1.2
+
+- La barra de atajos de arriba ya no se corta: deja lugar para los botones de minimizar, maximizar y cerrar, y en pantalla completa usa todo el ancho.
+- La barra de atajos ya no muestra los números de Ctrl, para que entren más atajos.
+- Al terminar de instalar se puede elegir si crear un acceso directo en el escritorio.
+
 ## 2.1.1
 
 - "Reiniciar e instalar" ya actualiza al primer intento: antes a veces había que tocarlo dos veces.

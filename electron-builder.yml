@@ -57,7 +57,8 @@ nsis:
   packElevateHelper: true
   allowToChangeInstallationDirectory: true
   runAfterFinish: true
-  createDesktopShortcut: always
+  # El acceso directo del escritorio lo ofrece una casilla al final (scripts/installer.nsh).
+  createDesktopShortcut: false
   shortcutName: CEFLYRICS
   installerIcon: assets/icono.ico
   uninstallerIcon: assets/icono.ico

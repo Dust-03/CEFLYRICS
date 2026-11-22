@@ -45,12 +45,7 @@
   let pressAt = { x: 0, y: 0 };
   let hold: ReturnType<typeof setTimeout> | undefined;
 
-  // El número sigue siendo el de Ctrl+1…9, que cuenta todos los atajos aunque haya filtro.
-  const visible = $derived(
-    (draft ?? shortcuts)
-      .map((shortcut, index) => ({ shortcut, index }))
-      .filter(({ shortcut }) => kindOf(shortcut) === filter),
-  );
+  const visible = $derived((draft ?? shortcuts).filter((shortcut) => kindOf(shortcut) === filter));
 
   function show(shortcut: Shortcut, chip: HTMLElement) {
     const { left, width } = chip.getBoundingClientRect();
@@ -102,11 +97,30 @@
     draft = null;
   }
 
+  // "Lucas 9:23 · RVR1960": en la barra va solo la cita; la versión se ve en la vista previa.
+  const nameOf = (shortcut: Shortcut) =>
+    shortcut.kind === 'verse' ? shortcut.title.replace(/ · [^·]*$/, '') : shortcut.title;
+
+  // Con la rueda del mouse se recorren los atajos que no entran.
+  function onWheel(event: WheelEvent) {
+    const bar = event.currentTarget as HTMLElement;
+    if (!event.deltaY || bar.scrollWidth <= bar.clientWidth) return;
+    event.preventDefault();
+    bar.scrollLeft += event.deltaY;
+  }
+
+  // En pantalla completa Windows oculta sus botones, aunque el lugar se siga informando como ocupado.
+  let innerWidth = $state(window.innerWidth);
+  let innerHeight = $state(window.innerHeight);
+  const fullscreen = $derived(innerWidth === screen.width && innerHeight === screen.height);
+
   const typeName = (shortcut: Shortcut) =>
     shortcut.kind === 'media' ? TYPE_NAMES[shortcut.media?.kind ?? 'image'] : TYPE_NAMES[shortcut.kind];
 </script>
 
-<header class="titlebar">
+<svelte:window bind:innerWidth bind:innerHeight />
+
+<header class="titlebar" class:fullscreen>
   <span class="label">Atajos</span>
   {#if shortcuts.length}
     <select
@@ -120,11 +134,12 @@
       {/each}
     </select>
   {/if}
-  <div class="chips" id="barra-atajos" role="toolbar" aria-label="Atajos">
-    {#each visible as { shortcut, index } (shortcut.id)}
+  <div class="chips" id="barra-atajos" role="toolbar" aria-label="Atajos" onwheel={onWheel}>
+    {#each visible as shortcut (shortcut.id)}
       <button
         class="chip"
         class:dragging={shortcut.id === draggingId}
+        class:verse={shortcut.kind === 'verse'}
         data-atajo-barra={shortcut.id}
         title="Mantené apretado y arrastrá para reordenar"
         onclick={() => justDragged || onUse(shortcut)}
@@ -138,7 +153,6 @@
         onfocus={(event) => show(shortcut, event.currentTarget)}
         onblur={() => (hovered = null)}
       >
-        {#if index < 9}<kbd>{index + 1}</kbd>{/if}
         <span class="thumb">
           {#if shortcut.media && (shortcut.media.thumb || shortcut.media.kind === 'image')}
             <img
@@ -154,7 +168,7 @@
             <Icon name={shortcut.kind === 'song' ? 'songs' : 'bible'} />
           {/if}
         </span>
-        <span class="name">{shortcut.title}</span>
+        <span class="name">{nameOf(shortcut)}</span>
       </button>
     {:else}
       {#if shortcuts.length}
@@ -183,17 +197,22 @@
 {/if}
 
 <style>
-  /* Se arrastra la ventana desde la barra; los botones de Windows quedan a la derecha. */
+  /* Se arrastra la ventana desde la barra. A la derecha se deja justo el lugar de los botones de
+     Windows (minimizar, maximizar, cerrar), que cambia con la escala de la pantalla. */
   .titlebar {
     display: flex;
     align-items: center;
     gap: 12px;
     height: 38px;
-    padding: 0 150px 0 12px;
+    padding: 0 calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 12px) 0 12px;
     background: var(--surface);
     border-bottom: 1px solid var(--line);
     -webkit-app-region: drag;
     user-select: none;
+  }
+
+  .titlebar.fullscreen {
+    padding-right: 12px;
   }
 
   .label {
@@ -222,18 +241,25 @@
     scrollbar-width: none;
   }
 
+  /* Los atajos se achican para entrar todos; si ni así entran, se recorren con la rueda. */
   .chip {
     display: flex;
-    flex: none;
+    flex: 0 1 auto;
     align-items: center;
     gap: 6px;
-    max-width: 210px;
+    min-width: 110px;
+    max-width: 240px;
     height: 28px;
     padding: 0 10px 0 4px;
     font-size: 12px;
     background: var(--button);
     border-radius: 999px;
     -webkit-app-region: no-drag;
+  }
+
+  /* Una cita cortada no sirve: el versículo siempre se ve entero. */
+  .chip.verse {
+    min-width: max-content;
   }
 
   .chip:hover {
@@ -248,20 +274,6 @@
   .chip.empty {
     max-width: none;
     color: var(--muted);
-  }
-
-  kbd {
-    display: grid;
-    place-items: center;
-    flex: none;
-    min-width: 18px;
-    height: 18px;
-    padding: 0;
-    font: 650 11px/1 var(--font-ui);
-    color: var(--on-accent);
-    border: 0;
-    background: var(--accent);
-    border-radius: 999px;
   }
 
   .thumb {
@@ -289,6 +301,7 @@
   }
 
   .name {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
