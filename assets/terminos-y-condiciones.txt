@@ -1,0 +1,55 @@
+﻿TÉRMINOS Y CONDICIONES DE USO DE CEFLYRICS
+
+Leé estos términos antes de instalar. Al tocar "Acepto" confirmás que los leíste y que estás de acuerdo.
+
+1. QUÉ ES CEFLYRICS
+
+CEFLYRICS es un programa para proyectar versículos, letras, fotos, videos y temporizadores en el proyector, en las teles y en los celulares de la red local. Es software libre y gratuito, distribuido bajo la Licencia Pública General de GNU, versión 3 (GPL-3.0). El texto completo está en el archivo LICENSE de la carpeta del programa y en https://www.gnu.org/licenses/gpl-3.0.html.
+
+Podés usarlo, copiarlo, estudiarlo, modificarlo y compartirlo según esa licencia. Nada de lo que dicen estos términos limita los derechos que te da la GPL: si algo se contradijera, vale la GPL.
+
+2. SIN GARANTÍA
+
+El programa se entrega "tal cual", sin garantía de ningún tipo, en la medida en que la ley lo permite (secciones 15 y 16 de la GPL). Los autores no responden por daños, pérdida de datos ni cortes durante una reunión. Conviene hacer copias de seguridad de las canciones, los medios y la configuración.
+
+3. CONTENIDO PROTEGIDO POR DERECHOS DE AUTOR (LEY 11.723)
+
+Las letras de canciones, las traducciones de la Biblia, las fotos y los videos suelen estar protegidos por la Ley 11.723 de Propiedad Intelectual y por los tratados internacionales que firmó la Argentina, como el Convenio de Berna.
+
+De fábrica, CEFLYRICS trae solo versiones de la Biblia de dominio público: Reina-Valera 1909, King James Version, World English Bible y Berean Standard Bible. No trae canciones.
+
+Si cargás o importás otras versiones de la Biblia (por ejemplo Reina-Valera 1960, NVI o NTV), canciones, fotos o videos, sos responsable de tener el permiso o la licencia que correspondan, como las licencias de proyección de letras que otorgan las editoriales o las entidades de gestión colectiva.
+
+4. DATOS PERSONALES (LEY 25.326)
+
+CEFLYRICS guarda todo en esta computadora. No manda datos a internet ni recopila estadísticas de uso.
+
+Si cargás datos de personas (por ejemplo nombres en anuncios, escalas o listas), la iglesia u organización que usa el programa es la responsable de esos datos según la Ley 25.326 de Protección de los Datos Personales. Eso implica informar para qué se usan, pedir consentimiento cuando haga falta, usarlos solo para ese fin, guardarlos de forma segura y atender los pedidos de acceso, corrección o eliminación que hagan las personas.
+
+La ley considera dato sensible la información que revela convicciones religiosas (artículos 2 y 7). Las asociaciones religiosas pueden llevar un registro de sus miembros, pero esos datos merecen un cuidado especial y nadie está obligado a darlos. El organismo de control es la Agencia de Acceso a la Información Pública (AAIP).
+
+5. IMAGEN Y VOZ DE LAS PERSONAS
+
+Según el artículo 53 del Código Civil y Comercial, para captar o mostrar la imagen o la voz de una persona hace falta su consentimiento, salvo las excepciones de la ley. Antes de proyectar fotos o videos de personas, sobre todo de chicos, asegurate de contar con ese permiso (en el caso de menores, el de sus padres o responsables).
+
+6. RED LOCAL, FIREWALL Y ACTUALIZACIONES
+
+Para que las teles y los celulares de la red local puedan conectarse, el instalador agrega una regla en el Firewall de Windows que permite las conexiones entrantes a CEFLYRICS. La regla se borra al desinstalar.
+
+Para avisar cuando hay una versión nueva, el programa consulta GitHub. Esa consulta no incluye datos tuyos ni de la iglesia; GitHub ve la dirección IP de la conexión, como cualquier sitio web.
+
+7. COMPONENTES Y MARCAS DE TERCEROS
+
+CEFLYRICS incluye componentes de terceros, cada uno con su propia licencia: Electron y Chromium, FFmpeg (GPL) y fuentes con licencia SIL Open Font License, entre otros. Sus textos están en la carpeta del programa y en su subcarpeta "licencias".
+
+Los nombres de otros programas y marcas que aparecen en CEFLYRICS (por ejemplo, al importar canciones exportadas desde otro programa) pertenecen a sus dueños y se usan solo para identificarlos, conforme a la Ley 22.362 de Marcas. CEFLYRICS no está afiliado a ellos ni cuenta con su respaldo.
+
+8. LEY APLICABLE
+
+Estos términos se rigen por las leyes de la República Argentina.
+
+9. CONTACTO Y CAMBIOS
+
+El código, las novedades y las consultas están en https://github.com/Dust-03/CEFLYRICS. Estos términos pueden actualizarse con nuevas versiones del programa; la versión vigente es la que muestra el instalador.
+
+Versión de los términos: noviembre de 2026.

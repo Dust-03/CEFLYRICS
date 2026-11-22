@@ -27,6 +27,8 @@ npmRebuild: false
 # La GPL pide entregar la licencia junto con el programa.
 extraFiles:
   - LICENSE
+  - from: assets/terminos-y-condiciones.txt
+    to: TERMINOS-Y-CONDICIONES.txt
   # La licencia OFL pide entregar su texto junto con las fuentes.
   - from: node_modules/@fontsource/inter/LICENSE
     to: licencias/fuente-inter.txt
@@ -61,6 +63,8 @@ nsis:
   # de entrada. Sin esto lo intentaba directo, fallaba, y el reintento llegaba con la app ya cerrada.
   packElevateHelper: true
   allowToChangeInstallationDirectory: true
+  # Página de términos después de la bienvenida. UTF-8 con BOM: si no, el instalador rompe las tildes.
+  license: assets/terminos-y-condiciones.txt
   runAfterFinish: true
   # El acceso directo del escritorio lo ofrece una casilla al final (scripts/installer.nsh).
   createDesktopShortcut: false

@@ -1,5 +1,9 @@
 # Cambios
 
+## 2.1.7
+
+- El instalador muestra los términos y condiciones de uso antes de instalar: la licencia libre del programa, los derechos de autor de letras y Biblias, el cuidado de los datos personales y de la imagen de las personas, y lo que hace con el firewall y las actualizaciones. También quedan en la carpeta del programa.
+
 ## 2.1.6
 
 - Los videos grabados con el celular ahora se ven en cualquier tele: al agregarlos se convierten solos a un formato que todas reproducen (y quedan mucho más livianos). Los que ya estaban cargados se convierten al abrir el programa. Mientras tanto, en Medios aparece el cartel "Convirtiendo para la tele…".

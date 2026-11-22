@@ -5,3 +5,4 @@
 *.webm binary
 *.ico binary
 *.dll binary
+assets/terminos-y-condiciones.txt eol=crlf
