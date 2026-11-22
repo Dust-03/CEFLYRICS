@@ -1,5 +1,9 @@
 # Cambios
 
+## 2.1.5
+
+- La letra con contorno ya no se ve toda negra en las teles que todavía fallaban: el contorno se dibuja de otra forma, que todo navegador pinta por debajo de la letra. También quedan más prolijas las puntas de letras como la A y la R.
+
 ## 2.1.4
 
 - El contorno de las letras ya no las tapa en las teles con navegador viejo: antes la letra podía verse toda negra. Ahora el contorno va siempre por debajo de la letra.

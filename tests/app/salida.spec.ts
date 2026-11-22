@@ -180,8 +180,8 @@ test('cerrar la salida no cierra la app, y se puede volver a abrir', async () =>
   await expect(operator.locator('#estado-salida')).toContainText('Salida en');
 });
 
-// Los navegadores viejos de las teles ignoran paint-order y pintaban el trazo encima, tapando la letra:
-// el contorno va en una copia por debajo y la letra de arriba no lleva trazo.
+// Algunas teles pintaban el trazo (text-stroke) encima de la letra y se veía toda negra: el contorno
+// va con sombras, que todo navegador pinta debajo del texto.
 test('el contorno va debajo de la letra, no encima', async () => {
   const theme = {
     font: 'system',
@@ -201,17 +201,21 @@ test('el contorno va debajo de la letra, no encima', async () => {
   await dispatch(operator, { type: 'show-slide', slide: { ...SLIDE, theme } });
   await expect(output.locator('.cef-body')).toHaveText(SLIDE.body);
   const style = await output.evaluate(() => {
-    const body = document.querySelector('.cef-body')!;
-    const under = getComputedStyle(body, '::before');
+    const body = getComputedStyle(document.querySelector('.cef-body')!);
+    const title = getComputedStyle(document.querySelector('.cef-title')!);
     return {
-      body: parseFloat(getComputedStyle(body).getPropertyValue('-webkit-text-stroke-width')),
-      under: parseFloat(under.getPropertyValue('-webkit-text-stroke-width')),
-      content: under.content,
+      stroke: parseFloat(body.getPropertyValue('-webkit-text-stroke-width')) || 0,
+      body: body.textShadow,
+      title: title.textShadow,
+      before: getComputedStyle(document.querySelector('.cef-body')!, '::before').content,
     };
   });
-  expect(style.body).toBe(0);
-  expect(style.under).toBeGreaterThan(0);
-  expect(style.content).toBe(JSON.stringify(SLIDE.body));
+  expect(style.stroke).toBe(0);
+  expect(style.before).toBe('none');
+  // 16 + 8 sombras del contorno y la sombra de siempre.
+  expect(style.body.split('rgb(0, 0, 0)').length - 1).toBe(24);
+  expect(style.body).toContain('rgba(0, 0, 0, 0.6)');
+  expect(style.title.split('rgb(0, 0, 0)').length - 1).toBe(24);
 });
 
 test('la salida se ve igual en Electron y en un navegador', async () => {

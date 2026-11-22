@@ -24,10 +24,6 @@ const STYLES = `
 .cef-body { margin: 0; max-width: 100%; white-space: pre-line; overflow-wrap: break-word; word-wrap: break-word; }
 .cef-shadow .cef-body { text-shadow: 0 0.2u 0.8u rgba(0, 0, 0, 0.6); }
 .cef-title { margin: 2.5u 0 0; font-weight: 600; }
-.cef-outline .cef-body, .cef-outline .cef-title { position: relative; z-index: 0; }
-.cef-outline .cef-body::before, .cef-outline .cef-title::before { content: attr(data-text); position: absolute; top: 0; right: 0; left: 0; z-index: -1; -webkit-text-stroke: var(--cef-stroke); }
-.cef-outline.cef-shadow .cef-body { text-shadow: none; }
-.cef-outline.cef-shadow .cef-body::before { text-shadow: 0 0.2u 0.8u rgba(0, 0, 0, 0.6); }
 .cef-title:empty { margin: 0; }
 .cef-timer { display: none; flex-direction: column; align-items: center; justify-content: center; opacity: 1; font-variant-numeric: tabular-nums; }
 .cef-timer.cef-on { display: flex; }
@@ -90,6 +86,23 @@ function showFile(host: HTMLElement, file: SlideMedia | null, audio: boolean, pl
   });
 }
 
+// El contorno se dibuja con sombras sin desenfoque alrededor de la letra: toda tele, por vieja que
+// sea, pinta las sombras debajo del texto. Con el trazo (text-stroke), algunas lo pintaban encima y la
+// letra se veía toda negra. Dos anillos para que no queden huecos en contornos gruesos.
+function outlineShadow(width: number, color: string, shadow: boolean) {
+  const ring = (radius: number, count: number) =>
+    Array.from({ length: count }, (_, i) => {
+      const angle = (i / count) * 2 * Math.PI;
+      const x = +(Math.cos(angle) * radius).toFixed(4);
+      const y = +(Math.sin(angle) * radius).toFixed(4);
+      return `${x}em ${y}em 0 ${color}`;
+    });
+  // La sombra de siempre, en em y no en u: si la tele no entiende var(), no se pierde el contorno.
+  return [...ring(width, 16), ...ring(width / 2, 8), ...(shadow ? ['0 0.035em 0.14em rgba(0, 0, 0, 0.6)'] : [])].join(
+    ', ',
+  );
+}
+
 function applyTheme(
   theme: Theme,
   parts: { background: HTMLElement; text: HTMLElement; body: HTMLElement; title: HTMLElement },
@@ -102,11 +115,10 @@ function applyTheme(
   parts.text.style.fontStyle = theme.italic ? 'italic' : 'normal';
   parts.body.style.color = theme.color;
   parts.body.style.lineHeight = String(theme.lineHeight);
-  // El contorno va en una copia del texto por debajo (::before), no con paint-order: los navegadores
-  // viejos de las teles lo ignoran y pintan el trazo encima, tapando la letra. La mitad del trazo
-  // queda bajo la letra: se duplica para que se vea el grosor elegido.
-  parts.text.classList.toggle('cef-outline', !!theme.outlineColor);
-  parts.text.style.setProperty('--cef-stroke', `${theme.outlineWidth * 2}em ${theme.outlineColor ?? 'transparent'}`);
+  // Sin contorno, la sombra la pone la clase cef-shadow.
+  const outline = theme.outlineColor ? outlineShadow(theme.outlineWidth, theme.outlineColor, theme.shadow) : '';
+  parts.body.style.textShadow = outline;
+  parts.title.style.textShadow = theme.outlineColor ? outlineShadow(theme.outlineWidth, theme.outlineColor, false) : '';
   parts.body.style.fontSize = `calc(${5.8 * theme.scale} * var(--cef-u) * var(--cef-fit, 1))`;
   parts.body.style.textTransform = theme.uppercase ? 'uppercase' : 'none';
   parts.title.style.color = theme.titleColor;
@@ -239,8 +251,8 @@ export function createRenderer(
     showFile(background, backgroundFile, false, playback);
 
     const hasMedia = !!slide?.media;
-    body.textContent = body.dataset.text = slide?.body ?? '';
-    title.textContent = title.dataset.text = slide?.title ?? '';
+    body.textContent = slide?.body ?? '';
+    title.textContent = slide?.title ?? '';
     const sound = typeof audio === 'function' ? audio() : audio;
     showFile(media, mode === 'live' && !timerFull ? (slide?.media ?? null) : null, sound, playback);
     showTimer(run, shownTimer?.layout, mode === 'live', look);
