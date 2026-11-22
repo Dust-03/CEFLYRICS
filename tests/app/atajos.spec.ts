@@ -99,6 +99,24 @@ test('una foto guardada se proyecta, y se filtra por tipo', async () => {
   await expect(cards()).toHaveCount(1);
   await cards().first().locator('.open').dblclick();
   await expect(output.locator('.cef-media img')).toBeVisible();
+
+  // La barra de arriba muestra un tipo por vez (sin "Todo"), y cada atajo conserva su número de Ctrl.
+  const bar = operator.locator('#barra-atajos [data-atajo-barra]');
+  await expect(operator.locator('#barra-atajos-filtro option')).toHaveText([
+    'Canciones',
+    'Versículos',
+    'Fotos',
+    'Videos',
+  ]);
+  await expect(operator.locator('#barra-atajos-filtro')).toHaveValue('verse');
+  await expect(bar).toHaveCount(1);
+  await expect(bar.first()).toContainText('2');
+  await expect(bar.first()).toContainText('Juan 3:16');
+  await operator.locator('#barra-atajos-filtro').selectOption({ label: 'Fotos' });
+  await expect(bar).toHaveCount(1);
+  await expect(bar.first()).toContainText('1');
+  await operator.locator('#barra-atajos-filtro').selectOption({ label: 'Videos' });
+  await expect(operator.locator('#barra-atajos')).toContainText('No hay atajos de este tipo');
 });
 
 test('Ctrl y un número usa el atajo sin ir al menú', async () => {
@@ -182,6 +200,31 @@ test('con un filtro no se reordena', async () => {
   await operator.waitForTimeout(300);
   expect(await titles()).toEqual(['Salmos 23:1', 'Salmos 23:2', 'Salmos 23:3']);
   await expect(operator.locator('.hint')).toContainText('elegí Todo');
+});
+
+test('en la barra de arriba también se arrastra, dentro del tipo elegido', async () => {
+  await saveVerses();
+  const chips = operator.locator('#barra-atajos [data-atajo-barra]');
+  const chipTitles = async () =>
+    (await chips.locator('.name').allTextContents()).map((text) => text.replace(/ · .*/, ''));
+  const dragChip = async (from: number, to: number) => {
+    const start = (await chips.nth(from).boundingBox())!;
+    const end = (await chips.nth(to).boundingBox())!;
+    await operator.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+    await operator.mouse.down();
+    await operator.waitForTimeout(350);
+    await operator.mouse.move(end.x + 4, end.y + end.height / 2, { steps: 8 });
+    await operator.mouse.up();
+  };
+
+  await dragChip(2, 0);
+  await expect.poll(chipTitles).toEqual(['Salmos 23:3', 'Salmos 23:1', 'Salmos 23:2']);
+  await expect.poll(titles).toEqual(['Salmos 23:3', 'Salmos 23:1', 'Salmos 23:2']);
+  await expect(chips.first().locator('kbd')).toHaveText('1');
+  // Soltar no cuenta como clic: no manda nada a la vista previa.
+  await expect(operator.locator('#vista-previa .cef-body')).toHaveText('');
+  await operator.keyboard.press('Control+1');
+  await expect(operator.locator('#vista-previa .cef-title')).toContainText('Salmos 23:3');
 });
 
 test('borrar la canción la saca de los atajos', async () => {

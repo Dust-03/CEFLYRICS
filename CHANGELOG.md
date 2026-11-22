@@ -1,5 +1,12 @@
 # Cambios
 
+## 2.1.1
+
+- "Reiniciar e instalar" ya actualiza al primer intento: antes a veces había que tocarlo dos veces.
+- En la barra de atajos de arriba se elige qué tipo mostrar (Canciones, Versículos, Fotos o Videos). "Todo" queda en la pestaña Atajos.
+- Los atajos de la barra de arriba también se reordenan: mantener apretado y arrastrar.
+- Los botones tienen un tono apenas más oscuro, para distinguirlos mejor del fondo.
+
 ## 2.1.0
 
 - Desde el celular, en la nueva pestaña Datos, se puede exportar todo (canciones, medios, estilos, cuentas regresivas, atajos y biblias importadas) y también importar una copia completa a la PC.

@@ -94,6 +94,11 @@
   loadShortcuts();
   api.shortcuts.onChange(loadShortcuts);
 
+  async function reorderShortcuts(ids: number[]) {
+    await api.shortcuts.reorder(ids);
+    await loadShortcuts();
+  }
+
   let keyButtons = $state<KeyButton[]>(DEFAULT_KEY_BUTTONS);
   api.keys.get().then((value) => (keyButtons = value));
   api.keys.onChange((value) => (keyButtons = value));
@@ -222,6 +227,7 @@
     onUse={useShortcut}
     onAir={shortcutToAir}
     onManage={() => openTab('atajos')}
+    onReorder={reorderShortcuts}
   />
   <div class="app">
     <nav class="menu" aria-label="Menú principal">
@@ -300,10 +306,7 @@
               onAir={sendToAir}
               toItem={shortcutItem}
               onRemove={(item) => toggleShortcut(item.ref)}
-              onReorder={async (ids) => {
-                await api.shortcuts.reorder(ids);
-                await loadShortcuts();
-              }}
+              onReorder={reorderShortcuts}
             />
           {/if}
         </div>

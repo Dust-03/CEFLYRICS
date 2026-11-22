@@ -13,6 +13,8 @@
   --live: #e5484d;
   --on-live: #ffffff;
   --preview: #3fb37f;
+  /* Los botones, un tono apenas más oscuro que las superficies. */
+  --button: color-mix(in srgb, var(--surface-2) 88%, #000);
   --shadow: none;
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
   --radius-lg: 12px;
@@ -45,6 +47,7 @@
   --live: #cc2f35;
   --on-live: #ffffff;
   --preview: #1f8a5a;
+  --button: color-mix(in srgb, var(--surface-2) 94%, #17223a);
 
   --g-pentateuco: #b8640f;
   --g-historicos: #8f7406;
@@ -124,7 +127,7 @@ button:focus-visible {
 
 button {
   padding: 7px 12px;
-  background: var(--surface-2);
+  background: var(--button);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   cursor: pointer;

@@ -52,6 +52,9 @@ win:
 nsis:
   oneClick: false
   perMachine: true
+  # Marca la actualización como "pide administrador": la app lanza el instalador con elevate.exe
+  # de entrada. Sin esto lo intentaba directo, fallaba, y el reintento llegaba con la app ya cerrada.
+  packElevateHelper: true
   allowToChangeInstallationDirectory: true
   runAfterFinish: true
   createDesktopShortcut: always
