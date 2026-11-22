@@ -180,6 +180,40 @@ test('cerrar la salida no cierra la app, y se puede volver a abrir', async () =>
   await expect(operator.locator('#estado-salida')).toContainText('Salida en');
 });
 
+// Los navegadores viejos de las teles ignoran paint-order y pintaban el trazo encima, tapando la letra:
+// el contorno va en una copia por debajo y la letra de arriba no lleva trazo.
+test('el contorno va debajo de la letra, no encima', async () => {
+  const theme = {
+    font: 'system',
+    color: '#ffffff',
+    outlineColor: '#000000',
+    titleColor: '#f2b544',
+    scale: 1,
+    uppercase: true,
+    shadow: true,
+    background: { kind: 'css', value: '#204060' },
+    weight: 700,
+    italic: false,
+    lineHeight: 1.25,
+    outlineWidth: 0.045,
+    margin: 0.05,
+  };
+  await dispatch(operator, { type: 'show-slide', slide: { ...SLIDE, theme } });
+  await expect(output.locator('.cef-body')).toHaveText(SLIDE.body);
+  const style = await output.evaluate(() => {
+    const body = document.querySelector('.cef-body')!;
+    const under = getComputedStyle(body, '::before');
+    return {
+      body: parseFloat(getComputedStyle(body).getPropertyValue('-webkit-text-stroke-width')),
+      under: parseFloat(under.getPropertyValue('-webkit-text-stroke-width')),
+      content: under.content,
+    };
+  });
+  expect(style.body).toBe(0);
+  expect(style.under).toBeGreaterThan(0);
+  expect(style.content).toBe(JSON.stringify(SLIDE.body));
+});
+
 test('la salida se ve igual en Electron y en un navegador', async () => {
   await dispatch(operator, { type: 'show-slide', slide: SLIDE });
   await expect(layerOn('text')).toHaveCount(1);

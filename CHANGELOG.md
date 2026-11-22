@@ -1,5 +1,9 @@
 # Cambios
 
+## 2.1.4
+
+- El contorno de las letras ya no las tapa en las teles con navegador viejo: antes la letra podía verse toda negra. Ahora el contorno va siempre por debajo de la letra.
+
 ## 2.1.3
 
 - Al importar canciones se saltean las que ya están: mismo título, aunque cambien tildes, mayúsculas o signos, o la misma letra con otro título. El aviso dice cuántas ya estaban y no se cargaron.

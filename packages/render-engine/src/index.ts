@@ -21,9 +21,13 @@ const STYLES = `
 .cef-logo { width: 46u; height: 20.7u; color: #fff; }
 .cef-logo svg { display: block; width: 100%; height: 100%; }
 .cef-text { display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: var(--cef-margin-y, 5vh) var(--cef-margin-x, 5vw); text-align: center; }
-.cef-body { margin: 0; max-width: 100%; white-space: pre-line; overflow-wrap: break-word; word-wrap: break-word; paint-order: stroke fill; }
+.cef-body { margin: 0; max-width: 100%; white-space: pre-line; overflow-wrap: break-word; word-wrap: break-word; }
 .cef-shadow .cef-body { text-shadow: 0 0.2u 0.8u rgba(0, 0, 0, 0.6); }
-.cef-title { margin: 2.5u 0 0; font-weight: 600; paint-order: stroke fill; }
+.cef-title { margin: 2.5u 0 0; font-weight: 600; }
+.cef-outline .cef-body, .cef-outline .cef-title { position: relative; z-index: 0; }
+.cef-outline .cef-body::before, .cef-outline .cef-title::before { content: attr(data-text); position: absolute; top: 0; right: 0; left: 0; z-index: -1; -webkit-text-stroke: var(--cef-stroke); }
+.cef-outline.cef-shadow .cef-body { text-shadow: none; }
+.cef-outline.cef-shadow .cef-body::before { text-shadow: 0 0.2u 0.8u rgba(0, 0, 0, 0.6); }
 .cef-title:empty { margin: 0; }
 .cef-timer { display: none; flex-direction: column; align-items: center; justify-content: center; opacity: 1; font-variant-numeric: tabular-nums; }
 .cef-timer.cef-on { display: flex; }
@@ -98,10 +102,11 @@ function applyTheme(
   parts.text.style.fontStyle = theme.italic ? 'italic' : 'normal';
   parts.body.style.color = theme.color;
   parts.body.style.lineHeight = String(theme.lineHeight);
-  // El trazo se pinta detrás de la letra y la mitad queda tapada: se duplica para que se vea el grosor elegido.
-  const stroke = theme.outlineColor ? `${theme.outlineWidth * 2}em ${theme.outlineColor}` : '0';
-  parts.body.style.setProperty('-webkit-text-stroke', stroke);
-  parts.title.style.setProperty('-webkit-text-stroke', stroke);
+  // El contorno va en una copia del texto por debajo (::before), no con paint-order: los navegadores
+  // viejos de las teles lo ignoran y pintan el trazo encima, tapando la letra. La mitad del trazo
+  // queda bajo la letra: se duplica para que se vea el grosor elegido.
+  parts.text.classList.toggle('cef-outline', !!theme.outlineColor);
+  parts.text.style.setProperty('--cef-stroke', `${theme.outlineWidth * 2}em ${theme.outlineColor ?? 'transparent'}`);
   parts.body.style.fontSize = `calc(${5.8 * theme.scale} * var(--cef-u) * var(--cef-fit, 1))`;
   parts.body.style.textTransform = theme.uppercase ? 'uppercase' : 'none';
   parts.title.style.color = theme.titleColor;
@@ -234,8 +239,8 @@ export function createRenderer(
     showFile(background, backgroundFile, false, playback);
 
     const hasMedia = !!slide?.media;
-    body.textContent = slide?.body ?? '';
-    title.textContent = slide?.title ?? '';
+    body.textContent = body.dataset.text = slide?.body ?? '';
+    title.textContent = title.dataset.text = slide?.title ?? '';
     const sound = typeof audio === 'function' ? audio() : audio;
     showFile(media, mode === 'live' && !timerFull ? (slide?.media ?? null) : null, sound, playback);
     showTimer(run, shownTimer?.layout, mode === 'live', look);
