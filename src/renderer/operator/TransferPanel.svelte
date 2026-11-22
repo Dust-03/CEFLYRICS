@@ -38,7 +38,7 @@
   }
 
   function showImport(result: ImportResult, what: string) {
-    message = `Entraron ${result.added} ${what}.`;
+    message = `Entraron ${result.added} ${what}.${result.repeated ? ` ${result.repeated} ya estaban y no se cargaron.` : ''}`;
     rejected = result.rejected;
     onChange();
   }

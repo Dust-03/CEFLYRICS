@@ -36,10 +36,36 @@ test('con más de 300 canciones, importar dos veces no duplica y exportar las gu
   expect((await importer.import([file])).added).toBe(450);
   const again = await importer.import([file]);
   expect(again.added).toBe(0);
-  expect(again.rejected).toHaveLength(450);
+  expect(again.rejected).toHaveLength(0);
+  expect(again.repeated).toBe(450);
   expect(songs.all()).toHaveLength(450);
 
   const folder = join(dir, 'exportadas');
   expect(await importer.export(folder)).toBe(450);
   expect(readdirSync(folder)).toHaveLength(450);
+});
+
+test('saltea las repetidas: mismo título con otras tildes o signos, o la misma letra', async () => {
+  songs.save({ title: 'Cuán grande es Él', author: '', text: 'Primera estrofa\n\nCoro\nSegunda parte' });
+  const list = [
+    { id: 1, title: '¡Cuan Grande es El!', lyrics: { paragraphs: [{ description: '', text: 'Otra letra' }] } },
+    {
+      id: 2,
+      title: 'Otro nombre',
+      lyrics: {
+        paragraphs: [
+          { description: '', text: 'Primera estrofa' },
+          { description: 'Coro', text: 'Segunda parte' },
+        ],
+      },
+    },
+    { id: 3, title: 'Nueva', lyrics: { paragraphs: [{ description: '', text: 'Letra nueva' }] } },
+    { id: 4, title: 'nueva', lyrics: { paragraphs: [{ description: '', text: 'Letra distinta' }] } },
+  ];
+  const file = join(dir, 'holyrics.json');
+  writeFileSync(file, JSON.stringify(list));
+
+  const result = await importer.import([file]);
+  expect(result).toEqual({ added: 1, rejected: [], repeated: 3 });
+  expect(songs.all().map(({ title }) => title)).toEqual(['Cuán grande es Él', 'Nueva']);
 });

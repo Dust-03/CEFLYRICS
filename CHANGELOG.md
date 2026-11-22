@@ -1,5 +1,9 @@
 # Cambios
 
+## 2.1.3
+
+- Al importar canciones se saltean las que ya están: mismo título, aunque cambien tildes, mayúsculas o signos, o la misma letra con otro título. El aviso dice cuántas ya estaban y no se cargaron.
+
 ## 2.1.2
 
 - La barra de atajos de arriba ya no se corta: deja lugar para los botones de minimizar, maximizar y cerrar, y en pantalla completa usa todo el ancho.

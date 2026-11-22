@@ -70,6 +70,16 @@ export function parseOpenLyrics(xml: string): Omit<SongInput, 'id'> {
   return { title: decodeXml(stripTags(title)).trim(), author: authors.join(', '), text: blocks.join('\n\n') };
 }
 
+// Sin tildes, mayúsculas ni signos: "¡Cuán Grande!" y "cuan grande" son la misma canción.
+// La ñ queda como n: alcanza para comparar.
+export const songKey = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+
 type SongEntry = { name: string; song?: Omit<SongInput, 'id'>; error?: string };
 
 const asText = (value: unknown) => (typeof value === 'string' ? value : '');
@@ -153,8 +163,9 @@ export class SongImporter {
   }
 
   async import(files: string[]): Promise<ImportResult> {
-    const known = new Set(this.songs.all().map(({ title }) => title.toLowerCase()));
-    const result: ImportResult = { added: 0, rejected: [] };
+    const titles = new Set(this.songs.all().map(({ title }) => songKey(title)));
+    const lyrics = new Set(this.songs.allLyrics().map(songKey));
+    const result: ImportResult = { added: 0, rejected: [], repeated: 0 };
     for (const file of files) {
       let entries: SongEntry[];
       try {
@@ -166,17 +177,27 @@ export class SongImporter {
       for (const { name, song, error } of entries) {
         if (!song) {
           result.rejected.push({ name, reason: error ?? 'no se pudo leer' });
-        } else if (known.has(song.title.toLowerCase())) {
-          result.rejected.push({ name, reason: 'ya existe una canción con ese título' });
-        } else {
-          // Una canción vacía o rota no puede frenar a las demás del mismo archivo.
-          try {
-            this.songs.save(song);
-            known.add(song.title.toLowerCase());
-            result.added++;
-          } catch (saveError) {
-            result.rejected.push({ name, reason: (saveError as Error).message });
-          }
+          continue;
+        }
+        // Repetida si ya hay una con el mismo título o con la misma letra, también dentro de lo que se importa.
+        const title = songKey(song.title);
+        const text = songKey(
+          parseSongText(song.text)
+            .map((slide) => slide.text)
+            .join('\n'),
+        );
+        if (titles.has(title) || (text && lyrics.has(text))) {
+          result.repeated!++;
+          continue;
+        }
+        // Una canción vacía o rota no puede frenar a las demás del mismo archivo.
+        try {
+          this.songs.save(song);
+          titles.add(title);
+          if (text) lyrics.add(text);
+          result.added++;
+        } catch (saveError) {
+          result.rejected.push({ name, reason: (saveError as Error).message });
         }
       }
     }

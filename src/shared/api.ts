@@ -123,7 +123,8 @@ export type DataCounts = {
 };
 export type DataResult = { canceled: true } | { counts: DataCounts } | { error: string };
 
-export type ImportResult = { added: number; rejected: { name: string; reason: string }[] };
+// repeated: las canciones que ya estaban, que se saltean sin cargarlas.
+export type ImportResult = { added: number; rejected: { name: string; reason: string }[]; repeated?: number };
 export type BibleImportInput = { code: string; name: string };
 type Dialog<T> = T | { canceled: true } | { error: string };
 

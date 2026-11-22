@@ -33,6 +33,17 @@ export class SongService {
     return this.db.prepare('SELECT id, title, author FROM songs ORDER BY title COLLATE NOCASE').all() as SongSummary[];
   }
 
+  // La letra de cada canción, para reconocer al importar las que ya están con otro título.
+  allLyrics(): string[] {
+    const rows = this.db.prepare('SELECT song_id AS id, text FROM song_slides ORDER BY song_id, position').all() as {
+      id: number;
+      text: string;
+    }[];
+    const byId = new Map<number, string[]>();
+    for (const { id, text } of rows) (byId.get(id) ?? byId.set(id, []).get(id)!).push(text);
+    return [...byId.values()].map((texts) => texts.join('\n'));
+  }
+
   get(id: number): Song | null {
     const song = this.db.prepare('SELECT id, title, author FROM songs WHERE id = ?').get(id) as SongSummary | undefined;
     if (!song) return null;
