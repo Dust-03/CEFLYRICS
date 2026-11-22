@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { access, copyFile, mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { access, copyFile, mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
 import { Readable } from 'node:stream';
 import type { MediaAddResult, MediaItem } from '@shared/api';
@@ -55,13 +55,24 @@ export function hashFile(file: string) {
 // Hace la miniatura de un archivo. Devuelve un JPEG, o null si no se pudo.
 export type MakeThumbnail = (file: string, kind: 'image' | 'video') => Promise<Buffer | null>;
 
+// Pasa un video a un formato que reproduzca cualquier tele. Sin esto los videos quedan como vienen.
+export type VideoConverter = {
+  needsConversion: (file: string, ext: string) => Promise<boolean>;
+  convert: (file: string, output: string, signal: AbortSignal) => Promise<void>;
+};
+
 // Los archivos se guardan por el hash de su contenido: importar dos veces no ocupa más lugar.
 export class MediaService {
   constructor(
     private db: Db,
     private folder: string,
     private makeThumbnail: MakeThumbnail = async () => null,
+    private converter?: VideoConverter,
+    private onChange: () => void = () => {},
   ) {}
+
+  private converting: { id: number; abort: AbortController } | null = null;
+  private queue = Promise.resolve();
 
   async list(): Promise<MediaItem[]> {
     const rows = this.db.prepare('SELECT * FROM media ORDER BY id DESC').all() as MediaRow[];
@@ -77,6 +88,7 @@ export class MediaService {
       name: original_name,
       size,
       url,
+      ...(this.converting?.id === id ? { converting: true } : {}),
       ...(hasThumb ? { thumb: `${MEDIA_SCHEME}://media/${sha256}.thumb.jpg` } : {}),
     };
   }
@@ -113,12 +125,58 @@ export class MediaService {
         .run(sha256, kind, ext, basename(file), size);
       result.added += changes;
     }
+    this.convertVideos();
     return result;
+  }
+
+  // De a un video por vez y en segundo plano: la consola sigue usable mientras tanto.
+  convertVideos() {
+    if (!this.converter) return this.queue;
+    const rows = this.db.prepare("SELECT id FROM media WHERE kind = 'video' ORDER BY id").all() as { id: number }[];
+    for (const { id } of rows) {
+      this.queue = this.queue
+        .then(() => this.convert(id))
+        .catch((error) => console.error('No se pudo convertir el video', id, error));
+    }
+    return this.queue;
+  }
+
+  stop() {
+    this.converting?.abort.abort();
+  }
+
+  private async convert(id: number) {
+    const find = () => this.db.prepare('SELECT * FROM media WHERE id = ?').get(id) as MediaRow | undefined;
+    const row = find();
+    if (!row || row.kind !== 'video' || !this.converter) return;
+    const file = join(this.folder, `${row.sha256}.${row.ext}`);
+    if (!(await this.converter.needsConversion(file, row.ext))) return;
+    // Con otro nombre que el original: si el video está al aire, sigue leyendo el archivo de siempre.
+    const ext = row.ext === 'mp4' ? 'm4v' : 'mp4';
+    const target = join(this.folder, `${row.sha256}.${ext}`);
+    const temp = join(this.folder, `${row.sha256}.convirtiendo.${ext}`);
+    this.converting = { id, abort: new AbortController() };
+    this.onChange();
+    try {
+      await this.converter.convert(file, temp, this.converting.abort.signal);
+      // Lo borraron (o importaron otra copia de datos) mientras se convertía.
+      if (find()?.sha256 !== row.sha256) return;
+      await rename(temp, target);
+      const { size } = await stat(target);
+      this.db.prepare('UPDATE media SET ext = ?, size = ? WHERE id = ?').run(ext, size, id);
+      // Si todavía se está reproduciendo, Windows no deja borrarlo: queda en la carpeta, sin usarse.
+      await rm(file, { force: true }).catch(() => {});
+    } finally {
+      this.converting = null;
+      await rm(temp, { force: true }).catch(() => {});
+      this.onChange();
+    }
   }
 
   async remove(id: number) {
     const row = this.db.prepare('SELECT * FROM media WHERE id = ?').get(id) as MediaRow | undefined;
     if (!row) return;
+    if (this.converting?.id === id) this.stop();
     this.db.prepare('DELETE FROM media WHERE id = ?').run(id);
     await rm(join(this.folder, `${row.sha256}.${row.ext}`), { force: true });
     await rm(join(this.folder, `${row.sha256}.thumb.jpg`), { force: true });
@@ -127,17 +185,29 @@ export class MediaService {
   // Respuesta del protocolo cef-media, con Range para que el video pueda saltar.
   async serve(request: Request) {
     const name = new URL(request.url).pathname.slice(1);
-    const match = /^[0-9a-f]{64}(?:\.thumb)?\.([a-z0-9]+)$/.exec(name);
+    const match = /^([0-9a-f]{64})(\.thumb)?\.([a-z0-9]+)$/.exec(name);
     if (!match) return new Response(null, { status: 404 });
-    const file = join(this.folder, name);
+    let ext = match[3];
+    let file = join(this.folder, name);
     let size: number;
     try {
       ({ size } = await stat(file));
     } catch {
-      return new Response(null, { status: 404 });
+      // Un estilo o la pantalla pueden tener guardado el nombre de antes de convertir el video.
+      const row = match[2]
+        ? undefined
+        : (this.db.prepare('SELECT ext FROM media WHERE sha256 = ?').get(match[1]) as { ext: string } | undefined);
+      if (!row || row.ext === ext) return new Response(null, { status: 404 });
+      ext = row.ext;
+      file = join(this.folder, `${match[1]}.${ext}`);
+      try {
+        ({ size } = await stat(file));
+      } catch {
+        return new Response(null, { status: 404 });
+      }
     }
     const headers = new Headers({
-      'Content-Type': MIME[match[1]] ?? 'application/octet-stream',
+      'Content-Type': MIME[ext] ?? 'application/octet-stream',
       'Accept-Ranges': 'bytes',
     });
     const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range') ?? '');

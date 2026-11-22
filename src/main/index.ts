@@ -25,6 +25,7 @@ import { openDatabase } from './db/database';
 import { LanControl } from './lan-control';
 import { LanServer } from './lan-server';
 import { MEDIA_EXTENSIONS, MEDIA_SCHEME, MediaService } from './media';
+import { convertForTv, isTvReady, probeVideo } from './video';
 import { readSetting, writeSetting } from './settings';
 import { ShortcutService } from './shortcuts';
 import { SONG_EXTENSIONS, SongImporter } from './song-import';
@@ -231,15 +232,35 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC.songSave, (_event, input: SongInput) => songs.save(input));
   ipcMain.handle(IPC.songRemove, (_event, id: number) => songs.remove(Number(id)));
 
-  const media = new MediaService(db, join(app.getPath('userData'), 'media'), async (file, kind) => {
-    const size = { width: 480, height: 270 };
-    // Windows hace también la de los videos; las fotos se achican directo, sin depender de eso.
-    const image =
-      kind === 'image'
-        ? nativeImage.createFromPath(file).resize({ width: size.width, quality: 'good' })
-        : await nativeImage.createThumbnailFromPath(file, size);
-    return image.isEmpty() ? null : image.toJPEG(82);
-  });
+  // FFmpeg va en el instalador; sin instalar, el que trae ffmpeg-static.
+  const ffmpeg = app.isPackaged
+    ? join(process.resourcesPath, 'ffmpeg.exe')
+    : join(app.getAppPath(), 'node_modules/ffmpeg-static/ffmpeg.exe');
+  const media = new MediaService(
+    db,
+    join(app.getPath('userData'), 'media'),
+    async (file, kind) => {
+      const size = { width: 480, height: 270 };
+      // Windows hace también la de los videos; las fotos se achican directo, sin depender de eso.
+      const image =
+        kind === 'image'
+          ? nativeImage.createFromPath(file).resize({ width: size.width, quality: 'good' })
+          : await nativeImage.createThumbnailFromPath(file, size);
+      return image.isEmpty() ? null : image.toJPEG(82);
+    },
+    {
+      needsConversion: async (file, ext) => {
+        const info = await probeVideo(ffmpeg, file);
+        return !!info && !isTvReady(info, ext);
+      },
+      convert: (file, output, signal) => convertForTv(ffmpeg, file, output, signal),
+    },
+    () => {
+      broadcast(IPC.mediaChanged, null);
+      control.notify('media');
+    },
+  );
+  app.on('will-quit', () => media.stop());
   protocol.handle(MEDIA_SCHEME, (request) => media.serve(request));
   ipcMain.handle(IPC.mediaList, () => media.list());
   ipcMain.handle(IPC.mediaAdd, async () => {
@@ -381,6 +402,7 @@ app.whenReady().then(() => {
       });
       if (canceled || !filePaths[0]) return { canceled: true as const };
       const counts = await backup.import(filePaths[0]);
+      media.convertVideos();
       shortcutsChanged();
       timersChanged();
       return { counts };
@@ -470,6 +492,7 @@ app.whenReady().then(() => {
     // Lo de la PC cambió entero: las ventanas se recargan, como al importar desde la PC.
     importData: async (source) => {
       const counts = await backup.import(source);
+      media.convertVideos();
       for (const window of BrowserWindow.getAllWindows()) window.webContents.reload();
       control.notify('media');
       control.notify('timers');
@@ -480,6 +503,8 @@ app.whenReady().then(() => {
   });
   store.subscribe((state) => lan.broadcast(state));
   app.on('will-quit', () => lan.stop());
+  // Los videos cargados antes de esta versión también se pasan a un formato que lea la tele.
+  media.convertVideos();
   ipcMain.handle(IPC.lanInfo, () => lan.info);
   ipcMain.on(IPC.lanSetPort, (_event, input: unknown) => {
     const port = parsePort(input);

@@ -121,7 +121,11 @@
         {:else}
           <video src={`${item.url}#t=1`} preload="metadata" muted></video>
         {/if}
-        {#if item.kind === 'video'}<span class="badge">Video</span>{/if}
+        {#if item.converting}
+          <span class="badge converting" title="Se está pasando a un formato que reproduzca cualquier tele">
+            Convirtiendo para la tele…
+          </span>
+        {:else if item.kind === 'video'}<span class="badge">Video</span>{/if}
         <span class="name">{item.name}</span>
       </button>
     {:else}
@@ -219,6 +223,11 @@
     color: #fff;
     background: rgb(0 0 0 / 0.65);
     border-radius: 4px;
+  }
+
+  .badge.converting {
+    color: #000;
+    background: var(--accent);
   }
 
   .item.selected {

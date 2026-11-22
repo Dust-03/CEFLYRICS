@@ -59,6 +59,8 @@ export type MediaItem = {
   size: number;
   url: string;
   thumb?: string;
+  // Se está pasando a un formato que reproduzca cualquier tele.
+  converting?: boolean;
 };
 export type MediaAddResult = { added: number; rejected: string[] };
 

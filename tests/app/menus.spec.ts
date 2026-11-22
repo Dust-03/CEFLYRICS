@@ -1,9 +1,11 @@
+import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 
 const VIDEO = 'tests/.media/patron-prueba-8s.mp4';
+const FFMPEG = 'node_modules/ffmpeg-static/ffmpeg.exe';
 // PNG de 1×1 rojo.
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
@@ -158,6 +160,28 @@ test('un video se reproduce de verdad en la salida', async () => {
 
   await operator.locator('#btn-limpiar').click();
   await expect(output.locator('.cef-media video')).toHaveCount(0);
+});
+
+test('un video del celular se convierte solo y después se reproduce', async () => {
+  test.skip(!existsSync(FFMPEG), 'Falta ffmpeg-static');
+  const video = join(dir, 'celular.mp4');
+  // Como graban los celulares: HEVC de 10 bits a 60 cuadros.
+  execFileSync(FFMPEG, [
+    ...['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=1920x1080:rate=60:duration=3'],
+    ...['-c:v', 'libx265', '-x265-params', 'log-level=error', '-pix_fmt', 'yuv420p10le', '-tag:v', 'hvc1', video],
+  ]);
+  await addFiles([video]);
+  const item = operator.locator('#medios .item');
+  await expect(item.locator('.converting')).toBeVisible();
+  await expect(item.locator('.converting')).toHaveCount(0, { timeout: 30_000 });
+  await expect(item.locator('.badge')).toHaveText('Video');
+
+  await item.click();
+  await operator.locator('#btn-aire').click();
+  const player = output.locator('.cef-media video');
+  await expect(player).toHaveAttribute('src', /\.m4v$/);
+  const time = () => player.evaluate((el: HTMLVideoElement) => el.currentTime);
+  await expect.poll(time, { timeout: 5000 }).toBeGreaterThan(0.3);
 });
 
 test('el estilo elegido cambia la fuente y el fondo de las canciones, no de la Biblia', async () => {

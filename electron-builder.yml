@@ -40,7 +40,12 @@ extraFiles:
     to: licencias/fuente-playfair-display.txt
   - from: node_modules/@fontsource/merriweather/LICENSE
     to: licencias/fuente-merriweather.txt
+  # FFmpeg (GPL): convierte los videos del celular a un formato que abra cualquier tele.
+  - from: node_modules/ffmpeg-static/ffmpeg.exe.LICENSE
+    to: licencias/ffmpeg.txt
 extraResources:
+  - from: node_modules/ffmpeg-static/ffmpeg.exe
+    to: ffmpeg.exe
   - from: resources/ceflyrics-control.apk
     to: ceflyrics-control.apk
   - from: resources/bibles.db

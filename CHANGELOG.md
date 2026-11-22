@@ -1,5 +1,9 @@
 # Cambios
 
+## 2.1.6
+
+- Los videos grabados con el celular ahora se ven en cualquier tele: al agregarlos se convierten solos a un formato que todas reproducen (y quedan mucho más livianos). Los que ya estaban cargados se convierten al abrir el programa. Mientras tanto, en Medios aparece el cartel "Convirtiendo para la tele…".
+
 ## 2.1.5
 
 - La letra con contorno ya no se ve toda negra en las teles que todavía fallaban: el contorno se dibuja de otra forma, que todo navegador pinta por debajo de la letra. También quedan más prolijas las puntas de letras como la A y la R.
