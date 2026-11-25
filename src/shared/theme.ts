@@ -35,7 +35,7 @@ export const FONTS = [
 ] as const;
 
 export function fontCss(id: string) {
-  return (FONTS.find((font) => font.id === id) ?? FONTS[0]).css;
+  return (FONTS.filter((font) => font.id === id)[0] ?? FONTS[0]).css;
 }
 
 export const WEIGHTS = [

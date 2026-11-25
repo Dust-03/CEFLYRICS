@@ -7,54 +7,67 @@ import { formatRemaining, remainingMs, type TimerLayout, type TimerRun } from '@
 
 export type RenderState = Pick<OnAirState, 'slide' | 'mode'> & Partial<Pick<OnAirState, 'timers' | 'shownTimer'>>;
 
-// Las medidas se escriben en u, una centésima del lado que manda: el ancho, salvo en pantallas más
-// anchas que 16:9, donde manda el alto. Así nada se sale en ninguna proporción. Se calcula a mano y
-// no con cqw porque muchos televisores traen navegadores viejos: por lo mismo no hay inset ni gap.
+// Las medidas van en em de la pantalla, donde 1em es u: una centésima del lado que manda, el ancho,
+// salvo en pantallas más anchas que 16:9, donde manda el alto. Así nada se sale en ninguna proporción.
+// Sin var(), calc(), cqw, inset ni gap: los navegadores de las teles viejas no los entienden.
+const CENTER = `-webkit-box-align: center; -webkit-align-items: center; align-items: center;
+  -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center;`;
+const FLEX = 'display: block; display: -webkit-box; display: -webkit-flex; display: flex;';
+const COLUMN = '-webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column;';
+const ROW = '-webkit-box-orient: horizontal; -webkit-flex-direction: row; flex-direction: row;';
+
 const STYLES = `
 .cef-stage { position: absolute; top: 0; right: 0; bottom: 0; left: 0; overflow: hidden; background: #000; color: #fff; }
-.cef-layer { position: absolute; top: 0; right: 0; bottom: 0; left: 0; opacity: 0; transition: opacity 0.25s ease; }
+.cef-layer { position: absolute; top: 0; right: 0; bottom: 0; left: 0; opacity: 0; -webkit-transition: opacity 0.25s ease; transition: opacity 0.25s ease; }
 .cef-layer.cef-on { opacity: 1; }
 .cef-fill { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
 .cef-media { background: #000; }
 .cef-media .cef-fill { object-fit: contain; }
-.cef-wallpaper { display: flex; align-items: center; justify-content: center; background: #05070d; }
-.cef-logo { width: 46u; height: 20.7u; color: #fff; }
+.cef-wallpaper { ${FLEX} ${CENTER} background: #05070d; }
+.cef-logo { width: 46em; height: 20.7em; color: #fff; }
 .cef-logo svg { display: block; width: 100%; height: 100%; }
-.cef-text { display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: var(--cef-margin-y, 5vh) var(--cef-margin-x, 5vw); text-align: center; }
+.cef-text { ${FLEX} ${COLUMN} ${CENTER} -webkit-box-sizing: border-box; box-sizing: border-box; text-align: center; }
+.cef-body, .cef-title { -webkit-flex-shrink: 0; flex-shrink: 0; }
 .cef-body { margin: 0; max-width: 100%; white-space: pre-line; overflow-wrap: break-word; word-wrap: break-word; }
-.cef-shadow .cef-body { text-shadow: 0 0.2u 0.8u rgba(0, 0, 0, 0.6); }
-.cef-title { margin: 2.5u 0 0; font-weight: 600; }
-.cef-title:empty { margin: 0; }
-.cef-timer { display: none; flex-direction: column; align-items: center; justify-content: center; opacity: 1; font-variant-numeric: tabular-nums; }
-.cef-timer.cef-on { display: flex; }
-.cef-timer-label { margin-bottom: 1u; font-size: 3.2u; font-weight: 600; }
-.cef-timer-time { font-size: 17u; font-weight: 700; line-height: 1; }
-.cef-timer-done .cef-timer-time { font-size: 8u; line-height: 1.2; text-align: center; padding: 0 5u; }
-.cef-timer-corner { top: auto; left: auto; right: 2u; bottom: 2u; flex-direction: row; padding: 0.8u 1.6u; background: rgba(0, 0, 0, 0.65); border-radius: 1u; color: #fff; }
-.cef-timer-corner .cef-timer-label { margin: 0 1.2u 0 0; font-size: 1.6u; }
-.cef-timer-corner .cef-timer-time, .cef-timer-corner.cef-timer-done .cef-timer-time { font-size: 3.4u; padding: 0; }
-.cef-black { background: #000; transition-duration: 0s; }
-`.replace(/(\d[\d.]*)u\b/g, 'calc($1 * var(--cef-u))');
+.cef-shadow .cef-body { text-shadow: 0 0.035em 0.14em rgba(0, 0, 0, 0.6); }
+.cef-title { margin: 0; font-weight: 600; }
+.cef-timer { display: none; ${COLUMN} ${CENTER} opacity: 1; text-align: center; font-variant-numeric: tabular-nums; }
+.cef-timer.cef-on { ${FLEX} }
+.cef-timer-label { margin-bottom: 0.3125em; font-size: 3.2em; font-weight: 600; }
+.cef-timer-time { font-size: 17em; font-weight: 700; line-height: 1; }
+.cef-timer-done .cef-timer-time { font-size: 8em; line-height: 1.2; padding: 0 0.625em; }
+.cef-timer-corner { top: auto; left: auto; right: 2em; bottom: 2em; ${ROW} padding: 0.8em 1.6em; background: rgba(0, 0, 0, 0.65); border-radius: 1em; color: #fff; }
+.cef-timer-corner .cef-timer-label { margin: 0 0.75em 0 0; font-size: 1.6em; }
+.cef-timer-corner .cef-timer-time, .cef-timer-corner.cef-timer-done .cef-timer-time { font-size: 3.4em; padding: 0; }
+.cef-black { background: #000; -webkit-transition-duration: 0s; transition-duration: 0s; }
+`;
 
 // El texto se achica hasta entrar, pero no más que esto: de ahí abajo no se lee.
 const MIN_FIT = 0.05;
 
+// Con className y no con classList, que falta en algunas teles y en otras no acepta el segundo argumento.
+function toggle(element: HTMLElement, name: string, on: boolean) {
+  const names = element.className.split(' ').filter((other) => other && other !== name);
+  if (on) names.push(name);
+  element.className = names.join(' ');
+}
+
 function layer(stage: HTMLElement, className: string) {
   const element = document.createElement('div');
   element.className = `cef-layer ${className}`;
-  stage.append(element);
+  stage.appendChild(element);
   return element;
 }
 
 // Pone una foto o un video en la capa. Si ya está el mismo archivo no lo toca: reiniciar el
 // video de fondo entre diapositivas se vería como un salto.
 function showFile(host: HTMLElement, file: SlideMedia | null, audio: boolean, playback: boolean) {
-  const current = host.firstElementChild as HTMLVideoElement | HTMLImageElement | null;
-  if (current?.dataset.url === file?.url) {
+  const current = host.firstElementChild as HTMLElement | null;
+  if (current?.getAttribute('data-url') === file?.url) {
     if (file?.kind === 'video') (current as HTMLVideoElement).loop = file.loop;
     return;
   }
-  if (current instanceof HTMLVideoElement) current.pause();
+  if (current?.tagName === 'VIDEO') (current as HTMLVideoElement).pause?.();
   host.textContent = '';
   if (!file) return;
 
@@ -62,27 +75,39 @@ function showFile(host: HTMLElement, file: SlideMedia | null, audio: boolean, pl
   // recursos al proyector.
   const still = !playback && file.thumb;
   if (file.kind === 'image' || still) {
+    const url = still || file.url;
+    if (!('objectFit' in document.documentElement.style)) {
+      // Una tele que no sabe encajar la foto la estiraría: como fondo sí sabe.
+      const picture = document.createElement('div');
+      picture.className = 'cef-fill';
+      picture.setAttribute('data-url', file.url);
+      picture.style.background = `url("${url}") no-repeat center`;
+      picture.style.backgroundSize = host.className.indexOf('cef-media') >= 0 ? 'contain' : 'cover';
+      host.appendChild(picture);
+      return;
+    }
     const image = document.createElement('img');
     image.className = 'cef-fill';
-    image.dataset.url = file.url;
+    image.setAttribute('data-url', file.url);
     image.decoding = 'async';
-    image.src = still || file.url;
-    host.append(image);
+    image.src = url;
+    host.appendChild(image);
     return;
   }
   const video = document.createElement('video');
   video.className = 'cef-fill';
-  video.dataset.url = file.url;
+  video.setAttribute('data-url', file.url);
   video.src = file.url;
   video.loop = file.loop;
   video.muted = !audio;
   video.playsInline = true;
-  host.append(video);
+  host.appendChild(video);
   if (!playback) return;
-  video.play().catch(() => {
+  // En los navegadores viejos play() no devuelve nada, y los que no saben de video ni siquiera lo tienen.
+  video.play?.()?.catch(() => {
     // Si el navegador bloquea el audio, se reproduce sin sonido.
     video.muted = true;
-    video.play().catch(() => {});
+    video.play()?.catch(() => {});
   });
 }
 
@@ -90,17 +115,27 @@ function showFile(host: HTMLElement, file: SlideMedia | null, audio: boolean, pl
 // sea, pinta las sombras debajo del texto. Con el trazo (text-stroke), algunas lo pintaban encima y la
 // letra se veía toda negra. Dos anillos para que no queden huecos en contornos gruesos.
 function outlineShadow(width: number, color: string, shadow: boolean) {
-  const ring = (radius: number, count: number) =>
-    Array.from({ length: count }, (_, i) => {
+  const shadows: string[] = [];
+  const ring = (radius: number, count: number) => {
+    for (let i = 0; i < count; i++) {
       const angle = (i / count) * 2 * Math.PI;
       const x = +(Math.cos(angle) * radius).toFixed(4);
       const y = +(Math.sin(angle) * radius).toFixed(4);
-      return `${x}em ${y}em 0 ${color}`;
-    });
-  // La sombra de siempre, en em y no en u: si la tele no entiende var(), no se pierde el contorno.
-  return [...ring(width, 16), ...ring(width / 2, 8), ...(shadow ? ['0 0.035em 0.14em rgba(0, 0, 0, 0.6)'] : [])].join(
-    ', ',
-  );
+      shadows.push(`${x}em ${y}em 0 ${color}`);
+    }
+  };
+  ring(width, 16);
+  ring(width / 2, 8);
+  // La sombra de siempre, al final para que quede debajo del contorno.
+  if (shadow) shadows.push('0 0.035em 0.14em rgba(0, 0, 0, 0.6)');
+  return shadows.join(', ');
+}
+
+// El degradé como se escribía antes de 2013: otro nombre, y los grados contados desde otro lado.
+export function oldGradient(value: string) {
+  return value
+    .replace(/^linear-gradient\((\d+)deg/, (_, angle) => `-webkit-linear-gradient(${90 - Number(angle)}deg`)
+    .replace(/^radial-gradient\(circle at ([^,]+),/, '-webkit-radial-gradient($1, circle,');
 }
 
 function applyTheme(
@@ -108,9 +143,14 @@ function applyTheme(
   parts: { background: HTMLElement; text: HTMLElement; body: HTMLElement; title: HTMLElement },
 ) {
   const { background: bg } = theme;
-  parts.background.style.background = bg.kind === 'css' ? bg.value : '#000';
+  // Primero negro: una tele que no entiende el degradé se quedaría con el fondo anterior.
+  parts.background.style.background = '#000';
+  if (bg.kind === 'css') {
+    parts.background.style.background = oldGradient(bg.value);
+    parts.background.style.background = bg.value;
+  }
   parts.text.style.fontFamily = fontCss(theme.font);
-  parts.text.classList.toggle('cef-shadow', theme.shadow);
+  toggle(parts.text, 'cef-shadow', theme.shadow);
   parts.text.style.fontWeight = String(theme.weight);
   parts.text.style.fontStyle = theme.italic ? 'italic' : 'normal';
   parts.body.style.color = theme.color;
@@ -119,10 +159,8 @@ function applyTheme(
   const outline = theme.outlineColor ? outlineShadow(theme.outlineWidth, theme.outlineColor, theme.shadow) : '';
   parts.body.style.textShadow = outline;
   parts.title.style.textShadow = theme.outlineColor ? outlineShadow(theme.outlineWidth, theme.outlineColor, false) : '';
-  parts.body.style.fontSize = `calc(${5.8 * theme.scale} * var(--cef-u) * var(--cef-fit, 1))`;
   parts.body.style.textTransform = theme.uppercase ? 'uppercase' : 'none';
   parts.title.style.color = theme.titleColor;
-  parts.title.style.fontSize = `calc(${2.6 * Math.min(theme.scale, 1.2)} * var(--cef-u) * var(--cef-fit, 1))`;
 }
 
 type RendererOptions = {
@@ -140,9 +178,9 @@ export function createRenderer(
     const style = document.createElement('style');
     style.id = 'cef-styles';
     style.textContent = STYLES;
-    document.head.append(style);
+    document.head.appendChild(style);
   }
-  stage.classList.add('cef-stage');
+  toggle(stage, 'cef-stage', true);
 
   const background = layer(stage, 'cef-background');
   const text = layer(stage, 'cef-text');
@@ -150,41 +188,52 @@ export function createRenderer(
   const title = document.createElement('p');
   body.className = 'cef-body';
   title.className = 'cef-title';
-  text.append(body, title);
+  text.appendChild(body);
+  text.appendChild(title);
   const media = layer(stage, 'cef-media');
   const timer = layer(stage, 'cef-timer');
   const timerLabel = document.createElement('div');
   const timerTime = document.createElement('div');
   timerLabel.className = 'cef-timer-label';
   timerTime.className = 'cef-timer-time';
-  timer.append(timerLabel, timerTime);
+  timer.appendChild(timerLabel);
+  timer.appendChild(timerTime);
   const wallpaper = layer(stage, 'cef-wallpaper');
   const logo = document.createElement('div');
   logo.className = 'cef-logo';
   // El dibujo va adentro de la página: con una máscara, las teles que no la entienden muestran un
   // rectángulo blanco.
   logo.innerHTML = logoSvg;
-  wallpaper.append(logo);
+  wallpaper.appendChild(logo);
   const black = layer(stage, 'cef-black');
 
   // Con F9 sin nada al aire se mantiene el último fondo usado.
   let theme = DEFAULT_THEME;
+  // El estilo que se está dibujando: el del temporizador, si está a pantalla completa.
+  let applied = DEFAULT_THEME;
   let ticker: ReturnType<typeof setInterval> | undefined;
   let fitted = '';
   // El margen es una fracción de la pantalla: el mismo 5 % en una tele chica que en una grande.
   let margin = DEFAULT_THEME.margin;
 
+  function unit() {
+    return Math.min(stage.clientWidth, (stage.clientHeight * 16) / 9) / 100;
+  }
+
   // Prueba tamaños hasta que el texto y la referencia entran en la pantalla.
   function fitText(force = false) {
     const { clientWidth: width, clientHeight: height } = stage;
-    const key = [width, height, body.textContent, title.textContent, body.style.cssText, margin].join('|');
+    const { scale } = applied;
+    const key = [width, height, body.textContent, title.textContent, JSON.stringify(applied), margin].join('|');
     if (!width || !height || (key === fitted && !force)) return;
     fitted = key;
-    const style = getComputedStyle(text);
-    const room = text.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
-    const gap = parseFloat(getComputedStyle(title).marginTop);
-    const fits = (scale: number) => {
-      stage.style.setProperty('--cef-fit', String(scale));
+    const u = unit();
+    const gap = title.textContent ? 2.5 * u : 0;
+    const room = height * (1 - 2 * margin);
+    title.style.marginTop = `${gap}px`;
+    const fits = (fit: number) => {
+      body.style.fontSize = `${5.8 * scale * u * fit}px`;
+      title.style.fontSize = `${2.6 * Math.min(scale, 1.2) * u * fit}px`;
       return body.offsetHeight + gap + title.offsetHeight <= room;
     };
     if (fits(1)) return;
@@ -201,9 +250,8 @@ export function createRenderer(
   function measure() {
     const { clientWidth: width, clientHeight: height } = stage;
     if (!width || !height) return;
-    stage.style.setProperty('--cef-margin-x', `${width * margin}px`);
-    stage.style.setProperty('--cef-margin-y', `${height * margin}px`);
-    stage.style.setProperty('--cef-u', `${Math.min(width, (height * 16) / 9) / 100}px`);
+    stage.style.fontSize = `${unit()}px`;
+    text.style.padding = `${height * margin}px ${width * margin}px`;
     fitText();
   }
 
@@ -215,10 +263,10 @@ export function createRenderer(
 
   function showTimer(run: TimerRun | undefined, layout: TimerLayout | undefined, visible: boolean, look: Theme) {
     clearInterval(ticker);
-    timer.classList.toggle('cef-on', !!run && visible);
+    toggle(timer, 'cef-on', !!run && visible);
     if (!run || !visible) return;
     const full = layout === 'full';
-    timer.classList.toggle('cef-timer-corner', !full);
+    toggle(timer, 'cef-timer-corner', !full);
     timer.style.fontFamily = fontCss(look.font);
     timer.style.color = full ? look.color : '';
     timerLabel.style.color = full ? look.titleColor : '';
@@ -226,7 +274,7 @@ export function createRenderer(
     const tick = () => {
       const left = remainingMs(run, now());
       const done = left === 0 && !!run.message;
-      timer.classList.toggle('cef-timer-done', done);
+      toggle(timer, 'cef-timer-done', done);
       const next = done ? run.message : formatRemaining(left);
       if (timerTime.textContent !== next) timerTime.textContent = next;
     };
@@ -236,10 +284,11 @@ export function createRenderer(
 
   return function render({ slide, mode, timers = [], shownTimer = null }: RenderState) {
     theme = slide?.theme ?? (slide ? DEFAULT_THEME : theme);
-    const run = timers.find((item) => item.id === shownTimer?.id);
+    const run = timers.filter((item) => item.id === shownTimer?.id)[0];
     // A pantalla completa el temporizador reemplaza lo proyectado, con su propio estilo.
     const timerFull = !!run && shownTimer?.layout === 'full';
     const look = (timerFull && run?.theme) || theme;
+    applied = look;
     applyTheme(look, { background, text, body, title });
     if ((look.margin ?? DEFAULT_THEME.margin) !== margin) {
       margin = look.margin ?? DEFAULT_THEME.margin;
@@ -258,10 +307,10 @@ export function createRenderer(
     showTimer(run, shownTimer?.layout, mode === 'live', look);
     fitText();
 
-    background.classList.toggle('cef-on', mode === 'live' || mode === 'background');
-    text.classList.toggle('cef-on', mode === 'live' && !!slide && !hasMedia && !timerFull);
-    media.classList.toggle('cef-on', mode === 'live' && hasMedia && !timerFull);
-    wallpaper.classList.toggle('cef-on', mode === 'wallpaper');
-    black.classList.toggle('cef-on', mode === 'black');
+    toggle(background, 'cef-on', mode === 'live' || mode === 'background');
+    toggle(text, 'cef-on', mode === 'live' && !!slide && !hasMedia && !timerFull);
+    toggle(media, 'cef-on', mode === 'live' && hasMedia && !timerFull);
+    toggle(wallpaper, 'cef-on', mode === 'wallpaper');
+    toggle(black, 'cef-on', mode === 'black');
   };
 }

@@ -2,6 +2,9 @@ import { defineConfig } from '@playwright/test';
 
 const PORT = 8799;
 
+// Las pruebas esperan ver el puerto: sin esto, la dirección de la tele sale con la IP sola.
+process.env.CEF_LAN_PLAIN_PORT = '0';
+
 export default defineConfig({
   testDir: 'tests',
   // Las pruebas miden tiempos: de a una, para que no compitan por la CPU.

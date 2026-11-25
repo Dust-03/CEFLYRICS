@@ -89,10 +89,11 @@ public class MainActivity extends Activity {
             public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (pickedFiles != null) pickedFiles.onReceiveValue(null);
                 pickedFiles = callback;
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                boolean media = String.join(",", params.getAcceptTypes()).matches("[^.]*(image|video)[^.]*");
+                // Con GET_CONTENT algunos celulares ofrecen solo la galería: los archivos van por el explorador.
+                Intent intent = new Intent(media ? Intent.ACTION_GET_CONTENT : Intent.ACTION_OPEN_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("*/*");
-                boolean media = String.join(",", params.getAcceptTypes()).matches("[^.]*(image|video)[^.]*");
                 if (media) intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] { "image/*", "video/*" });
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
                 try {

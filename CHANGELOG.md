@@ -1,5 +1,14 @@
 # Cambios
 
+## 2.1.8
+
+- Las teles con navegador viejo ya no deberían quedar con la pantalla en blanco: la página de la tele usa solo lo que esos navegadores entienden, y si no tienen la conexión habitual pregunta seguido qué hay al aire. Si algo falla, la tele muestra qué fue.
+- En las teles viejas los textos largos ya no se salen de la pantalla ni tapan la referencia, y los fondos en degradé se ven como en la PC.
+- Si una tele no sabe reproducir videos, ese video no se ve, pero la pantalla ya no queda trabada en lo que sigue.
+- En la tele alcanza con escribir la IP, sin los dos puntos ni el número. Si otro programa usa ese lugar (por ejemplo Holyrics abierto a la vez), Transmisión muestra la dirección con el puerto, como antes. Si un antivirus o una VPN traba la IP sola, abajo figura también la dirección con el puerto, y los QR usan siempre esa.
+- En la app del celular, al poner la IP a mano el teclado deja escribir letras y dos puntos.
+- En la app del celular, al importar todo se abre el explorador de archivos, y no solo las fotos y los videos.
+
 ## 2.1.7
 
 - El instalador muestra los términos y condiciones de uso antes de instalar: la licencia libre del programa, los derechos de autor de letras y Biblias, el cuidado de los datos personales y de la imagen de las personas, y lo que hace con el firewall y las actualizaciones. También quedan en la carpeta del programa.

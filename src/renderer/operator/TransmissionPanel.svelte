@@ -20,23 +20,28 @@
   api.onInfo(update);
 
   const main = $derived(info?.addresses[0]);
-  const others = $derived(info?.addresses.slice(1) ?? []);
-  const address = $derived(info && main ? lanAddress(main.ip, info.port) : '');
+  const address = $derived(info && main ? lanAddress(main.ip, info.publicPort) : '');
+  // Anda aunque un antivirus o una VPN de esta PC filtre el 80. Un QR no se escribe: usa siempre esta.
+  const portAddress = $derived(info && main ? lanAddress(main.ip, info.port) : '');
+  const others = $derived([
+    ...(portAddress === address ? [] : [portAddress]),
+    ...(info?.addresses.slice(1) ?? []).map((other) => `${lanAddress(other.ip, info!.publicPort)} (${other.adapter})`),
+  ]);
   const newPort = $derived(parsePort(portText));
   const canSavePort = $derived(!!newPort && newPort !== info?.port);
 
   $effect(() => {
-    const url = `http://${address}`;
-    if (!address) qr = '';
+    const url = `http://${portAddress}`;
+    if (!portAddress) qr = '';
     else QRCode.toDataURL(url, { margin: 1, width: 280 }).then((value) => (qr = value));
   });
 
   const qrImage = (text: string) => QRCode.toDataURL(text, { margin: 1, width: 280 });
 
   $effect(() => {
-    if (!address) return;
-    qrImage(`http://${address}/control/?pin=${info?.pin}`).then((value) => (controlQr = value));
-    if (info?.apk) qrImage(`http://${address}/app.apk`).then((value) => (appQr = value));
+    if (!portAddress) return;
+    qrImage(`http://${portAddress}/control/?pin=${info?.pin}`).then((value) => (controlQr = value));
+    if (info?.apk) qrImage(`http://${portAddress}/app.apk`).then((value) => (appQr = value));
   });
 
   async function copy() {
@@ -86,7 +91,7 @@
         </div>
         {#if qr}
           <figure>
-            <img id="lan-qr" src={qr} alt={`Código QR de ${address}`} />
+            <img id="lan-qr" src={qr} alt={`Código QR de ${portAddress}`} />
             <figcaption>O escaneá con el celular</figcaption>
           </figure>
         {/if}
@@ -94,15 +99,18 @@
 
       <ol>
         <li>Conectá la tele al mismo router o Wi-Fi que esta PC.</li>
-        <li>Abrí el navegador de la tele y escribí la dirección tal cual, con los dos puntos.</li>
+        <li>
+          Abrí el navegador de la tele y escribí la dirección tal cual{address.includes(':')
+            ? ', con los dos puntos'
+            : ''}.
+        </li>
         <li>Apretá OK en el control para pantalla completa. La tele se adapta sola a su resolución.</li>
       </ol>
 
       {#if others.length}
         <p class="note" id="lan-otras">
           Si no conecta, probá con
-          {#each others as other, index (other.ip)}
-            {index ? ' o ' : ''}<b>{lanAddress(other.ip, info.port)}</b> ({other.adapter}){/each}.
+          {#each others as other, index (other)}{index ? ' o ' : ''}<b>{other}</b>{/each}.
         </p>
       {/if}
       <p class="note">

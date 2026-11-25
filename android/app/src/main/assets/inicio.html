@@ -75,7 +75,14 @@
           Transmisión:
         </p>
         <br />
-        <input id="address" inputmode="decimal" placeholder="192.168.1.39:8787" autocomplete="off" />
+        <input
+          id="address"
+          inputmode="url"
+          placeholder="192.168.1.39"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+        />
         <br /><br />
         <button id="connect">Conectar</button>
         <br /><br />
@@ -104,7 +111,7 @@
 
       document.getElementById('again').onclick = search;
       document.getElementById('connect').onclick = () => {
-        const text = address.value.trim();
+        const text = address.value.trim().replace(/^https?:///i, '').replace(//.*$/, '');
         if (!text) return;
         CefApp.connect(text.includes(':') ? text : `${text}:8787`);
       };

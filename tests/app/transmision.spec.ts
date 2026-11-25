@@ -15,6 +15,7 @@ import { parse } from 'acorn';
 
 const PORT = 8802;
 const OTHER_PORT = 8803;
+const PLAIN_PORT = 8804;
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
   'base64',
@@ -27,9 +28,10 @@ let app: ElectronApplication;
 let operator: Page;
 let browser: Browser;
 
-async function launch(port: number | null = PORT) {
+async function launch(port: number | null = PORT, plainPort = 0) {
   const env = { ...process.env, CEF_OUTPUT: 'window', CEF_USER_DATA: dir } as Record<string, string>;
   delete env.CEF_LAN_PORT;
+  env.CEF_LAN_PLAIN_PORT = String(plainPort);
   if (port) env.CEF_LAN_PORT = String(port);
   app = await electron.launch({ args: ['.'], env });
   await app.firstWindow();
@@ -165,6 +167,32 @@ test('la tele va muda salvo que se pida sonido, y el pedido queda guardado', asy
   await launch();
   await operator.locator('#tab-transmision').click();
   await expect(operator.locator('#lan-sonido')).toBeChecked();
+});
+
+test('una tele que no sabe de videos no queda trabada en lo que sigue', async () => {
+  await launch();
+  const file = join(dir, 'video.mp4');
+  copyFileSync('tests/.media/patron-prueba-8s.mp4', file);
+  await app.evaluate(({ dialog }, path) => {
+    dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [path] })) as typeof dialog.showOpenDialog;
+  }, file);
+  const tv = await browser.newPage();
+  await tv.addInitScript(() => {
+    const prototype = HTMLMediaElement.prototype as unknown as Record<string, unknown>;
+    delete prototype.play;
+    delete prototype.pause;
+  });
+  const errors: string[] = [];
+  tv.on('pageerror', (error) => errors.push(error.message));
+  await tv.goto(`http://127.0.0.1:${PORT}/`);
+  await operator.locator('#tab-medios').click();
+  await operator.locator('#medio-agregar').click();
+  await operator.locator('#medios .item').first().dblclick();
+  await expect(tv.locator('.cef-media video')).toHaveCount(1);
+  await showText('Sigue andando');
+  await expect(tv.locator('.cef-body')).toHaveText('Sigue andando');
+  await expect(tv.locator('.cef-media video')).toHaveCount(0);
+  expect(errors).toEqual([]);
 });
 
 test('desde la red no se llega a otros archivos', async () => {
@@ -324,6 +352,58 @@ test('si la ventana de la tele cambia de tamaño, el texto se vuelve a acomodar'
   await expect(operator.locator('#lan-pantallas li')).toContainText('800 × 800');
 });
 
+test('una tele sin WebSocket ni funciones modernas muestra la letra igual', async () => {
+  await launch(PORT, PLAIN_PORT);
+  await showText('Jehová es mi pastor');
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  // Lo que no tiene un navegador de 2013: si la página lo usa sin fijarse, falla acá.
+  await context.addInitScript(() => {
+    const missing = ['WebSocket', 'ResizeObserver', 'fetch', 'Promise', 'Map', 'Set', 'Symbol', 'URL', 'CSS'];
+    for (const name of missing) Object.defineProperty(window, name, { value: undefined });
+    Object.defineProperty(document, 'fonts', { value: undefined });
+    const remove = (prototype: object, names: string[]) => {
+      for (const name of names) delete (prototype as Record<string, unknown>)[name];
+    };
+    remove(Array.prototype, ['find', 'findIndex', 'includes', 'flat']);
+    remove(String.prototype, ['padStart', 'includes', 'startsWith']);
+    remove(Element.prototype, ['append', 'prepend', 'replaceChildren', 'closest']);
+  });
+  const tv = await context.newPage();
+  const errors: string[] = [];
+  tv.on('pageerror', (error) => errors.push(error.message));
+  // Por el otro puerto, que hace de 80: es el que usa la tele cuando se escribe la IP sola.
+  await tv.goto(`http://127.0.0.1:${PLAIN_PORT}/`);
+  await expect(tv.locator('.cef-body')).toHaveText('Jehová es mi pastor', { timeout: 10_000 });
+  await showText('Nada me faltará');
+  await expect(tv.locator('.cef-body')).toHaveText('Nada me faltará');
+  await expect(tv.locator('#aviso')).toBeEmpty();
+  // Medido desde afuera: para evaluar código en la página, Playwright necesita Map.
+  expect((await tv.locator('.cef-body').boundingBox())!.height).toBeGreaterThan(30);
+  await tv.screenshot({ path: test.info().outputPath('tele-vieja.png') });
+
+  await operator.locator('#tab-transmision').click();
+  await expect(operator.locator('#lan-pantallas li')).toHaveCount(1);
+  await expect(operator.locator('#lan-pantallas li')).toContainText('1280 × 720');
+  // Si algo filtra el puerto corto, el panel ofrece el de siempre, y los QR lo usan.
+  await expect(operator.locator('#lan-direccion')).toHaveText(new RegExp(`:${PLAIN_PORT}$`));
+  await expect(operator.locator('#lan-otras')).toContainText(`:${PORT}`);
+  await expect(operator.locator('#lan-qr')).toHaveAttribute('alt', new RegExp(`:${PORT}$`));
+  expect(errors).toEqual([]);
+});
+
+test('en un navegador de antes de 2015 un texto largo también entra', async () => {
+  await launch();
+  const tv = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  await tv.goto(`http://127.0.0.1:${PORT}/`);
+  // Esos navegadores achicaban la caja del texto sin achicar la letra, que se salía de la pantalla.
+  await tv.addStyleTag({ content: '.cef-body, .cef-title { min-height: 0 }' });
+  await showText('Por la senda antigua camina el hombre justo y no se aparta. '.repeat(12), 'Referencia');
+  await expect(tv.locator('.cef-title')).toHaveText('Referencia');
+  const body = await tv.locator('.cef-body').evaluate((e) => ({ text: e.scrollHeight, box: e.clientHeight }));
+  expect(body.text - body.box).toBeLessThanOrEqual(2);
+  expect(body.box).toBeLessThan(720);
+});
+
 test('la consola ve la misma forma que tiene la salida', async () => {
   await launch();
   await app.evaluate(({ BrowserWindow }) => {
@@ -336,9 +416,9 @@ test('la consola ve la misma forma que tiene la salida', async () => {
   expect(shape).toBeCloseTo(4 / 3, 1);
 });
 
-test('la página de las teles se puede leer con un navegador de 2017', () => {
+test('la página de las teles se puede leer con un navegador viejo', () => {
   const code = readFileSync('out/lan/pantalla.js', 'utf8');
-  expect(() => parse(code, { ecmaVersion: 2017 })).not.toThrow();
+  expect(() => parse(code, { ecmaVersion: 5 })).not.toThrow();
   expect(code).not.toContain('replaceChildren');
   // Una tele vieja sin máscaras mostraba un rectángulo blanco en vez del logo.
   expect(code).not.toMatch(/-webkit-mask|[^-]mask:/);

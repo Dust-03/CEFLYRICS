@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { oldGradient } from '@render-engine/index';
 import { deviceName, lanAddress, listAddresses, parsePort } from '@shared/lan';
 
 const entry = (address: string, extra = {}) => ({
@@ -19,6 +20,7 @@ describe('puerto', () => {
 
   it('arma la dirección que se escribe en la tele', () => {
     expect(lanAddress('192.168.1.39', 8787)).toBe('192.168.1.39:8787');
+    expect(lanAddress('192.168.1.39', 80)).toBe('192.168.1.39');
   });
 });
 
@@ -65,5 +67,21 @@ describe('nombre de la pantalla', () => {
     expect(deviceName('Mozilla/5.0 (Linux; Android 9; BRAVIA 4K) AppleWebKit')).toBe('Android TV');
     expect(deviceName('Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit')).toBe('Android');
     expect(deviceName('algo desconocido')).toBe('Navegador');
+  });
+});
+
+describe('degradés de las teles viejas', () => {
+  it('cuenta los grados desde el otro lado', () => {
+    expect(oldGradient('linear-gradient(160deg, #111, #000)')).toBe('-webkit-linear-gradient(-70deg, #111, #000)');
+  });
+
+  it('pone el centro primero en los radiales', () => {
+    expect(oldGradient('radial-gradient(circle at 50% 40%, #111, #000 75%)')).toBe(
+      '-webkit-radial-gradient(50% 40%, circle, #111, #000 75%)',
+    );
+  });
+
+  it('no toca lo que no es un degradé', () => {
+    expect(oldGradient('#123456')).toBe('#123456');
   });
 });

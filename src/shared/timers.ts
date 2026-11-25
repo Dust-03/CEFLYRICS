@@ -33,7 +33,7 @@ export function formatRemaining(ms: number) {
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
   const seconds = total % 60;
-  const pad = (value: number) => String(value).padStart(2, '0');
+  const pad = (value: number) => `${value < 10 ? '0' : ''}${value}`;
   return hours ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
 }
 

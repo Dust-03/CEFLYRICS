@@ -35,6 +35,10 @@ const SILENT_MS = 20_000;
 const MAX_SCREENS = 32;
 const MAX_BODY = 200;
 
+// El puerto que los navegadores usan si no se pone ninguno: con él, en la tele alcanza con la IP. Con 0
+// no se usa.
+const PLAIN_PORT = Number(process.env.CEF_LAN_PLAIN_PORT ?? 80);
+
 // Sin módulos ni nada moderno: tiene que abrir en el navegador de un televisor viejo.
 const PAGE = `<!doctype html>
 <html lang="es-AR">
@@ -42,17 +46,23 @@ const PAGE = `<!doctype html>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CEFLYRICS</title>
-    <link rel="stylesheet" href="/pantalla.css" />
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; background: #000; cursor: none; }
-      #aviso { position: fixed; left: 2vw; bottom: 2vw; padding: 0.6em 1em; font: 600 2vw sans-serif;
-        color: #fff; background: rgba(0, 0, 0, 0.7); border-radius: 0.5em; }
+      #aviso { position: fixed; left: 20px; bottom: 20px; padding: 0.6em 1em; font: bold 24px sans-serif;
+        font-size: 2vw; color: #fff; background: #000; background: rgba(0, 0, 0, 0.7); border-radius: 0.5em; }
       #aviso:empty { display: none; }
     </style>
   </head>
   <body>
     <div id="stage"></div>
-    <div id="aviso"></div>
+    <div id="aviso">Conectando…</div>
+    <noscript><p style="color: #fff">El navegador de esta tele tiene JavaScript apagado.</p></noscript>
+    <script>
+      // Si algo falla en una tele vieja se ve qué fue, en vez de una pantalla vacía.
+      window.onerror = function (message, file, line) {
+        document.getElementById('aviso').innerText = message + ' (' + line + ') ' + navigator.userAgent;
+      };
+    </script>
     <script src="/pantalla.js"></script>
   </body>
 </html>
@@ -73,6 +83,7 @@ const ASSET_TYPES: Record<string, string> = {
 };
 
 type Client = LanScreen & { seenAt: number };
+type Listener = { server: Server; sockets: WebSocketServer };
 
 type LanOptions = {
   db: Db;
@@ -118,9 +129,11 @@ function addressOf(request: IncomingMessage) {
 
 // Sirve lo que está al aire a las pantallas de la red. Solo se lee: desde afuera no se cambia nada.
 export class LanServer {
-  private server: Server | null = null;
-  private sockets: WebSocketServer | null = null;
+  private main: Listener | null = null;
+  private plain: Listener | null = null;
   private clients = new Map<WebSocket, Client>();
+  // Las teles sin WebSocket, que preguntan por HTTP.
+  private polled = new Map<string, Client>();
   private status: LanStatus = 'off';
   private port: number;
   private addresses: LanAddress[] = [];
@@ -144,13 +157,14 @@ export class LanServer {
     return {
       status: this.status,
       port: this.port,
+      publicPort: this.plain?.server.listening ? PLAIN_PORT : this.port,
       addresses: this.addresses,
       previousIp: moved ? lastIp : null,
       sound: this.sound,
       pin: this.options.control.pin,
       devices: this.options.control.list,
       apk: existsSync(this.options.apk),
-      screens: [...this.clients.values()].map(({ id, ip, device, width, height }) => ({
+      screens: [...this.clients.values(), ...this.polled.values()].map(({ id, ip, device, width, height }) => ({
         id,
         ip,
         device,
@@ -222,7 +236,7 @@ export class LanServer {
     this.options.onChange(this.info);
   }
 
-  private listen() {
+  private open(onError: () => void): Listener {
     const server = createServer((request, response) => {
       this.handle(request, response).catch(() => response.destroy());
     });
@@ -237,44 +251,69 @@ export class LanServer {
       else this.options.control.accept(socket, addressOf(request));
     });
     // ws repite acá los errores del servidor: puerto ocupado, o reservado por Windows.
-    sockets.on('error', () => {
-      this.server = null;
-      this.sockets = null;
+    sockets.on('error', onError);
+    return { server, sockets };
+  }
+
+  private listen() {
+    this.main = this.open(() => {
+      this.main = null;
       this.status = 'busy';
       this.notify();
       this.retry = setTimeout(() => this.listen(), RETRY_MS);
     });
-    this.server = server;
-    this.sockets = sockets;
-    server.listen(this.port, '0.0.0.0', () => {
+    this.main.server.listen(this.port, '0.0.0.0', () => {
       this.status = 'on';
       this.notify();
+      this.listenPlain();
     });
+  }
+
+  // Si el 80 lo tiene otro programa (Holyrics también lo usa) no es un error: queda la dirección con
+  // puerto, y se vuelve a probar cada tanto.
+  private listenPlain() {
+    if (!PLAIN_PORT || this.plain || this.status !== 'on') return;
+    const plain = this.open(() => {
+      if (this.plain === plain) this.plain = null;
+    });
+    this.plain = plain;
+    plain.server.listen(PLAIN_PORT, '0.0.0.0', () => this.notify());
   }
 
   private async close() {
     clearTimeout(this.retry);
-    const { server, sockets } = this;
-    this.server = null;
-    this.sockets = null;
+    const listeners = [this.main, this.plain];
+    this.main = null;
+    this.plain = null;
     this.status = 'off';
     for (const socket of this.clients.keys()) socket.terminate();
     this.clients.clear();
+    this.polled.clear();
     this.options.control.closeAll();
-    sockets?.close();
-    if (!server?.listening) return;
-    await new Promise((resolve) => {
-      server.close(resolve);
-      server.closeAllConnections();
-    });
+    await Promise.all(
+      listeners.map((listener) => {
+        listener?.sockets.close();
+        if (!listener?.server.listening) return;
+        return new Promise((resolve) => {
+          listener.server.close(resolve);
+          listener.server.closeAllConnections();
+        });
+      }),
+    );
   }
 
-  private accept(socket: WebSocket, request: IncomingMessage) {
-    if (this.clients.size >= MAX_SCREENS) {
-      socket.close();
-      return;
+  private get full() {
+    return this.clients.size + this.polled.size >= MAX_SCREENS;
+  }
+
+  private newClient(request: IncomingMessage): Client {
+    // La IP que escribieron en la tele es la que hay que seguir ofreciendo.
+    const host = (request.headers.host ?? '').replace(/:\d+$/, '');
+    if (host !== this.lastIp && this.addresses.some(({ ip }) => ip === host)) {
+      this.lastIp = host;
+      writeSetting(this.options.db, LAST_IP_KEY, host);
     }
-    const client: Client = {
+    return {
       id: this.nextId++,
       ip: addressOf(request),
       device: deviceName(request.headers['user-agent'] ?? ''),
@@ -282,13 +321,42 @@ export class LanServer {
       height: 0,
       seenAt: Date.now(),
     };
-    this.clients.set(socket, client);
-    // La IP que escribieron en la tele es la que hay que seguir ofreciendo.
-    const host = (request.headers.host ?? '').replace(/:\d+$/, '');
-    if (host !== this.lastIp && this.addresses.some(({ ip }) => ip === host)) {
-      this.lastIp = host;
-      writeSetting(this.options.db, LAST_IP_KEY, host);
+  }
+
+  // Lo mismo que se manda por WebSocket, para la tele que no lo tiene.
+  private poll(request: IncomingMessage, response: ServerResponse) {
+    const key = `${addressOf(request)} ${request.headers['user-agent']}`;
+    let client = this.polled.get(key);
+    if (!client) {
+      if (this.full) {
+        response.writeHead(503).end();
+        return;
+      }
+      client = this.newClient(request);
+      this.polled.set(key, client);
+      this.notify();
     }
+    client.seenAt = Date.now();
+    const query = new URL(request.url ?? '/', 'http://lan').searchParams;
+    const number = (name: string) => Math.round(Number(query.get(name))) || 0;
+    const [width, height] = [number('w'), number('h')];
+    if (width !== client.width || height !== client.height) {
+      Object.assign(client, { width, height });
+      this.notify();
+    }
+    const pong = JSON.stringify({ t: 'pong', c: number('t'), s: Date.now() });
+    response
+      .writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+      .end(`[${this.soundMessage()},${toMessage(this.options.getState())},${pong}]`);
+  }
+
+  private accept(socket: WebSocket, request: IncomingMessage) {
+    if (this.full) {
+      socket.close();
+      return;
+    }
+    const client = this.newClient(request);
+    this.clients.set(socket, client);
     socket.on('message', (data) => this.receive(socket, client, String(data)));
     socket.on('close', () => {
       if (this.clients.delete(socket)) this.notify();
@@ -321,7 +389,9 @@ export class LanServer {
     // Una tele que se apaga de golpe no avisa: deja de hablar.
     const limit = Date.now() - SILENT_MS;
     for (const [socket, client] of this.clients) if (client.seenAt < limit) socket.terminate();
+    for (const [key, client] of this.polled) if (client.seenAt < limit && this.polled.delete(key)) this.notify();
     this.refreshAddresses();
+    this.listenPlain();
   }
 
   private refreshAddresses() {
@@ -356,6 +426,8 @@ export class LanServer {
       response.writeHead(200, { 'Content-Type': FILES[path], 'Cache-Control': 'no-cache' }).end(data);
     } else if (path.startsWith('/media/')) {
       await this.sendMedia(path.slice('/media/'.length), request, response);
+    } else if (path === '/api/pantalla') {
+      this.poll(request, response);
     } else if (path === '/api/ceflyrics') {
       // Con esto la app del celular reconoce a la PC en la red.
       response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"app":"ceflyrics"}');

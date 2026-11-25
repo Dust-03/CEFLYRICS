@@ -34,6 +34,8 @@ export function cleanMediaDetail(input: unknown): MediaDetail | null {
 export type LanInfo = {
   status: LanStatus;
   port: number;
+  // El que se escribe en la tele: el 80, que no hace falta poner, si está libre.
+  publicPort: number;
   addresses: LanAddress[];
   // La IP con la que se conectó la última pantalla, si ya no es la de esta PC.
   previousIp: string | null;
@@ -76,7 +78,7 @@ export function cleanDeviceName(input: unknown) {
 }
 
 export function lanAddress(ip: string, port: number) {
-  return `${ip}:${port}`;
+  return port === 80 ? ip : `${ip}:${port}`;
 }
 
 type NetworkInterface = { address: string; family: string | number; internal: boolean; mac: string };
