@@ -1,5 +1,5 @@
 import { createReadStream, createWriteStream, existsSync } from 'node:fs';
-import { mkdir, open, readdir, rm, stat } from 'node:fs/promises';
+import { mkdir, open, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import type { DataCounts } from '@shared/api';
@@ -26,9 +26,11 @@ const TABLES: Record<string, string[]> = {
 const SETTINGS = ['themes.assignment', 'themes.hidden'];
 
 const FILE_NAME = /^([0-9a-f]{64})(\.thumb)?\.([a-z0-9]+)$/;
+// Un video convertido para la tele se llama como el original: su huella viaja aparte (`sha256`).
+const CONVERTIBLE = /\.(mp4|m4v)$/;
 
 type Row = Record<string, unknown>;
-type DataFile = { name: string; size: number };
+type DataFile = { name: string; size: number; sha256?: string };
 type SavedBible = {
   code: string;
   name: string;
@@ -136,19 +138,26 @@ export class BackupService {
     for (const { sha256, ext } of tables.media as { sha256: string; ext: string }[]) {
       for (const name of [`${sha256}.${ext}`, `${sha256}.thumb.jpg`]) {
         const file = join(this.mediaFolder, name);
-        if (existsSync(file)) files.push({ name, size: (await stat(file)).size });
+        if (!existsSync(file)) continue;
+        const hash = CONVERTIBLE.test(name) ? await hashFile(file) : undefined;
+        files.push({ name, size: (await stat(file)).size, sha256: hash });
       }
     }
 
     const bibles = this.importedBibles();
-    const output = createWriteStream(target);
-    const done = new Promise<void>((resolve, reject) => output.on('finish', resolve).on('error', reject));
-    output.write(`${JSON.stringify({ format: FORMAT, version: VERSION, tables, settings, files, bibles })}\n`);
-    for (const { name } of files) {
-      await pipeline(createReadStream(join(this.mediaFolder, name)), output, { end: false });
+    const header = JSON.stringify({ format: FORMAT, version: VERSION, tables, settings, files, bibles });
+    const folder = this.mediaFolder;
+    // Se arma aparte: si algo falla, la copia anterior con ese nombre queda como estaba.
+    const temp = `${target}.parcial`;
+    try {
+      await pipeline(async function* () {
+        yield `${header}\n`;
+        for (const { name } of files) yield* createReadStream(join(folder, name));
+      }, createWriteStream(temp));
+      await rename(temp, target);
+    } finally {
+      await rm(temp, { force: true });
     }
-    output.end();
-    await done;
     return counts(tables, bibles.length);
   }
 
@@ -160,23 +169,33 @@ export class BackupService {
 
     await mkdir(this.mediaFolder, { recursive: true });
     let position = start;
-    for (const { name, size } of header.files) {
-      const target = join(this.mediaFolder, name);
-      if (size) {
-        const slice = createReadStream(source, { start: position, end: position + size - 1 });
-        await pipeline(slice, createWriteStream(target));
-      }
-      position += size;
-      const match = FILE_NAME.exec(name)!;
-      if (!match[2] && (await hashFile(target)) !== match[1]) {
-        await rm(target, { force: true });
-        throw invalid();
-      }
+    for (const file of header.files) {
+      await this.restoreFile(source, position, file);
+      position += file.size;
     }
 
     this.replaceData(header);
     await this.removeUnusedFiles(header);
     return counts(header.tables, header.bibles?.length ?? 0);
+  }
+
+  // Nunca se escribe encima de un archivo bueno: se copia aparte, se comprueba y recién ahí se cambia.
+  private async restoreFile(source: string, start: number, { name, size, sha256 }: DataFile) {
+    const target = join(this.mediaFolder, name);
+    const [, hash, thumb] = FILE_NAME.exec(name)!;
+    // Las copias de la 2.1.6 a la 2.1.8 no traen la huella de los videos convertidos: no se comprueban.
+    const wanted = sha256 ?? (thumb || CONVERTIBLE.test(name) ? undefined : hash);
+    const matches = async (file: string) => !wanted || (await hashFile(file)) === wanted;
+    if ((await stat(target).catch(() => null))?.size === size && (await matches(target))) return;
+    const temp = `${target}.importando`;
+    try {
+      if (size) await pipeline(createReadStream(source, { start, end: start + size - 1 }), createWriteStream(temp));
+      else await writeFile(temp, '');
+      if (!(await matches(temp))) throw invalid();
+      await rename(temp, target);
+    } finally {
+      await rm(temp, { force: true });
+    }
   }
 
   private importedBibles(): SavedBible[] {
@@ -241,7 +260,9 @@ export class BackupService {
   private async removeUnusedFiles({ files }: Header) {
     const kept = new Set(files.map(({ name }) => name));
     for (const name of await readdir(this.mediaFolder)) {
-      if (FILE_NAME.test(name) && !kept.has(name)) await rm(join(this.mediaFolder, name), { force: true });
+      // Los datos ya se reemplazaron: un video viejo que se está reproduciendo no debe dar error.
+      if (FILE_NAME.test(name) && !kept.has(name))
+        await rm(join(this.mediaFolder, name), { force: true }).catch(() => {});
     }
   }
 }

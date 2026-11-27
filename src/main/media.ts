@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
+import { createReadStream, existsSync } from 'node:fs';
 import { access, copyFile, mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
 import { Readable } from 'node:stream';
@@ -118,12 +118,20 @@ export class MediaService {
         continue;
       }
       const sha256 = await hashFile(file);
+      const known = this.db.prepare('SELECT ext FROM media WHERE sha256 = ?').get(sha256) as
+        { ext: string } | undefined;
+      // Si ya está, quizás convertido y con otra extensión, copiarlo dejaría un archivo suelto.
+      if (known && existsSync(join(this.folder, `${sha256}.${known.ext}`))) continue;
       await copyFile(file, join(this.folder, `${sha256}.${ext}`));
       const { size } = await stat(file);
-      const { changes } = this.db
-        .prepare('INSERT OR IGNORE INTO media (sha256, kind, ext, original_name, size) VALUES (?, ?, ?, ?, ?)')
+      // Si estaba anotado pero se perdió su archivo, pasa a apuntar al que se acaba de copiar.
+      this.db
+        .prepare(
+          `INSERT INTO media (sha256, kind, ext, original_name, size) VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT (sha256) DO UPDATE SET ext = excluded.ext, size = excluded.size`,
+        )
         .run(sha256, kind, ext, basename(file), size);
-      result.added += changes;
+      if (!known) result.added += 1;
     }
     this.convertVideos();
     return result;

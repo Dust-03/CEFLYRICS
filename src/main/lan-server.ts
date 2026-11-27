@@ -20,7 +20,7 @@ import {
 import type { DataCounts, MediaAddResult } from '@shared/api';
 import type { OnAirState } from '@shared/state';
 import type { Db } from './db/database';
-import type { LanControl } from './lan-control';
+import { MEDIA_TICKET_MS, type LanControl } from './lan-control';
 import { MEDIA_EXTENSIONS } from './media';
 import { readSetting, writeSetting } from './settings';
 
@@ -240,6 +240,8 @@ export class LanServer {
     const server = createServer((request, response) => {
       this.handle(request, response).catch(() => response.destroy());
     });
+    // Node corta a los 5 minutos: un video por un Wi-Fi flojo puede tardar tanto como dura su permiso.
+    server.requestTimeout = MEDIA_TICKET_MS;
     const sockets = new WebSocketServer({
       server,
       maxPayload: 65_536,

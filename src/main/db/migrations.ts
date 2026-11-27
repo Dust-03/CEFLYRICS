@@ -152,4 +152,10 @@ export const MIGRATIONS: Migration[] = [
       UPDATE shortcuts SET position = id;
     `,
   },
+  {
+    version: 7,
+    name: 'rearmar el buscador de versículos',
+    // Hasta la 2.1.8, importar una biblia con un versículo repetido lo dejaba roto.
+    sql: `INSERT INTO verses_fts (verses_fts) VALUES ('rebuild');`,
+  },
 ];

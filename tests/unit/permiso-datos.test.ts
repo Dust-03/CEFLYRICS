@@ -1,9 +1,13 @@
 import { EventEmitter } from 'node:events';
+import type { Server } from 'node:http';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import type { WebSocket } from 'ws';
+import type { WebSocket, WebSocketServer } from 'ws';
 import type { LanDataRequest } from '@shared/lan';
 import { openDatabase, type Db } from '../../src/main/db/database';
 import { LanControl } from '../../src/main/lan-control';
+import { LanServer } from '../../src/main/lan-server';
+
+type Listener = { server: Server; sockets: WebSocketServer };
 
 // Un celular de mentira: lo que manda la PC queda en sent.
 class FakeSocket extends EventEmitter {
@@ -21,15 +25,17 @@ class FakeSocket extends EventEmitter {
 
 let db: Db;
 let asked: LanDataRequest[];
+let dispatched: unknown[];
 let control: LanControl;
 
 beforeEach(() => {
   db = openDatabase(':memory:');
   asked = [];
+  dispatched = [];
   control = new LanControl({
     db,
     getState: () => ({}) as never,
-    dispatch: () => {},
+    dispatch: (action) => dispatched.push(action),
     methods: {},
     onChange: () => {},
     askPermission: (request) => asked.push(request),
@@ -126,6 +132,35 @@ test('el boleto vence a los dos minutos, y no sirve si se desvinculó el celular
   expect(control.useTicket(second.ticket, 'export')).toBe(false);
 });
 
+test('un celular desvinculado no manda ni recibe más, aunque su conexión tarde en cerrarse', () => {
+  const phone = connectPhone();
+  // Una conexión real no avisa que se cerró en el momento.
+  phone.close = () => {};
+  control.unlink(control.list[0].id);
+  const received = phone.sent.length;
+  phone.emit('message', JSON.stringify({ t: 'dispatch', a: { type: 'clear' } }));
+  control.broadcast({} as never);
+  expect(dispatched).toEqual([]);
+  expect(phone.sent).toHaveLength(received);
+});
+
+test('tras veinte PIN equivocados nadie vincula por un minuto, y los ya vinculados siguen entrando', () => {
+  vi.useFakeTimers();
+  const paired = control.pair('10.0.0.5', control.pin, 'Celu de Ana') as { token: string };
+  const wrong = control.pin === '000000' ? '111111' : '000000';
+  // Cada intento desde una dirección distinta: ninguna llega a su propio tope.
+  for (let i = 0; i < 20; i++) expect(control.pair(`10.0.1.${i}`, wrong, 'Otro')).toEqual({ error: 'pin' });
+  expect(control.pair('10.0.2.1', control.pin, 'Otro')).toEqual({ error: 'locked' });
+
+  const phone = new FakeSocket();
+  control.accept(phone as unknown as WebSocket, '10.0.0.5');
+  phone.emit('message', JSON.stringify({ t: 'auth', token: paired.token }));
+  expect(phone.sent[0]).toMatchObject({ t: 'state' });
+
+  vi.advanceTimersByTime(60_000);
+  expect(control.pair('10.0.2.1', control.pin, 'Otro')).toHaveProperty('token');
+});
+
 test('rechaza acciones que no existen', async () => {
   const phone = connectPhone();
   expect(await request(phone, 'borrar')).toEqual({ denied: true });
@@ -152,6 +187,13 @@ test('el boleto de medios dura media hora', async () => {
   expect(control.useTicket(first.ticket, 'media')).toBe(true);
   vi.useFakeTimers({ now: Date.now() + 2 * 60_000 });
   expect(control.useTicket(second.ticket, 'media')).toBe(false);
+});
+
+test('una subida puede durar tanto como el boleto de medios', () => {
+  const lan = new LanServer({ db, control } as never);
+  const { server, sockets } = (lan as unknown as { open(onError: () => void): Listener }).open(() => {});
+  sockets.close();
+  expect(server.requestTimeout).toBe(30 * 60_000);
 });
 
 test('no pregunta por medios sin archivos, con números raros o con más de 100', async () => {

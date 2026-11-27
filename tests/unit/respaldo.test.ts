@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test } from 'vitest';
@@ -77,6 +77,23 @@ test('pasa todo a otra PC, y las canciones se pueden buscar', async () => {
   expect(existsSync(join(target.folder, `${sha256}.thumb.jpg`))).toBe(true);
 });
 
+test('una copia con un video ya convertido para la tele se puede importar', async () => {
+  const converting = new MediaService(origin.db, origin.folder, undefined, {
+    needsConversion: async (_file, ext) => ext !== 'mp4',
+    convert: async (_file, output) => writeFileSync(output, 'convertido'),
+  });
+  const video = join(dir, 'clip.mov');
+  writeFileSync(video, 'original');
+  await converting.add([video]);
+  await converting.convertVideos();
+
+  const file = join(dir, 'copia.ceflyrics');
+  await origin.backup.export(file);
+  expect(await target.backup.import(file)).toMatchObject({ media: 1 });
+  const { sha256, ext } = target.db.prepare('SELECT sha256, ext FROM media').get() as { sha256: string; ext: string };
+  expect(readFileSync(join(target.folder, `${sha256}.${ext}`), 'utf8')).toBe('convertido');
+});
+
 test('abre las copias de la 1.1.0, que se escribían con i y no traían biblias', async () => {
   await fillOrigin();
   const file = join(dir, 'copia.ceflyrics');
@@ -136,6 +153,65 @@ test('borra los medios viejos de la PC que recibe', async () => {
   const { sha256 } = target.db.prepare('SELECT sha256 FROM media').get() as { sha256: string };
   await target.backup.import(file);
   expect(existsSync(join(target.folder, `${sha256}.png`))).toBe(false);
+});
+
+test('una copia dañada no toca el archivo bueno que ya estaba, ni deja restos', async () => {
+  await fillOrigin();
+  const file = join(dir, 'copia.ceflyrics');
+  await origin.backup.export(file);
+  await target.backup.import(file);
+  const before = readdirSync(target.folder).sort();
+  const { sha256 } = target.db.prepare('SELECT sha256 FROM media').get() as { sha256: string };
+
+  // Mismo tamaño y otros bytes en la foto, que va antes que su miniatura.
+  const damaged = readFileSync(file, 'utf8').replace('imagen de prueba', 'imagen rota!!!!!');
+  writeFileSync(file, damaged);
+  rmSync(join(target.folder, `${sha256}.png`));
+  writeFileSync(join(target.folder, `${sha256}.png`), 'corto');
+  await expect(target.backup.import(file)).rejects.toThrow('no es una copia');
+  expect(readFileSync(join(target.folder, `${sha256}.png`), 'utf8')).toBe('corto');
+
+  writeFileSync(join(target.folder, `${sha256}.png`), 'imagen de prueba');
+  // El archivo bueno ya está: no se vuelve a escribir.
+  await target.backup.import(file);
+  expect(readFileSync(join(target.folder, `${sha256}.png`), 'utf8')).toBe('imagen de prueba');
+  expect(readdirSync(target.folder).sort()).toEqual(before);
+});
+
+test('un video convertido dañado se rechaza; las copias viejas, sin su huella, se aceptan', async () => {
+  const converting = new MediaService(origin.db, origin.folder, undefined, {
+    needsConversion: async (_file, ext) => ext !== 'mp4',
+    convert: async (_file, output) => writeFileSync(output, 'convertido'),
+  });
+  const video = join(dir, 'clip.mov');
+  writeFileSync(video, 'original');
+  await converting.add([video]);
+  await converting.convertVideos();
+  const file = join(dir, 'copia.ceflyrics');
+  await origin.backup.export(file);
+  const text = readFileSync(file, 'utf8');
+
+  writeFileSync(file, text.replace(/convertido$/, 'estropeado'));
+  await expect(target.backup.import(file)).rejects.toThrow('no es una copia');
+  expect(readdirSync(target.folder)).toEqual([]);
+
+  writeFileSync(file, text.replace(/,"sha256":"[0-9a-f]{64}"\}\]/, '}]'));
+  expect(await target.backup.import(file)).toMatchObject({ media: 1 });
+});
+
+test('si falla la exportación, la copia anterior queda como estaba', async () => {
+  await fillOrigin();
+  const file = join(dir, 'copia.ceflyrics');
+  await origin.backup.export(file);
+  const good = readFileSync(file);
+  // Un archivo que no se puede leer: en su lugar hay una carpeta.
+  const { sha256 } = origin.db.prepare('SELECT sha256 FROM media').get() as { sha256: string };
+  rmSync(join(origin.folder, `${sha256}.png`));
+  mkdirSync(join(origin.folder, `${sha256}.png`));
+
+  await expect(origin.backup.export(file)).rejects.toThrow();
+  expect(readFileSync(file)).toEqual(good);
+  expect(existsSync(`${file}.parcial`)).toBe(false);
 });
 
 const header = (changes: object) => ({

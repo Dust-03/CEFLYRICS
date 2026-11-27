@@ -17,6 +17,8 @@ const PIN_KEY = 'lan.pin';
 const DEVICES_KEY = 'lan.devices';
 
 const MAX_FAILURES = 5;
+// Sumando todas las direcciones: cambiar de dirección no da muchos más intentos.
+const MAX_TOTAL_FAILURES = 20;
 const LOCK_MS = 60_000;
 const AUTH_MS = 5000;
 // El celular lo entiende como "te desvincularon".
@@ -25,7 +27,7 @@ const REJECTED = 4001;
 const ASK_MS = 60_000;
 const TICKET_MS = 120_000;
 // Subir varios videos por Wi-Fi puede tardar: el boleto de medios dura más y sirve una vez por archivo.
-const MEDIA_TICKET_MS = 30 * 60_000;
+export const MEDIA_TICKET_MS = 30 * 60_000;
 
 export type ControlMethods = Record<string, (...args: unknown[]) => unknown>;
 
@@ -46,6 +48,16 @@ type Message = { t?: unknown; token?: unknown; id?: unknown; m?: unknown; a?: un
 
 export type PairResult = { token: string } | { error: 'pin' | 'locked' | 'name' };
 
+type Attempts = { count: number; lockedUntil: number };
+
+// Suma un PIN equivocado; al llegar al tope bloquea un rato y vuelve a contar.
+function addFailure(attempts: Attempts, max: number) {
+  attempts.count += 1;
+  if (attempts.count < max) return;
+  attempts.count = 0;
+  attempts.lockedUntil = Date.now() + LOCK_MS;
+}
+
 const newPin = () => String(randomInt(0, 1_000_000)).padStart(6, '0');
 const digest = (value: string) => createHash('sha256').update(value).digest();
 const same = (a: string, b: string) => timingSafeEqual(digest(a), digest(b));
@@ -60,7 +72,8 @@ const fromLan = (value: unknown) => JSON.parse(JSON.stringify(value).replace(/"\
 export class LanControl {
   private pinValue: string;
   private devices: Device[];
-  private failures = new Map<string, { count: number; lockedUntil: number }>();
+  private failures = new Map<string, Attempts>();
+  private allFailures: Attempts = { count: 0, lockedUntil: 0 };
   private sessions = new Map<WebSocket, Session>();
   private requests = new Map<number, { deviceId: number; finish: (allowed: boolean) => void }>();
   private nextRequest = 1;
@@ -94,13 +107,10 @@ export class LanControl {
 
   pair(ip: string, pin: unknown, rawName: unknown): PairResult {
     const record = this.failures.get(ip) ?? { count: 0, lockedUntil: 0 };
-    if (record.lockedUntil > Date.now()) return { error: 'locked' };
+    if (Math.max(record.lockedUntil, this.allFailures.lockedUntil) > Date.now()) return { error: 'locked' };
     if (typeof pin !== 'string' || !same(pin, this.pinValue)) {
-      record.count += 1;
-      if (record.count >= MAX_FAILURES) {
-        record.count = 0;
-        record.lockedUntil = Date.now() + LOCK_MS;
-      }
+      addFailure(record, MAX_FAILURES);
+      addFailure(this.allFailures, MAX_TOTAL_FAILURES);
       this.failures.set(ip, record);
       return { error: 'pin' };
     }
@@ -118,7 +128,12 @@ export class LanControl {
   unlink(id: number) {
     this.devices = this.devices.filter((device) => device.id !== id);
     this.save();
-    for (const [socket, session] of this.sessions) if (session.deviceId === id) socket.close(REJECTED);
+    for (const [socket, session] of this.sessions) {
+      if (session.deviceId !== id) continue;
+      // Se saca ya: mientras termina de cerrarse, la conexión todavía puede mandar.
+      this.sessions.delete(socket);
+      socket.close(REJECTED);
+    }
     this.options.onChange();
   }
 
@@ -127,10 +142,6 @@ export class LanControl {
   }
 
   // Una página de internet abierta en la red no puede hablarle al control.
-  isPaired(token: unknown) {
-    return typeof token === 'string' && this.devices.some(({ tokenHash }) => tokenHash === hashOf(token));
-  }
-
   isSameOrigin(request: IncomingMessage) {
     const { origin, host } = request.headers;
     return !origin || origin === `http://${host}`;
@@ -262,7 +273,7 @@ export class LanControl {
   }
 
   // Avisa que cambió una lista, para que los celulares la vuelvan a pedir.
-  notify(list: 'shortcuts' | 'timers' | 'media') {
+  notify(list: 'shortcuts' | 'timers' | 'media' | 'themes') {
     this.send({ t: list });
   }
 

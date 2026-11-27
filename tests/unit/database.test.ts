@@ -1,7 +1,8 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test } from 'vitest';
+import { BibleImporter } from '../../src/main/bible/import';
 import { openDatabase, type Db } from '../../src/main/db/database';
 import { MIGRATIONS } from '../../src/main/db/migrations';
 import { makeVid, parseVid } from '../../src/shared/vid';
@@ -79,6 +80,34 @@ test('el índice sigue a la tabla al editar y al borrar', () => {
 
   db.prepare('DELETE FROM bibles WHERE id = ?').run(bible);
   expect(search(db, 'nuevo')).toEqual([]);
+});
+
+// Falla si el índice no coincide con la tabla de versículos.
+const checkIndex = (target: Db) =>
+  target.prepare(`INSERT INTO verses_fts (verses_fts, rank) VALUES ('integrity-check', 1)`).run();
+
+test('importar un versículo repetido no rompe el buscador, y vale el último', async () => {
+  db = openDatabase(file);
+  const usfm = join(dir, 'juan.usfm');
+  writeFileSync(usfm, ['\\id JHN', '\\c 3', '\\v 16 primero', '\\v 16 segundo'].join('\n'));
+  await new BibleImporter(db).import([usfm], { code: 'MIA', name: 'Mía' });
+
+  expect(search(db, 'segundo')).toEqual([JOHN_3_16]);
+  expect(search(db, 'primero')).toEqual([]);
+  expect(() => checkIndex(db!)).not.toThrow();
+});
+
+test('al actualizar se arregla un buscador que había quedado roto', () => {
+  db = openDatabase(file, MIGRATIONS.slice(0, 6));
+  const bible = addBible(db);
+  addVerse(db, bible, JOHN_3_16, 'primero');
+  db.prepare('INSERT OR REPLACE INTO verses (bible_id, vid, text) VALUES (?, ?, ?)').run(bible, JOHN_3_16, 'segundo');
+  expect(() => checkIndex(db!)).toThrow();
+  db.close();
+
+  db = openDatabase(file);
+  expect(() => checkIndex(db!)).not.toThrow();
+  expect(search(db, 'segundo')).toEqual([JOHN_3_16]);
 });
 
 test('migrar dos veces no cambia nada y los datos sobreviven', () => {

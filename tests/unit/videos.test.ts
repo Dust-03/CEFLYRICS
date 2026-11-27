@@ -87,6 +87,34 @@ test('al agregar un video lo convierte en segundo plano y la dirección vieja si
   expect(converter.calls).toHaveLength(1);
 });
 
+test('volver a agregar un video convertido no deja una copia suelta, y repone el archivo si falta', async () => {
+  const folder = join(dir, 'media');
+  const { converter, finish } = fakeConverter();
+  const media = new MediaService(db, folder, undefined, converter);
+  const video = join(dir, 'celular.mp4');
+  writeFileSync(video, 'hevc 4k');
+  const files = () => readdirSync(folder);
+  const convert = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    finish();
+    await media.convertVideos();
+  };
+
+  await media.add([video]);
+  await convert();
+  expect(await media.add([video])).toEqual({ added: 0, rejected: [] });
+  await media.convertVideos();
+  expect(files()).toEqual([expect.stringMatching(/.m4v$/)]);
+
+  rmSync(join(folder, files()[0]));
+  await media.add([video]);
+  expect(files()).toEqual([expect.stringMatching(/.mp4$/)]);
+  expect((await media.list())[0].url).toMatch(/.mp4$/);
+  await convert();
+  expect(files()).toEqual([expect.stringMatching(/.m4v$/)]);
+  expect((await media.list())[0].url).toMatch(/.m4v$/);
+});
+
 test('si borran el video mientras se convierte no queda nada en la carpeta', async () => {
   const folder = join(dir, 'media');
   const { converter, finish } = fakeConverter();

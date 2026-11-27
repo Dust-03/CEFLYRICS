@@ -101,6 +101,13 @@
     media = await connection.call<MediaItem[]>('media.list');
   }
 
+  async function loadThemes() {
+    [themes, assignment] = await Promise.all([
+      connection.call<ThemeEntry[]>('themes.list'),
+      connection.call<ThemeAssignment>('themes.assignment'),
+    ]);
+  }
+
   // Desde el celular se suben solo fotos y videos; la PC da permiso y los vuelve a revisar.
   let uploadNote = $state('');
   async function uploadFiles(event: Event) {
@@ -205,7 +212,7 @@
         tone: 'ok',
         text: `Listo: ${n(s, 'canción', 'canciones')}, ${n(m, 'medio', 'medios')}, ${n(t, 'estilo', 'estilos')} y ${n(b, 'biblia', 'biblias')}. La PC ya tiene los datos nuevos.`,
       };
-      await Promise.all([loadMedia(), loadShortcuts(), loadTimers()]);
+      await Promise.all([loadMedia(), loadThemes(), loadShortcuts(), loadTimers()]);
     } catch {
       dataNote = { tone: 'bad', text: 'Se cortó la conexión con la PC antes de terminar.' };
     } finally {
@@ -261,6 +268,7 @@
     onShortcuts: () => loadShortcuts(),
     onTimers: () => loadTimers(),
     onMedia: () => loadMedia(),
+    onThemes: () => loadThemes(),
     onRejected: () => onRejected(),
   });
   $effect(() => onConnection(connection));
@@ -270,9 +278,8 @@
     version ||= bibles[0]?.code ?? '';
     // Lo que se escribió mientras cargaba necesitaba la versión para buscar.
     if (query.trim()) searchBible();
-    [themes, assignment, media, shortcuts, songs, keyButtons] = await Promise.all([
-      connection.call<ThemeEntry[]>('themes.list'),
-      connection.call<ThemeAssignment>('themes.assignment'),
+    await loadThemes();
+    [media, shortcuts, songs, keyButtons] = await Promise.all([
       connection.call<MediaItem[]>('media.list'),
       connection.call<Shortcut[]>('shortcuts.list'),
       connection.call<SongSummary[]>('songs.list', ''),

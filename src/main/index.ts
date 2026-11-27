@@ -38,6 +38,10 @@ import { OutputWindow, TITLE_BAR, createOperatorWindow } from './windows';
 // En desarrollo los datos quedan en el proyecto, no en el perfil del usuario.
 if (!app.isPackaged) app.setPath('userData', process.env.CEF_USER_DATA ?? join(app.getAppPath(), 'userdata'));
 
+// Una sola instancia por carpeta de datos: dos escribirían la misma base y pelearían por el puerto.
+const isFirstInstance = app.requestSingleInstanceLock();
+if (!isFirstInstance) app.quit();
+
 // Las fotos y videos se sirven por un protocolo propio: las páginas no leen el disco.
 protocol.registerSchemesAsPrivileged([
   { scheme: MEDIA_SCHEME, privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true } },
@@ -175,6 +179,8 @@ function broadcast(channel: string, payload: unknown) {
 }
 
 app.whenReady().then(() => {
+  // La segunda instancia se está cerrando: no debe tocar la base ni la red.
+  if (!isFirstInstance) return;
   // Sin menú: F10 abriría el de Windows en vez de poner negro.
   Menu.setApplicationMenu(null);
 
@@ -297,10 +303,20 @@ app.whenReady().then(() => {
 
   const themes = new ThemeService(db);
   ipcMain.handle(IPC.themeList, () => themes.list());
-  ipcMain.handle(IPC.themeSave, (_event, input: ThemeInput) => themes.save(input));
-  ipcMain.handle(IPC.themeRemove, (_event, id: string) => themes.remove(String(id)));
+  ipcMain.handle(IPC.themeSave, (_event, input: ThemeInput) => {
+    const id = themes.save(input);
+    control.notify('themes');
+    return id;
+  });
+  ipcMain.handle(IPC.themeRemove, (_event, id: string) => {
+    themes.remove(String(id));
+    control.notify('themes');
+  });
   ipcMain.handle(IPC.themeAssignment, () => themes.assignment());
-  ipcMain.handle(IPC.themeAssign, (_event, assignment: ThemeAssignment) => themes.assign(assignment));
+  ipcMain.handle(IPC.themeAssign, (_event, assignment: ThemeAssignment) => {
+    themes.assign(assignment);
+    control.notify('themes');
+  });
 
   const timers = new TimerService(db);
   ipcMain.handle(IPC.timerList, () => timers.list());
@@ -403,6 +419,8 @@ app.whenReady().then(() => {
       if (canceled || !filePaths[0]) return { canceled: true as const };
       const counts = await backup.import(filePaths[0]);
       media.convertVideos();
+      control.notify('media');
+      control.notify('themes');
       shortcutsChanged();
       timersChanged();
       return { counts };
@@ -495,6 +513,7 @@ app.whenReady().then(() => {
       media.convertVideos();
       for (const window of BrowserWindow.getAllWindows()) window.webContents.reload();
       control.notify('media');
+      control.notify('themes');
       control.notify('timers');
       control.notify('shortcuts');
       return counts;
@@ -529,6 +548,13 @@ app.whenReady().then(() => {
   });
 
   const operator = createOperatorWindow();
+  // Abrir el programa de nuevo trae al frente el que ya está.
+  app.on('second-instance', () => {
+    if (operator.isDestroyed()) return;
+    // restore() sobre una ventana maximizada la achicaría.
+    if (operator.isMinimized()) operator.restore();
+    operator.focus();
+  });
   const checkUpdates = configureAutoUpdates(operator);
   ipcMain.handle(IPC.checkUpdates, (): Promise<UpdateCheck> | UpdateCheck => checkUpdates?.() ?? 'dev');
   handleShortcuts(operator.webContents);

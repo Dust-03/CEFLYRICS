@@ -12,6 +12,7 @@ type Listeners = {
   onShortcuts: () => void;
   onTimers: () => void;
   onMedia: () => void;
+  onThemes: () => void;
   // Lo desvincularon desde la PC.
   onRejected: () => void;
 };
@@ -51,7 +52,8 @@ export async function pair(pin: string, name: string): Promise<'ok' | 'pin' | 'l
   return 'ok';
 }
 
-export function connect(token: string, { onState, onOnline, onShortcuts, onTimers, onMedia, onRejected }: Listeners) {
+export function connect(token: string, listeners: Listeners) {
+  const { onState, onOnline, onShortcuts, onTimers, onMedia, onThemes, onRejected } = listeners;
   let socket: WebSocket | null = null;
   let heardAt = 0;
   let nextId = 1;
@@ -100,6 +102,8 @@ export function connect(token: string, { onState, onOnline, onShortcuts, onTimer
         onTimers();
       } else if (message.t === 'media') {
         onMedia();
+      } else if (message.t === 'themes') {
+        onThemes();
       } else if (message.t === 'pong') {
         onPong(message.c, message.s);
       } else if (message.id !== undefined) {

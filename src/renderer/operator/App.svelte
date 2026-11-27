@@ -80,7 +80,10 @@
     onAir = value;
     if (!value.slide) onAirKey = undefined;
   });
-  api.onOutputInfo((value) => (output = value));
+  // Con llaves: lo que devuelve un aviso se copia de vuelta al puente, y un estado de Svelte no se puede copiar.
+  api.onOutputInfo((value) => {
+    output = value;
+  });
   api.onUpdateProgress((percent) => (downloading = percent));
 
   async function loadLibrary() {
@@ -101,7 +104,9 @@
 
   let keyButtons = $state<KeyButton[]>(DEFAULT_KEY_BUTTONS);
   api.keys.get().then((value) => (keyButtons = value));
-  api.keys.onChange((value) => (keyButtons = value));
+  api.keys.onChange((value) => {
+    keyButtons = value;
+  });
   // El primero que quita lo que está al aire conserva el id de siempre.
   const clearIndex = $derived(keyButtons.findIndex((button) => button.action === 'clear'));
 

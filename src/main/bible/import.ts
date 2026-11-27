@@ -87,7 +87,11 @@ export class BibleImporter {
         )
         .run(cleanCode, cleanName);
       const addBook = this.db.prepare('INSERT INTO bible_books (bible_id, book_no, name) VALUES (?, ?, ?)');
-      const addVerse = this.db.prepare('INSERT OR REPLACE INTO verses (bible_id, vid, text) VALUES (?, ?, ?)');
+      // Un versículo repetido gana el último. Con OR REPLACE no corre el trigger que limpia el buscador.
+      const addVerse = this.db.prepare(
+        `INSERT INTO verses (bible_id, vid, text) VALUES (?, ?, ?)
+         ON CONFLICT (bible_id, vid) DO UPDATE SET text = excluded.text`,
+      );
       for (const { number, name: bookName, verses } of books.values()) {
         addBook.run(bibleId, number, bookName);
         for (const { vid, text } of verses) addVerse.run(bibleId, vid, text);

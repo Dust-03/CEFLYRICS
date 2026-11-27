@@ -193,6 +193,22 @@ test('lo que se manda le gana al Logo, y se puede volver a mandar lo mismo', asy
   await expect(output.locator('.cef-body')).toContainText('de tal manera');
 });
 
+test('si en la PC cambia el estilo, el celular ya conectado lo usa', async () => {
+  const phone = await pairPhone();
+  await phone.locator('#control-buscar').fill('jn 3 16');
+  await phone.getByRole('button', { name: /Juan 3:16/ }).click();
+  await operator.evaluate(async () => {
+    const [{ theme }] = await window.ceflyrics.themes.list();
+    const id = await window.ceflyrics.themes.save({ name: 'Rojo', theme: { ...theme, color: '#ff0000' } });
+    await window.ceflyrics.themes.assign({ song: id, bible: id });
+  });
+  // El aviso llega solo: se manda hasta que el celular ya tiene el estilo nuevo.
+  await expect(async () => {
+    await phone.locator('#control-aire-boton').click();
+    await expect(output.locator('.cef-body')).toHaveCSS('color', 'rgb(255, 0, 0)', { timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
+});
+
 test('volver a tocar la pestaña lleva al inicio del menú', async () => {
   await operator.evaluate(() => window.ceflyrics.songs.save({ title: 'Prueba', author: '', text: 'Uno' }));
   const phone = await pairPhone();
